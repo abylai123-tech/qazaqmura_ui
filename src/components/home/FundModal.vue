@@ -2,13 +2,6 @@
 import { ref, type Ref } from 'vue';
 import { useAPI } from '@/api';
 
-interface Publisher {
-  publisher_id: number,
-  publisher: string,
-  amount: string,
-  books: number,
-}
-
 const api = useAPI();
 
 interface BookState {

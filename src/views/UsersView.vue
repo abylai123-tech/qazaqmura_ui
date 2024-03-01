@@ -11,6 +11,9 @@ interface User {
   fathername: string,
   login: string,
   phone: string,
+  email: string,
+  activated_at: string,
+  last_used_at: string,
   status: boolean,
 }
 
@@ -144,6 +147,12 @@ watch(page, () => { getUsers() })
           <div>
             {{ item.lastname }} {{ item.firstname }} {{ item.fathername }} / <strong>1Б</strong>
           </div>
+          <div>
+            <span class="text-subtitle-2 text-medium-emphasis">Первая активность: {{ item.activated_at }}</span>
+          </div>
+          <div>
+            <span class="text-subtitle-2 text-medium-emphasis">Последняя активность: {{ item.last_used_at }}</span>
+          </div>
           <div class="my-2">
             <v-chip size="small" color="primary" class="mr-2" variant="outlined">Библиотекарь</v-chip>
             <v-chip size="small" v-if="item.status" color="green" variant="flat">Активен</v-chip>
@@ -153,8 +162,10 @@ watch(page, () => { getUsers() })
       </template>
 
       <template v-slot:[`item.data`]="{ item }">
-        <div class="d-flex flex-column subtitle-text">
-          <span>{{ item.phone }}</span>
+        <div class="font-weight-bold">{{ item.login }}</div>
+        <div class="d-flex flex-column">
+          <span class="text-subtitle-2 text-medium-emphasis">{{ item.email }}</span>
+          <span class="text-subtitle-2 text-medium-emphasis">{{ item.phone }}</span>
         </div>
       </template>
 
@@ -165,9 +176,9 @@ watch(page, () => { getUsers() })
         </div>
       </template>
 
-      <template v-slot:[`item.actions`]="{ }">
+      <template v-slot:[`item.actions`]="{ item }">
         <div class="d-flex align-center">
-          <v-btn variant="outlined" class="mr-2" append-icon="mdi-arrow-right">Перейти</v-btn>
+          <v-btn :to="`/users/${item.id}`" variant="outlined" class="mr-2" append-icon="mdi-arrow-right">Перейти</v-btn>
           <v-btn variant="text" icon="mdi-download"></v-btn>
         </div>
       </template>

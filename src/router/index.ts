@@ -12,6 +12,7 @@ import { useAuth } from '@/auth'
 import InventoryViewVue from '@/views/InventoryView.vue'
 import PurchaseViewVue from '@/views/PurchaseView.vue'
 import MDataAddViewVue from '@/views/MDataAddView.vue'
+import UserPageVue from '@/views/UserPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -88,6 +89,12 @@ const router = createRouter({
       component: PurchaseViewVue,
       meta: { requiresAuth: true },
     },
+    {
+      path: '/users/:id',
+      name: 'userPage',
+      component: UserPageVue,
+      meta: { requiresAuth: true }
+    }
   ]
 })
 
