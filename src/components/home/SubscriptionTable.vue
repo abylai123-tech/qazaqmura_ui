@@ -38,7 +38,7 @@ async function getItems() {
 
 const returns = computed(() => {
   return items.value.filter((item) => {
-    return item.status !== 'return';
+    return item.status === 'return';
   })
 })
 
@@ -74,7 +74,7 @@ getItems();
           </v-window-item>
 
           <v-window-item :value="2">
-            <v-data-table color="primary" :loading="loading" :item="returns" :headers="headers">
+            <v-data-table color="primary" :loading="loading" :items="returns" :headers="headers">
               <template v-slot:bottom></template>
             </v-data-table>
           </v-window-item>

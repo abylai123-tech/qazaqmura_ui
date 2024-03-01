@@ -4,6 +4,7 @@ import logo from '@/assets/logo.svg'
 import avatar from '@/assets/avatar.png'
 import { ref, computed } from 'vue'
 import { useAuth } from '@/auth/index';
+import qrcode from '@/assets/qrcode.pdf'
 
 const menu = ref(false)
 const helpMenu = ref(false)
@@ -12,36 +13,33 @@ const auth = useAuth()
 const router = useRouter()
 
 const navigation = [
-  { type: 'subheader', title: 'Главная' },
-  { title: 'Приборная доска', value: 1, props: { to: { name: 'home' } } },
-  {
-    title: 'Пользователи',
-    value: 2,
-    props: { appendIcon: 'mdi-chevron-right', to: { name: 'users' } }
-  },
-  { type: 'subheader', title: 'Библиотека' },
-  { title: 'M-DATA', value: 3, props: { appendIcon: 'mdi-chevron-right', to: { name: 'm-data' } } },
-  { title: 'Фонд', value: 4, props: { appendIcon: 'mdi-chevron-right', to: { name: 'fund' } } },
-  {
-    title: 'Поступления',
-    value: 5,
-    props: { appendIcon: 'mdi-chevron-right', to: { name: 'submission' } }
-  },
-  {
-    title: 'Контрагент',
-    value: 6,
-    props: { appendIcon: 'mdi-chevron-right', to: { name: 'contractor' } }
-  },
-  { type: 'subheader', title: 'Модули' },
+  { title: 'Приборная доска', value: 1, props: { prependIcon: 'mdi-table-of-contents', to: { name: 'home' } } },
   {
     title: 'Абонемент',
-    value: 7,
-    props: { appendIcon: 'mdi-chevron-right', to: { name: 'subscription' } }
+    value: 2,
+    props: { appendIcon: 'mdi-chevron-right', prependIcon: 'mdi-card-account-details', to: { name: 'users' } }
+  },
+  { title: 'M-DATA', value: 3, props: { prependIcon: 'mdi-book-open-blank-variant', appendIcon: 'mdi-chevron-right', to: { name: 'm-data' } } },
+  { title: 'Фонд', value: 4, props: { prependIcon: 'mdi-book-multiple', appendIcon: 'mdi-chevron-right', to: { name: 'fund' } } },
+  {
+    title: 'Контрагент',
+    value: 5,
+    props: { prependIcon: 'mdi-office-building', appendIcon: 'mdi-chevron-right', to: { name: 'contractor' } }
+  },
+  {
+    title: 'Инвентарный учет',
+    value: 6,
+    props: { prependIcon: 'mdi-abacus', appendIcon: 'mdi-chevron-right', to: { name: 'inventory' } }
   },
   {
     title: 'Заяки на книги',
+    value: 7,
+    props: { prependIcon: 'mdi-library-shelves', appendIcon: 'mdi-chevron-right', to: { name: 'applies' } }
+  },
+  {
+    title: 'Заказ книг',
     value: 8,
-    props: { appendIcon: 'mdi-chevron-right', to: { name: 'applies' } }
+    props: { prependIcon: 'mdi-invoice-list', appendIcon: 'mdi-chevron-right', to: { name: 'purchase' } }
   }
 ]
 
@@ -62,7 +60,6 @@ const helpItems = [
   { title: 'Обновление', subtitle: 'Список изменений', prependIcon: 'mdi-newspaper-variant-multiple' },
   { type: 'divider' },
   { title: 'Глоссарий', prependIcon: 'mdi-text-box-check' }
-
 ]
 
 const navigationActive = computed(() => {
@@ -75,13 +72,13 @@ const navigationActive = computed(() => {
       return 3
     case 'fund':
       return 4
-    case 'submission':
-      return 5
     case 'contractor':
+      return 5
+    case 'inventory':
       return 6
-    case 'subscription':
-      return 7
     case 'applies':
+      return 7
+    case 'purchase':
       return 8
     default:
       return 0
@@ -91,7 +88,15 @@ const navigationActive = computed(() => {
 function logoutUser() {
   auth.logout();
   router.push({ name: 'login' })
-} 
+}
+
+function downloadPDF() {
+  const link = document.createElement('a');
+  link.href = qrcode;
+  link.download = 'document.pdf';
+  link.click();
+  document.body.removeChild(link);
+}
 </script>
 
 <template>
@@ -138,7 +143,7 @@ function logoutUser() {
         </v-btn>
 
         <v-btn icon>
-          <v-icon icon="mdi-email-outline"></v-icon>
+          <v-icon @click="downloadPDF" icon="mdi-qrcode"></v-icon>
         </v-btn>
 
         <v-menu v-model="helpMenu" :close-on-content-click="false">

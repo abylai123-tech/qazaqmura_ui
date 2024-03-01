@@ -9,6 +9,9 @@ import AppliesViewVue from '@/views/AppliesView.vue'
 import UsersView from '@/views/UsersView.vue'
 import LoginView from '@/views/LoginView.vue'
 import { useAuth } from '@/auth'
+import InventoryViewVue from '@/views/InventoryView.vue'
+import PurchaseViewVue from '@/views/PurchaseView.vue'
+import MDataAddViewVue from '@/views/MDataAddView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,6 +33,12 @@ const router = createRouter({
       name: 'm-data',
       component: MDataViewVue,
       meta: { requiresAuth: true } 
+    },
+    {
+      path: '/m-data/add',
+      name: 'm-data-add',
+      component: MDataAddViewVue,
+      meta: { requiresAuth: true },
     },
     {
       path: '/fund',
@@ -66,7 +75,19 @@ const router = createRouter({
       name: 'login',
       component: LoginView,
       meta: { requiresAuth: false } 
-    }
+    },
+    {
+      path: '/inventory',
+      name: 'inventory',
+      component: InventoryViewVue,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/purchase',
+      name: 'purchase',
+      component: PurchaseViewVue,
+      meta: { requiresAuth: true },
+    },
   ]
 })
 

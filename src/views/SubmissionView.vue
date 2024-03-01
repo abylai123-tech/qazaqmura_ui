@@ -122,12 +122,12 @@ const items = [
         </div>
       </template>
 
-      <template v-slot:item.status="{ item }">
+      <template v-slot:[`item.status`]="{ item }">
         <v-chip v-if="item.status" color="green" variant="flat">Активен</v-chip>
         <v-chip v-else color="error" variant="flat">Не активен</v-chip>
       </template>
 
-      <template v-slot:item.actions="{ }">
+      <template v-slot:[`item.actions`]="{ }">
         <div class="d-flex justify-center">
           <v-btn variant="flat" icon="mdi-dots-vertical"></v-btn>
         </div>

@@ -1,5 +1,126 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { useAPI } from '@/api';
+import { watch } from 'vue';
+import { ref, type Ref } from 'vue';
+
+interface Book {
+  id: number;
+  volume: string | null;
+  part: string | null;
+  amount: number | null;
+  title: string;
+  ISBN: string;
+  ISBN2: string | null;
+  year: number;
+  pages: number;
+  quotes: string;
+  annotation: string | null;
+}
+
+interface Apply {
+  id: number,
+  status: number,
+  take_at: string,
+  book: Book,
+  user: User,
+}
+
+interface UserData {
+  id: number;
+  sex: string | null;
+  document_ID: string;
+  birthday: string | null;
+  fathername: string | null;
+  firstname: string;
+  lastname: string;
+  phone: string;
+  nationality: string | null;
+}
+
+interface Classroom {
+  id: number;
+  number: string;
+  letter: string;
+}
+
+interface User {
+  id: number;
+  status: boolean;
+  login: string;
+  email: string;
+  avatar: string | null;
+  user_data: UserData;
+  classrooms: Classroom[];
+}
+
+const headers = [
+  { title: 'Пользователи', key: 'name' },
+  { title: 'Название', key: 'book.title' },
+  { title: 'Дата выдачи', key: 'take_at' },
+  { title: '', key: 'actions', sortable: false }
+]
+
+const loading: Ref<boolean> = ref(false);
+const page: Ref<number> = ref(1);
+const length: Ref<number> = ref(0);
+const items: Ref<Apply[]> = ref([]);
+
+const api = useAPI();
+
+async function getApplies() {
+  loading.value = true;
+  try {
+    const request = `https://test.api.qazaqmura.kz/v1/classroom/book/apply?page=${page.value}`;
+    const response = await api.fetchData<{ data: { items: Apply[] }, meta: { last_page: number } }>(request)
+    if (response.data) {
+      items.value = response.data.data.items;
+      length.value = response.data.meta.last_page;
+      loading.value = false;
+    }
+  } catch (error: any) {
+    console.error('Error:', error.message);
+  }
+}
+
+getApplies()
+
+watch(page, () => { getApplies() })
+</script>
 
 <template>
-  <div></div>
+  <v-container fluid>
+    <v-app-bar>
+      <template v-slot:title>
+        <div class="d-flex flex-column">
+          <span class="text-h6 font-weight-bold">Заявки на книги</span>
+          <span class="text-subtitle-2 text-medium-emphasis">Описание</span>
+        </div>
+      </template>
+
+      <template v-slot:append>
+        <v-btn variant="tonal" class="mr-3" prepend-icon="mdi-video-outline">Помощь</v-btn>
+      </template>
+    </v-app-bar>
+
+    <v-data-table show-select :headers="headers" :items="items" :loading="loading" class="mt-2">
+      <template v-slot:[`item.name`]="{ item }">
+        <span>{{ item.user.user_data.firstname + " " + item.user.user_data.lastname }}</span>
+      </template>
+
+      <template v-slot:[`item.actions`]="{ }">
+        <div class="d-flex justify-center">
+          <v-btn variant="text" icon="mdi-refresh"></v-btn>
+          <v-btn variant="text" icon="mdi-eye-outline"></v-btn>
+          <v-btn variant="text" icon="mdi-tray-arrow-down"></v-btn>
+          <v-btn variant="text" icon="mdi-trash-can-outline" color="error"></v-btn>
+        </div>
+      </template>
+
+      <template v-slot:bottom></template>
+    </v-data-table>
+    <v-row class="mt-4">
+      <v-pagination class="ml-auto mr-2" size="small" variant="flat" active-color="primary" :length="length"
+        :total-visible="4" v-model="page"></v-pagination>
+    </v-row>
+  </v-container>
 </template>

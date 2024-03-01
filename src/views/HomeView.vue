@@ -3,20 +3,54 @@
 import { useAuth } from '@/auth/index';
 import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js'
 import { Pie, Doughnut } from 'vue-chartjs'
-import { options, data, doughnut } from '@/chart/config.js';
 import StatisticsList from '@/components/home/StatisticsList.vue';
 import SubscriptionTable from '@/components/home/SubscriptionTable.vue';
 import { ref, type Ref } from 'vue';
 import { useAPI } from '@/api';
+import { computed } from 'vue';
+import PublishersModal from '@/components/home/PublishersModal.vue'
+import CountryModal from '@/components/home/CountryModal.vue'
+import ClassModalVue from '@/components/home/ClassModal.vue';
+import FundModalVue from '@/components/home/FundModal.vue';
+import bookstate from '@/assets/bookstate.pdf'
+import AgesModal from '@/components/home/AgesModal.vue';
 
 const auth = useAuth();
 const api = useAPI();
+
+const doughnut = {
+  labels: ['Годовой', 'Выдача', 'Возврат'],
+  datasets: [
+    {
+      backgroundColor: ['#0095FF', '#00E096', '#884DFF'],
+      data: [68, 10, 22]
+    }
+  ]
+}
+
+const options = {
+  responsive: true,
+  maintainAspectRatio: false
+}
 
 interface BookState {
   title: string,
   amount: string,
   books: number,
 };
+
+interface Publisher {
+  publisher_id: number,
+  publisher: string,
+  amount: string,
+  books: number,
+}
+
+interface UserAge {
+  age: string,
+  count: number,
+  percent: string,
+}
 
 async function getBookState(): Promise<void> {
   fundLoading.value = true;
@@ -28,6 +62,17 @@ async function getBookState(): Promise<void> {
     console.error('Error:', error.message);
   }
 };
+
+async function getPublishers(): Promise<void> {
+  publishersLoading.value = true;
+  try {
+    const response = await api.fetchData<Publisher[]>('https://test.api.qazaqmura.kz/v1/dashboard/publisher');
+    publishers.value = response.data;
+    publishersLoading.value = false;
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
 
 const readers = [
   { classname: '1 класс', amount: 25 },
@@ -54,28 +99,54 @@ const fundHeaders = [
   { key: 'actions', title: '' },
 ]
 
+const userAges: Ref<UserAge[]> = ref([]);
+
+async function getUserAges() {
+  try {
+    const response = await api.fetchData<UserAge[]>('https://test.api.qazaqmura.kz/v1/dashboard/user/age');
+    if (response.data) userAges.value = response.data;
+  } catch (error: any) {
+    console.error('Error:', error.message);
+  }
+}
+
 const fund: Ref<BookState[] | null> = ref(null)
 
 const fundLoading: Ref<boolean> = ref(false);
 
 const publisherHeaders = [
-  { key: 'name', title: 'Название' },
-  { key: 'bookname', title: 'Наименование книг' },
+  { key: 'publisher', title: 'Название' },
+  { key: 'books', title: 'Наименование книг' },
   { key: 'amount', title: 'Экземпляры книг' },
 ]
 
-const publishers = [
-  { name: 'Новое', bookname: '25', amount: '100' },
-  { name: 'Новое', bookname: '25', amount: '100' },
-  { name: 'Новое', bookname: '25', amount: '100' },
-  { name: 'Новое', bookname: '25', amount: '100' },
-  { name: 'Новое', bookname: '25', amount: '100' },
-  { name: 'Новое', bookname: '25', amount: '100' },
-]
+const publishers: Ref<Publisher[] | null> = ref(null)
+
+const publishersLoading: Ref<boolean> = ref(false);
 
 ChartJS.register(ArcElement, Tooltip)
 
+const agesChartData = computed(() => {
+  return {
+    labels: userAges.value.map(user => user.age),
+    datasets: [{
+      backgroundColor: ['#0095FF', '#00E096', 'red'],
+      data: userAges.value.map(user => Number.parseFloat(user.percent))
+    }]
+  }
+})
+
+function downloadPDF() {
+  const link = document.createElement('a');
+  link.href = bookstate;
+  link.download = 'document.pdf';
+  link.click();
+  document.body.removeChild(link);
+}
+
 getBookState()
+getPublishers()
+getUserAges()
 </script>
 
 <template>
@@ -106,7 +177,7 @@ getBookState()
         <v-col cols="3">
           <StatisticsList></StatisticsList>
         </v-col>
-        <v-col>
+        <v-col cols="6">
           <v-card>
             <v-card-title>Статистика по выдачам и возвратам книг</v-card-title>
             <v-card-subtitle>Легко отслеживай статистику</v-card-subtitle>
@@ -185,7 +256,7 @@ getBookState()
               </v-list>
             </v-card-text>
             <v-card-actions>
-              <v-btn variant="flat" color="primary">Подробнее</v-btn>
+              <CountryModal></CountryModal>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -194,11 +265,11 @@ getBookState()
             <v-card-title>Читатели по возрасту</v-card-title>
 
             <v-card-text>
-              <Pie :data="data" :options="options" />
+              <Pie :data="agesChartData" :options="options" />
             </v-card-text>
 
             <v-card-actions>
-              <v-btn variant="flat" color="primary">Подробнее</v-btn>
+              <AgesModal></AgesModal>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -215,7 +286,7 @@ getBookState()
             </v-card-text>
 
             <v-card-actions>
-              <v-btn variant="flat" color="primary">Подробнее</v-btn>
+              <ClassModalVue></ClassModalVue>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -229,8 +300,8 @@ getBookState()
               <v-data-table :loading="fundLoading" :items="fund ? fund : []" :headers="fundHeaders">
                 <template v-slot:bottom></template>
 
-                <template v-slot:item.actions="{ }">
-                  <v-btn variant="text" color="primary">
+                <template v-slot:[`item.actions`]="{ }">
+                  <v-btn @click="downloadPDF()" variant="text" color="primary">
                     Подробнее
                     <template v-slot:append>
                       <v-icon icon="mdi-chevron-right" color="primary"></v-icon>
@@ -241,7 +312,7 @@ getBookState()
             </v-card-text>
 
             <v-card-actions>
-              <v-btn variant="flat" color="primary">Подробнее</v-btn>
+              <FundModalVue></FundModalVue>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -251,13 +322,14 @@ getBookState()
             <v-card-title>Издательства</v-card-title>
 
             <v-card-text>
-              <v-data-table :items="publishers" :headers="publisherHeaders">
+              <v-data-table :loading="publishersLoading" :items="publishers ? publishers : []"
+                :headers="publisherHeaders">
                 <template v-slot:bottom></template>
               </v-data-table>
             </v-card-text>
 
             <v-card-actions>
-              <v-btn variant="flat" color="primary">Подробнее</v-btn>
+              <PublishersModal></PublishersModal>
             </v-card-actions>
           </v-card>
         </v-col>
