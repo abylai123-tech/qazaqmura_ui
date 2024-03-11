@@ -46,8 +46,27 @@ export function useAPI() {
     return { data: data.value, error: error.value };
   }
 
+  async function deleteData<U>(
+    url: string
+  ): Promise<ApiResponse<U>> {
+    const data: Ref<U | null> = ref(null);
+    const error: Ref<string | null> = ref(null);
+
+    try {
+      const config = token.value ? { headers: { Authorization: `Bearer ${token.value.token}` } } : {};
+      const response: AxiosResponse<U> = await axios.delete(url, config);
+      data.value = response.data;
+    } catch (err) {
+      error.value = 'Error posting data';
+      console.error('Error posting data:', err);
+    }
+
+    return { data: data.value, error: error.value };
+  }
+
   return {
     fetchData,
     postData,
+    deleteData
   };
 }

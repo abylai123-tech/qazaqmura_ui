@@ -1,22 +1,22 @@
 <!-- eslint-disable vue/valid-v-slot -->
-<script setup lang="ts">
-import { useAuth } from '@/auth/index';
-import { Chart as ChartJS, ArcElement, Tooltip } from 'chart.js'
-import { Pie, Doughnut } from 'vue-chartjs'
-import StatisticsList from '@/components/home/StatisticsList.vue';
-import SubscriptionTable from '@/components/home/SubscriptionTable.vue';
-import { ref, type Ref } from 'vue';
-import { useAPI } from '@/api';
-import { computed } from 'vue';
+
+<script lang="ts" setup>
+import { useAuth } from '@/auth/index'
+import { ArcElement, Chart as ChartJS, Legend, Tooltip } from 'chart.js'
+import { Doughnut, Pie } from 'vue-chartjs'
+import StatisticsList from '@/components/home/StatisticsList.vue'
+import SubscriptionTable from '@/components/home/SubscriptionTable.vue'
+import { computed, type Ref, ref } from 'vue'
+import { useAPI } from '@/api'
 import PublishersModal from '@/components/home/PublishersModal.vue'
 import CountryModal from '@/components/home/CountryModal.vue'
-import ClassModalVue from '@/components/home/ClassModal.vue';
-import FundModalVue from '@/components/home/FundModal.vue';
+import ClassModalVue from '@/components/home/ClassModal.vue'
+import FundModalVue from '@/components/home/FundModal.vue'
 import bookstate from '@/assets/bookstate.pdf'
-import AgesModal from '@/components/home/AgesModal.vue';
+import AgesModal from '@/components/home/AgesModal.vue'
 
-const auth = useAuth();
-const api = useAPI();
+const auth = useAuth()
+const api = useAPI()
 
 const doughnut = {
   labels: ['Годовой', 'Выдача', 'Возврат'],
@@ -34,41 +34,45 @@ const options = {
 }
 
 interface BookState {
-  title: string,
-  amount: string,
-  books: number,
-};
+  title: string
+  amount: string
+  books: number
+}
 
 interface Publisher {
-  publisher_id: number,
-  publisher: string,
-  amount: string,
-  books: number,
+  publisher_id: number
+  publisher: string
+  amount: string
+  books: number
 }
 
 interface UserAge {
-  age: string,
-  count: number,
-  percent: string,
+  age: string
+  count: number
+  percent: string
 }
 
 async function getBookState(): Promise<void> {
-  fundLoading.value = true;
+  fundLoading.value = true
   try {
-    const response = await api.fetchData<BookState[]>('https://test.api.qazaqmura.kz/v1/dashboard/book/state');
-    fund.value = response.data;
-    fundLoading.value = false;
+    const response = await api.fetchData<BookState[]>(
+      'https://test.api.qazaqmura.kz/v1/dashboard/book/state'
+    )
+    fund.value = response.data
+    fundLoading.value = false
   } catch (error: any) {
-    console.error('Error:', error.message);
+    console.error('Error:', error.message)
   }
-};
+}
 
 async function getPublishers(): Promise<void> {
-  publishersLoading.value = true;
+  publishersLoading.value = true
   try {
-    const response = await api.fetchData<Publisher[]>('https://test.api.qazaqmura.kz/v1/dashboard/publisher');
-    publishers.value = response.data;
-    publishersLoading.value = false;
+    const response = await api.fetchData<Publisher[]>(
+      'https://test.api.qazaqmura.kz/v1/dashboard/publisher'
+    )
+    publishers.value = response.data
+    publishersLoading.value = false
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -78,70 +82,74 @@ const readers = [
   { classname: '1 класс', amount: 25 },
   { classname: '2 класс', amount: 25 },
   { classname: '3 класс', amount: 25 },
-  { classname: '4 класс', amount: 25 },
+  { classname: '4 класс', amount: 25 }
 ]
 
 const headers = [
   { key: 'classname', title: 'Классы' },
-  { key: 'amount', title: 'Количество' },
+  { key: 'amount', title: 'Количество' }
 ]
 
 const countries = [
   { id: 1, code: 'kz', name: 'Казахстан', progress: 74 },
   { id: 2, code: 'kz', name: 'Украина', progress: 52 },
-  { id: 3, code: 'kz', name: 'Грузия', progress: 36 },
+  { id: 3, code: 'kz', name: 'Грузия', progress: 36 }
 ]
 
 const fundHeaders = [
   { key: 'title', title: 'Название' },
-  { key: 'amount', title: 'Наименование книг' },
-  { key: 'books', title: 'Экземпляры книг' },
-  { key: 'actions', title: '' },
+  { key: 'books', title: 'Наименование книг' },
+  { key: 'amount', title: 'Экземпляры книг' },
+  { key: 'actions', title: '' }
 ]
 
-const userAges: Ref<UserAge[]> = ref([]);
+const userAges: Ref<UserAge[]> = ref([])
 
 async function getUserAges() {
   try {
-    const response = await api.fetchData<UserAge[]>('https://test.api.qazaqmura.kz/v1/dashboard/user/age');
-    if (response.data) userAges.value = response.data;
+    const response = await api.fetchData<UserAge[]>(
+      'https://test.api.qazaqmura.kz/v1/dashboard/user/age'
+    )
+    if (response.data) userAges.value = response.data
   } catch (error: any) {
-    console.error('Error:', error.message);
+    console.error('Error:', error.message)
   }
 }
 
 const fund: Ref<BookState[] | null> = ref(null)
 
-const fundLoading: Ref<boolean> = ref(false);
+const fundLoading: Ref<boolean> = ref(false)
 
 const publisherHeaders = [
   { key: 'publisher', title: 'Название' },
   { key: 'books', title: 'Наименование книг' },
-  { key: 'amount', title: 'Экземпляры книг' },
+  { key: 'amount', title: 'Экземпляры книг' }
 ]
 
 const publishers: Ref<Publisher[] | null> = ref(null)
 
-const publishersLoading: Ref<boolean> = ref(false);
+const publishersLoading: Ref<boolean> = ref(false)
 
-ChartJS.register(ArcElement, Tooltip)
+ChartJS.register(ArcElement, Tooltip, Legend)
 
 const agesChartData = computed(() => {
   return {
-    labels: userAges.value.map(user => user.age),
-    datasets: [{
-      backgroundColor: ['#0095FF', '#00E096', 'red'],
-      data: userAges.value.map(user => Number.parseFloat(user.percent))
-    }]
+    labels: userAges.value.map((user) => user.age),
+    datasets: [
+      {
+        backgroundColor: ['#0095FF', '#00E096', 'red', '#884DFF'],
+        data: userAges.value.map((user) => Number.parseFloat(user.percent))
+      }
+    ]
   }
 })
 
 function downloadPDF() {
-  const link = document.createElement('a');
-  link.href = bookstate;
-  link.download = 'document.pdf';
-  link.click();
-  document.body.removeChild(link);
+  const link = document.createElement('a')
+  link.href = bookstate
+  link.download = 'document.pdf'
+  link.click()
+  document.body.removeChild(link)
 }
 
 getBookState()
@@ -166,7 +174,8 @@ getUserAges()
             </template>
 
             <v-banner-text>
-              <div class="text-h6">Добро пожаловать, {{ auth.user.value ? auth.user.value.user_data.firstname : '' }}
+              <div class="text-h6">
+                Добро пожаловать, {{ auth.user.value ? auth.user.value.user_data.firstname : '' }}
               </div>
             </v-banner-text>
           </v-banner>
@@ -186,7 +195,7 @@ getUserAges()
               <v-container fluid>
                 <v-row>
                   <v-col>
-                    <Doughnut :options="options" :data="doughnut"></Doughnut>
+                    <Doughnut :data="doughnut" :options="options"></Doughnut>
                   </v-col>
                   <v-col>
                     <v-list>
@@ -229,7 +238,11 @@ getUserAges()
             <v-card-subtitle>Быстрый поиск по ИИН</v-card-subtitle>
 
             <v-card-text>
-              <v-text-field label="Напишите ИИН" variant="outlined" prepend-inner-icon="mdi-magnify"></v-text-field>
+              <v-text-field
+                label="Напишите ИИН"
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+              ></v-text-field>
             </v-card-text>
           </v-card>
         </v-col>
@@ -249,9 +262,7 @@ getUserAges()
                     </v-progress-linear>
                   </v-list-item-title>
 
-                  <v-list-item-subtitle>
-
-                  </v-list-item-subtitle>
+                  <v-list-item-subtitle></v-list-item-subtitle>
                 </v-list-item>
               </v-list>
             </v-card-text>
@@ -275,12 +286,10 @@ getUserAges()
         </v-col>
         <v-col cols="4">
           <v-card>
-            <v-card-title>
-              Классы по количеству читателей
-            </v-card-title>
+            <v-card-title> Классы по количеству читателей</v-card-title>
 
             <v-card-text>
-              <v-data-table hide-footer :items="readers" :headers="headers">
+              <v-data-table :headers="headers" :items="readers" hide-footer>
                 <template v-slot:bottom></template>
               </v-data-table>
             </v-card-text>
@@ -297,14 +306,14 @@ getUserAges()
             <v-card-title>Состояние по фонду книг</v-card-title>
 
             <v-card-text>
-              <v-data-table :loading="fundLoading" :items="fund ? fund : []" :headers="fundHeaders">
+              <v-data-table :headers="fundHeaders" :items="fund ? fund : []" :loading="fundLoading">
                 <template v-slot:bottom></template>
 
-                <template v-slot:[`item.actions`]="{ }">
-                  <v-btn @click="downloadPDF()" variant="text" color="primary">
+                <template v-slot:[`item.actions`]="{}">
+                  <v-btn color="primary" variant="text" @click="downloadPDF()">
                     Подробнее
                     <template v-slot:append>
-                      <v-icon icon="mdi-chevron-right" color="primary"></v-icon>
+                      <v-icon color="primary" icon="mdi-chevron-right"></v-icon>
                     </template>
                   </v-btn>
                 </template>
@@ -322,8 +331,11 @@ getUserAges()
             <v-card-title>Издательства</v-card-title>
 
             <v-card-text>
-              <v-data-table :loading="publishersLoading" :items="publishers ? publishers : []"
-                :headers="publisherHeaders">
+              <v-data-table
+                :headers="publisherHeaders"
+                :items="publishers ? publishers : []"
+                :loading="publishersLoading"
+              >
                 <template v-slot:bottom></template>
               </v-data-table>
             </v-card-text>
@@ -345,7 +357,7 @@ getUserAges()
             </v-card-text>
 
             <v-card-actions>
-              <v-btn variant="flat" color="primary">Подробнее</v-btn>
+              <v-btn color="primary" variant="flat">Подробнее</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>

@@ -37,6 +37,7 @@ const page: Ref<number> = ref(1);
 const length: Ref<number> = ref(1);
 const items: Ref<User[]> = ref([]);
 const drawer: Ref<boolean> = ref(false)
+const importFile: Ref<File[] | undefined> = ref(undefined)
 
 async function getUsers() {
   loading.value = true;
@@ -49,6 +50,19 @@ async function getUsers() {
     loading.value = false;
   } catch (error: any) {
     console.error('Error:', error.message);
+  }
+}
+
+async function sendFile() {
+  try {
+    if (importFile.value) {
+      const formData = new FormData();
+      formData.append('file', importFile.value[0])
+      const response = await api.postData('https://test.api.qazaqmura.kz/v2/user/excel', formData)
+      console.log('Response:', response)
+    }
+  } catch (error: any) {
+    console.error('Error:', error)
   }
 }
 
@@ -78,9 +92,12 @@ watch(page, () => { getUsers() })
           функциональность.</span>
       </v-list-item>
       <v-list-item>
-        <v-file-input show-size label="Файл"></v-file-input>
+        <v-file-input v-model="importFile" show-size label="Файл"></v-file-input>
         <small class="font-weight-bold">Перетащите файл сюда или нажмите, чтобы загрузить</small><br />
         <small>Максимальный размер файла: 300 MB</small>
+      </v-list-item>
+      <v-list-item class="mt-2 text-center">
+        <v-btn @click="sendFile" variant="flat" color="primary">Отправить</v-btn>
       </v-list-item>
     </v-navigation-drawer>
 

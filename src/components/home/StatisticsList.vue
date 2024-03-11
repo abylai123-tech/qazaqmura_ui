@@ -8,7 +8,7 @@ const statistics: Ref<{ subtitle: string, color: string, title: number, route?: 
   { subtitle: 'Школьный фонд', color: '#6900C7', title: 300, route: '/fund' },
   { subtitle: 'Наименование книг', color: '#F86300', title: 100, name: 'admission' },
   { subtitle: 'Сумма поступления', color: '#05AC69', title: 12000000 },
-  { subtitle: 'Списанных с фонда', color: '#E81600', title: 1, name: 'refund' },
+  { subtitle: 'Списанных с фонда', color: '#E81600', title: 77, name: 'refund' },
 ])
 </script>
 

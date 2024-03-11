@@ -1,49 +1,425 @@
-<script setup lang="ts">
-import { useAPI } from '@/api';
-import { watch } from 'vue';
-import { ref, type Ref } from 'vue';
-import FilterBlock from '@/components/FilterBlock.vue'
+<script lang="ts" setup>
+import { useAPI } from '@/api'
+import { ref, type Ref, watch } from 'vue'
 import nocover from '@/assets/no-book-cover.svg'
 
 const api = useAPI()
 
 interface Book {
-  id: number,
-  price: number,
-  book: { title: string, year: number, amount: number },
-  book_annotation: string,
-  amount: number,
-  book_ISBN: string,
-  book_author_main: { id: number, name: string }[],
-  book_pages: number,
-  book_language: string[],
-  contractor: string,
-  book_state: string,
-  admission_at: string,
+  id: number
+  volume: number
+  part: number
+  amount: number
+  city_id: number | null
+  title: string
+  title2: string | null
+  ISBN: string
+  ISBN2: string | null
+  year: number
+  pages: number
+  quotes: string[] | null
+  annotation: string
+  book_school: any
+  book_author: { id: number; name: string }[]
+  book_author_main: { id: number; name: string }[]
+  book_category: any[]
+  book_cover: any
+  book_epub: any
+  book_genre: any[]
+  book_language: { id: number; title: string }[]
+  book_publisher: { id: number; title: string }[]
+  book_bbk: any[]
+  book_classroom: any
+  book_classroom_language: any
+  book_type: { id: number; title: string }[]
+  book_udk: any[]
+  book_copyright_sign: any[]
+  book_age_characteristic: any[]
+  book_education_level: any[]
+  book_country: any[]
 }
 
-const loading: Ref<boolean> = ref(false);
-const items: Ref<Book[] | null> = ref(null);
-const page: Ref<number> = ref(1);
-const length: Ref<number> = ref(0);
+interface Contractor {
+  address: string
+  company_ID: string
+  id: number
+  system: boolean
+  title: string
+}
+
+interface Publisher {
+  id: number
+  title: string
+}
+
+interface CopyrightSign {
+  id: number
+  number: string
+  title: string
+}
+
+interface BookAdmission {
+  amount: number
+  book_id: number
+  book_state_id: number | null
+  price: number
+  admission_at: string
+  contractor_id: number | null
+  book_admission_id: number | null
+}
+
+interface Author {
+  id: number
+  name: string
+}
+
+const languageId: Ref<number | null> = ref(null),
+  authorId: Ref<number | null> = ref(null),
+  publisherId: Ref<number | null> = ref(null),
+  year: Ref<number | null> = ref(null),
+  search: Ref<string | null> = ref(null),
+  epub: Ref<boolean | null> = ref(null),
+  genreId: Ref<number | null> = ref(null),
+  ageCharacteristicId: Ref<number | null> = ref(null),
+  countryId: Ref<number | null> = ref(null),
+  copyrightSignId: Ref<number | null> = ref(null),
+  bookClassroom: Ref<number | null> = ref(null),
+  loading: Ref<boolean> = ref(false),
+  items: Ref<Book[] | null> = ref(null),
+  page: Ref<number> = ref(1),
+  length: Ref<number> = ref(0),
+  message: Ref<string> = ref(''),
+  contractors: Ref<Contractor[]> = ref([]),
+  states: Ref<Publisher[]> = ref([]),
+  admissions: Ref<Publisher[]> = ref([]),
+  languages: Ref<Publisher[]> = ref([]),
+  authors: Ref<Author[]> = ref([]),
+  publishers: Ref<Publisher[]> = ref([]),
+  selectedType: Ref<{ id: number; title: string }> = ref({ id: 0, title: 'Тип книги' }),
+  types: Ref<Publisher[]> = ref([]),
+  genres: Ref<Publisher[]> = ref([]),
+  ageCharacteristics: Ref<Author[]> = ref([]),
+  countries: Ref<Publisher[]> = ref([]),
+  copyrightSigns: Ref<CopyrightSign[]> = ref([]),
+  admission: Ref<BookAdmission> = ref({
+    amount: 0,
+    book_id: 0,
+    book_state_id: null,
+    price: 0,
+    admission_at: '',
+    contractor_id: null,
+    book_admission_id: null
+  }),
+  drawer: Ref<boolean> = ref(false),
+  selectedItem: Ref<Book> = ref({
+    id: 0,
+    volume: 0,
+    part: 0,
+    amount: 0,
+    city_id: null,
+    title: '',
+    title2: null,
+    ISBN: '',
+    ISBN2: null,
+    year: 0,
+    pages: 0,
+    quotes: null,
+    annotation: '',
+    book_school: null,
+    book_author: [],
+    book_author_main: [],
+    book_category: [],
+    book_cover: null,
+    book_epub: null,
+    book_genre: [],
+    book_language: [],
+    book_publisher: [],
+    book_bbk: [],
+    book_classroom: null,
+    book_classroom_language: null,
+    book_type: [],
+    book_udk: [],
+    book_copyright_sign: [],
+    book_age_characteristic: [],
+    book_education_level: [],
+    book_country: []
+  }),
+  tab: Ref<string> = ref('one')
 
 async function getBooks() {
-  loading.value = true;
+  loading.value = true
   try {
-    const response = await api.fetchData<{ data: Book[], meta: { last_page: number } }>(`https://test.api.qazaqmura.kz/v2/book/school?page=${page.value}`)
+    let requestString = `https://test.api.qazaqmura.kz/v1/book?page=${page.value}`
+    if (search.value) {
+      requestString += `&title=${search.value}`
+    }
+    if (selectedType.value.id != 0) {
+      requestString += `&type_id=${selectedType.value.id}`
+    }
+    if (languageId.value) {
+      requestString += `&language_id=${languageId.value}`
+    }
+    if (authorId.value) {
+      requestString += `&author_id=${authorId.value}`
+    }
+    if (publisherId.value) {
+      requestString += `&publisher_id=${publisherId.value}`
+    }
+    if (year.value) {
+      requestString += `&year=${year.value}`
+    }
+    if (epub.value) {
+      requestString += `&epub=1`
+    }
+    if (genreId.value) {
+      requestString += `&genre_id=${genreId.value}`
+    }
+    if (ageCharacteristicId.value) {
+      requestString += `&age_characteristic_id=${ageCharacteristicId.value}`
+    }
+    if (countryId.value) {
+      requestString += `&country_id=${countryId.value}`
+    }
+    if (copyrightSignId.value) {
+      requestString += `&copyright_sign_id=${copyrightSignId.value}`
+    }
+    if (bookClassroom.value) {
+      requestString += `&book_classroom=${bookClassroom.value}`
+    }
+
+    const response = await api.fetchData<{ data: { items: Book[] }; meta: { last_page: number } }>(
+      requestString
+    )
 
     if (response.data) {
-      items.value = response.data.data;
-      length.value = response.data.meta.last_page;
+      items.value = response.data.data.items
+      length.value = response.data.meta.last_page
     }
   } catch (error: any) {
     console.error('Error:', error.message)
   }
 }
 
-getBooks()
+function resetFilters() {
+  search.value = null
+  selectedType.value = { id: 0, title: 'Тип книги' }
+  languageId.value = null
+  authorId.value = null
+  publisherId.value = null
+  year.value = null
+  epub.value = null
+  genreId.value = null
+  ageCharacteristicId.value = null
+  copyrightSignId.value = null
+  countryId.value = null
+  bookClassroom.value = null
+  getBooks()
+}
 
-watch(page, () => { getBooks() });
+async function sendRequest(
+  bookId: number,
+  formMessage: string,
+  type: number,
+  isActive: Ref<boolean>
+) {
+  const form = { book_id: bookId, message: formMessage, type: type }
+  try {
+    await api.postData('https://test.api.qazaqmura.kz/v1/user/request', form)
+    isActive.value = false
+    message.value = ''
+  } catch (error) {
+    console.error('Error:', error)
+  }
+}
+
+function formatDate(dateToFormat: string) {
+  const date = new Date(dateToFormat)
+  const day = date.getDate().toString().length > 1 ? date.getDate() : '0' + date.getDate()
+  const month =
+    (date.getMonth() + 1).toString().length > 1 ? date.getMonth() + 1 : '0' + date.getMonth()
+  return `${day}.${month}.${date.getFullYear()}`
+}
+
+async function sendAdmission(admissionForm: BookAdmission, isActive: Ref<boolean>) {
+  const form = { ...admissionForm }
+  form.admission_at = formatDate(form.admission_at)
+  try {
+    console.log(form)
+    await api.postData('https://test.api.qazaqmura.kz/v1/book/school/link', { books: [form] })
+    isActive.value = false
+    admission.value = {
+      amount: 0,
+      book_id: 0,
+      book_state_id: null,
+      price: 0,
+      admission_at: '',
+      contractor_id: null,
+      book_admission_id: null
+    }
+  } catch (error) {
+    console.error('Error:', error)
+  }
+}
+
+async function getTypes(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/type`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) types.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getContractors(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/contractor`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Contractor[] } }>(request)
+    if (response.data) contractors.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getGenres(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/genre`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) genres.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getAgeCharacteristics(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/age/characteristic`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Author[] } }>(request)
+    if (response.data) ageCharacteristics.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getStates(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/book/state`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) states.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getAdmissions(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/book/admission`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) admissions.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getLanguages(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/language`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) languages.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getAuthors(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/author`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Author[] } }>(request)
+    if (response.data) authors.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getPublishers(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/publisher`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) publishers.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getCountries(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/country`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) countries.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getCopyrightSigns(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/copyright/sign`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: CopyrightSign[] } }>(request)
+    if (response.data) copyrightSigns.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+getBooks()
+getAdmissions()
+getContractors()
+getStates()
+getLanguages()
+getAuthors()
+getPublishers()
+getTypes()
+getGenres()
+getAgeCharacteristics()
+getCountries()
+getCopyrightSigns()
+
+watch(page, () => {
+  getBooks()
+})
 </script>
 
 <template>
@@ -52,19 +428,356 @@ watch(page, () => { getBooks() });
       <template v-slot:title>
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold">M-DATA</span>
-          <span class="text-subtitle-2 text-medium-emphasis">База данных по РК (библиографических записей)</span>
+          <span class="text-subtitle-2 text-medium-emphasis"
+            >База данных по РК (библиографических записей)</span
+          >
         </div>
       </template>
 
       <template v-slot:append>
-        <v-btn variant="tonal" class="mr-3" prepend-icon="mdi-video-outline">Помощь</v-btn>
-        <v-btn variant="flat" color="primary" to="m-data/add" prepend-icon="mdi-plus">Добавить</v-btn>
+        <v-btn class="mr-3" prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
+        <v-btn color="primary" prepend-icon="mdi-plus" to="m-data/add" variant="flat"
+          >Добавить
+        </v-btn>
       </template>
     </v-app-bar>
 
+    <v-navigation-drawer v-model="drawer" location="right" temporary width="700">
+      <v-list-item>
+        <div class="d-flex justify-space-between align-center">
+          <span class="font-weight-bold">Детальная информация о книге</span>
+          <v-btn icon="mdi-close" variant="text" @click="drawer = false"></v-btn>
+        </div>
+      </v-list-item>
+      <v-divider></v-divider>
+      <v-list-item>
+        <v-tabs v-model="tab" color="primary">
+          <v-tab value="one">О книге</v-tab>
+          <v-tab value="two">Информация о состоянии фонда</v-tab>
+          <v-tab value="three">В читательском зале</v-tab>
+          <v-tab value="four">На выдаче</v-tab>
+        </v-tabs>
+
+        <v-window v-model="tab">
+          <v-window-item value="one">
+            <v-container fluid>
+              <v-row>
+                <v-col cols="4">
+                  <v-img :src="nocover" class="rounded" fluid></v-img>
+                </v-col>
+                <v-col cols="8">
+                  <v-row>
+                    <v-chip
+                      v-for="item in selectedItem.book_type"
+                      :key="item.id"
+                      color="primary"
+                      variant="flat"
+                    >
+                      {{ item.title }}
+                    </v-chip>
+                  </v-row>
+                  <v-row class="mt-4">
+                    <div class="font-weight-bold">{{ selectedItem.title }}</div>
+                    <div>{{ selectedItem.title2 }}</div>
+                  </v-row>
+                  <v-row class="mt-4">
+                    <v-chip
+                      v-for="item in selectedItem.book_author_main"
+                      :key="item.id"
+                      color="primary"
+                      variant="outlined"
+                    >
+                      {{ item.name }}
+                    </v-chip>
+                  </v-row>
+                  <v-row class="mt-4">
+                    <div>{{ selectedItem.annotation }}</div>
+                  </v-row>
+                  <v-row class="mt-6">
+                    <v-card class="w-100" variant="tonal">
+                      <v-card-text>
+                        <v-container fluid>
+                          <v-row>
+                            <v-col>
+                              <div><strong>Издатель:</strong></div>
+                              <div>
+                                {{
+                                  selectedItem.book_publisher
+                                    ? selectedItem.book_publisher.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                            <v-col>
+                              <div><strong>Год издания:</strong></div>
+                              <div>{{ selectedItem.year }}</div>
+                            </v-col>
+                          </v-row>
+                          <v-row>
+                            <v-col>
+                              <div><strong>УДК:</strong></div>
+                              <div>
+                                {{
+                                  selectedItem.book_udk
+                                    ? selectedItem.book_udk.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                            <v-col>
+                              <div><strong>Язык:</strong></div>
+                              <div>
+                                {{
+                                  selectedItem.book_language
+                                    ? selectedItem.book_language.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                          </v-row>
+                          <v-row>
+                            <v-col>
+                              <div><strong>ББК:</strong></div>
+                              <div>
+                                {{
+                                  selectedItem.book_bbk
+                                    ? selectedItem.book_bbk.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                            <v-col>
+                              <div><strong>Жанр:</strong></div>
+                              <div>
+                                {{
+                                  selectedItem.book_genre
+                                    ? selectedItem.book_genre.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                          </v-row>
+                        </v-container>
+                      </v-card-text>
+                    </v-card>
+                  </v-row>
+                </v-col>
+              </v-row>
+              <v-row class="my-4">
+                <v-col cols="4">
+                  <div class="font-weight-bold">Ключевые слова:</div>
+                </v-col>
+                <v-col cols="8">
+                  <v-chip v-for="item in selectedItem.quotes" :key="item" color="primary">
+                    {{ item }}
+                  </v-chip>
+                </v-col>
+              </v-row>
+              <v-divider></v-divider>
+              <v-row class="my-4">
+                <v-col cols="4">
+                  <div class="font-weight-bold">Биографическая запись:</div>
+                </v-col>
+                <v-col cols="8"></v-col>
+              </v-row>
+            </v-container>
+          </v-window-item>
+          <v-window-item value="two"></v-window-item>
+          <v-window-item value="three"></v-window-item>
+          <v-window-item value="four"></v-window-item>
+        </v-window>
+      </v-list-item>
+    </v-navigation-drawer>
+
     <v-row>
       <v-col class="mx-2">
-        <FilterBlock :inventory="false" :users="false" mdata one-line :bottom-items="[]"></FilterBlock>
+        <v-card>
+          <v-card-text>
+            <div class="d-flex flex-column">
+              <v-row class="mb-2">
+                <v-col class="d-flex" cols="9">
+                  <v-text-field
+                    v-model="search"
+                    density="compact"
+                    hide-details
+                    placeholder="Поиск по названию"
+                    prepend-inner-icon="mdi-magnify"
+                    rounded
+                    variant="outlined"
+                  >
+                    <template v-slot:append>
+                      <v-menu>
+                        <template v-slot:activator="{ props }">
+                          <v-btn append-icon="mdi-chevron-down" v-bind="props" variant="outlined"
+                            >{{ selectedType.title }}
+                          </v-btn>
+                        </template>
+
+                        <v-list>
+                          <v-list-item
+                            v-for="item in types"
+                            :key="item.id"
+                            :value="item.id"
+                            @click="selectedType = item"
+                            >{{ item.title }}
+                          </v-list-item>
+                        </v-list>
+                      </v-menu>
+                    </template>
+                  </v-text-field>
+                </v-col>
+                <v-col class="d-flex justify-space-around">
+                  <v-btn color="primary" variant="flat" @click="getBooks">Искать</v-btn>
+                  <v-btn variant="tonal" @click="resetFilters">Сбросить</v-btn>
+                </v-col>
+              </v-row>
+              <v-row class="mb-2">
+                <v-col cols="2">
+                  <v-select
+                    v-model="languageId"
+                    :items="languages"
+                    item-title="title"
+                    item-value="id"
+                    label="Язык"
+                    variant="solo-filled"
+                  ></v-select>
+                </v-col>
+                <v-col cols="2">
+                  <v-autocomplete
+                    v-model="authorId"
+                    :items="authors"
+                    item-title="name"
+                    label="Автор"
+                    variant="solo-filled"
+                    @update:search="getAuthors"
+                  ></v-autocomplete>
+                </v-col>
+                <v-col cols="2">
+                  <v-autocomplete
+                    v-model="publisherId"
+                    :items="publishers"
+                    item-title="title"
+                    item-value="id"
+                    label="Издатель"
+                    variant="solo-filled"
+                    @update:search="getPublishers"
+                  ></v-autocomplete>
+                </v-col>
+                <v-col cols="2">
+                  <v-text-field
+                    v-model="year"
+                    label="Год издания"
+                    type="number"
+                    variant="solo-filled"
+                  ></v-text-field>
+                </v-col>
+
+                <v-col>
+                  <v-switch v-model="epub" color="primary" label="Электронная книга"></v-switch>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-expansion-panels>
+                  <v-expansion-panel title="Расширенный поиск">
+                    <v-expansion-panel-text>
+                      <v-row>
+                        <v-col cols="2">
+                          <v-autocomplete
+                            v-model="genreId"
+                            :items="genres"
+                            item-value="id"
+                            label="Жанр книги"
+                            variant="solo-filled"
+                          ></v-autocomplete>
+                        </v-col>
+                        <v-col cols="2">
+                          <v-text-field
+                            v-model="year"
+                            label="ББК"
+                            type="number"
+                            variant="solo-filled"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="2">
+                          <v-text-field
+                            v-model="year"
+                            label="УДК"
+                            type="number"
+                            variant="solo-filled"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="2">
+                          <v-autocomplete
+                            v-model="copyrightSignId"
+                            :items="copyrightSigns"
+                            item-value="id"
+                            label="Авторский знак"
+                            variant="solo-filled"
+                            @update:search="getCopyrightSigns"
+                          >
+                            <template v-slot:item="{ item, props }">
+                              <v-list-item
+                                :title="`${item.raw.number} - ${item.raw.title}`"
+                                v-bind="props"
+                              >
+                              </v-list-item>
+                            </template>
+                          </v-autocomplete>
+                        </v-col>
+                        <v-col cols="3">
+                          <v-autocomplete
+                            v-model="ageCharacteristicId"
+                            :items="ageCharacteristics"
+                            item-value="id"
+                            label="Возрастная характеристика"
+                            type="number"
+                            variant="solo-filled"
+                          ></v-autocomplete>
+                        </v-col>
+                      </v-row>
+                      <v-row>
+                        <v-col cols="2">
+                          <v-select
+                            v-model="bookClassroom"
+                            :items="[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]"
+                            label="Класс"
+                            variant="solo-filled"
+                          ></v-select>
+                        </v-col>
+                        <v-col cols="2">
+                          <v-text-field
+                            v-model="year"
+                            label="Уровень образования"
+                            type="number"
+                            variant="solo-filled"
+                          ></v-text-field>
+                        </v-col>
+                        <v-col cols="3">
+                          <v-autocomplete
+                            v-model="countryId"
+                            :items="countries"
+                            item-value="id"
+                            label="Страна издателя"
+                            variant="solo-filled"
+                            @update:search="getCountries"
+                          ></v-autocomplete>
+                        </v-col>
+                        <v-col cols="2">
+                          <v-text-field
+                            v-model="year"
+                            label="Квалификация"
+                            type="number"
+                            variant="solo-filled"
+                          ></v-text-field>
+                        </v-col>
+                      </v-row>
+                    </v-expansion-panel-text>
+                  </v-expansion-panel>
+                </v-expansion-panels>
+              </v-row>
+            </div>
+          </v-card-text>
+        </v-card>
       </v-col>
     </v-row>
 
@@ -74,70 +787,552 @@ watch(page, () => { getBooks() });
           <v-container fluid>
             <v-row>
               <v-col cols="2">
-                <v-img fluid :src="nocover"></v-img>
+                <v-img
+                  :src="
+                    item.book_cover
+                      ? `https://test.api.qazaqmura.kz/storage/covers/${item.book_cover.storage}`
+                      : nocover
+                  "
+                  class="rounded"
+                  fluid
+                ></v-img>
               </v-col>
-              <v-col cols="2">
-                <div class="mb-2">
-                  <span class="text-h5 font-weight-bold">{{ item.book.title }}</span>
-                </div>
+              <v-col cols="10">
+                <v-row>
+                  <v-col cols="6">
+                    <v-chip
+                      v-for="bookType in item.book_type"
+                      :key="bookType.id"
+                      color="primary"
+                      variant="flat"
+                    >
+                      {{ bookType.title }}
+                    </v-chip>
+                  </v-col>
+                  <v-col class="text-right" cols="6">
+                    <v-chip color="green" variant="flat">Добавлен в фонд</v-chip>
+                    <v-chip v-if="item.book_epub" class="ml-2" color="success" variant="flat"
+                      >EPUB
+                    </v-chip>
+                  </v-col>
+                </v-row>
 
-                <v-chip variant="outlined" color="primary" v-for="author in item.book_author_main" :key="author.id">{{
-                  author.name }}</v-chip>
-              </v-col>
-              <v-col cols="5">
-                <v-card variant="tonal" class="w-100">
-                  <v-card-text>
-                    <v-container fluid>
-                      <v-row>
-                        <v-col cols="4">
-                          <div><strong>Год издания:</strong></div>
-                          <div>{{ item.book.year }}</div>
-                        </v-col>
-                        <v-col cols="4">
-                          <div><strong>Язык:</strong></div>
-                          <div>{{ item.book_language ? item.book_language.join(', ') : '' }}</div>
-                        </v-col>
-                        <v-col cols="4"></v-col>
-                      </v-row>
-                      <v-divider class="my-3"></v-divider>
-                      <v-row>
-                        <v-col cols="4">
-                          <div><strong>Контрагенты:</strong></div>
-                          <div>{{ item.contractor }}</div>
-                        </v-col>
-                        <v-col cols="4">
-                          <div><strong>Дата поступления:</strong></div>
-                          <div>{{ item.admission_at }}</div>
-                        </v-col>
-                        <v-col cols="4">
-                          <div><strong>Состояние:</strong></div>
-                          <div>{{ item.book_state }}</div>
-                        </v-col>
-                      </v-row>
-                      <v-row>
-                        <v-col cols="4">
-                          <div><strong>Количество:</strong></div>
-                          <div>{{ item.amount }}</div>
-                        </v-col>
-                        <v-col cols="4">
-                          <div><strong>Цена:</strong></div>
-                          <div>{{ item.book.amount }} ₸</div>
-                        </v-col>
-                        <v-col cols="4">
-                          <div><strong>Цена за все:</strong></div>
-                          <div>{{ item.price }} ₸</div>
-                        </v-col>
-                      </v-row>
-                    </v-container>
-                  </v-card-text>
-                </v-card>
-              </v-col>
-              <v-col>
-                <v-btn color="primary" variant="flat" block class="mb-2">Книжный формуляр</v-btn>
-                <v-btn color="primary" variant="flat" block class="mb-2">Каталожная карточка</v-btn>
-                <v-btn color="primary" variant="outlined" block class="mb-2">Изменить данные</v-btn>
-                <v-btn color="primary" variant="outlined" block class="mb-2">Сброс инвентаризации</v-btn>
-                <v-btn color="error" variant="outlined" block class="mb-2">Удалить из фонда</v-btn>
+                <v-row>
+                  <v-col cols="6">
+                    <div class="text-h6 font-weight-bold">{{ item.title }}</div>
+                    <div>{{ item.title2 }}</div>
+                    <div class="mt-3">
+                      <v-chip
+                        v-for="author in item.book_author_main"
+                        :key="author.id"
+                        color="primary"
+                        variant="outlined"
+                        >{{ author.name }}
+                      </v-chip>
+                    </div>
+                    <div class="mt-3">{{ item.annotation }}</div>
+                  </v-col>
+                  <v-col cols="6">
+                    <v-card class="w-100" variant="tonal">
+                      <v-card-text>
+                        <v-container fluid>
+                          <v-row>
+                            <v-col>
+                              <div><strong>Издатель:</strong></div>
+                              <div>
+                                {{
+                                  item.book_publisher
+                                    ? item.book_publisher.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                            <v-col>
+                              <div><strong>Год издания:</strong></div>
+                              <div>{{ item.year }}</div>
+                            </v-col>
+                          </v-row>
+                          <v-row>
+                            <v-col>
+                              <div><strong>УДК:</strong></div>
+                              <div>
+                                {{
+                                  item.book_udk
+                                    ? item.book_udk.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                            <v-col>
+                              <div><strong>Язык:</strong></div>
+                              <div>
+                                {{
+                                  item.book_language
+                                    ? item.book_language.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                          </v-row>
+                          <v-row>
+                            <v-col>
+                              <div><strong>ББК:</strong></div>
+                              <div>
+                                {{
+                                  item.book_bbk
+                                    ? item.book_bbk.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                            <v-col>
+                              <div><strong>Жанр:</strong></div>
+                              <div>
+                                {{
+                                  item.book_genre
+                                    ? item.book_genre.map((obj) => obj.title).join(', ')
+                                    : ''
+                                }}
+                              </div>
+                            </v-col>
+                          </v-row>
+                        </v-container>
+                      </v-card-text>
+                    </v-card>
+                    <v-row class="mt-3">
+                      <v-col cols="5">
+                        <v-btn
+                          color="primary"
+                          size="small"
+                          variant="flat"
+                          @click="(drawer = true), (selectedItem = item)"
+                          >Подробная информация
+                        </v-btn>
+                      </v-col>
+                      <v-col cols="3">
+                        <v-menu>
+                          <template v-slot:activator="{ props }">
+                            <v-btn
+                              append-icon="mdi-chevron-down"
+                              color="primary"
+                              size="small"
+                              v-bind="props"
+                              variant="flat"
+                              >Действия
+                            </v-btn>
+                          </template>
+
+                          <v-list>
+                            <v-dialog max-width="650">
+                              <template v-slot:activator="{ props }">
+                                <v-list-item :value="1" v-bind="props"
+                                  >Дополнить или исправить
+                                </v-list-item>
+                              </template>
+
+                              <template v-slot:default="{ isActive }">
+                                <v-card>
+                                  <v-card-title>Запрос на дополнение/исправление</v-card-title>
+
+                                  <v-card-text>
+                                    <v-container fluid>
+                                      <v-row>
+                                        <v-col cols="4">
+                                          <v-img
+                                            :src="
+                                              item.book_cover
+                                                ? `https://test.api.qazaqmura.kz/storage/covers/${item.book_cover.storage}`
+                                                : nocover
+                                            "
+                                            class="rounded"
+                                            fluid
+                                          ></v-img>
+                                        </v-col>
+                                        <v-col cols="6">
+                                          <div class="text-h6 font-weight-bold">
+                                            {{ item.title }}
+                                          </div>
+                                          <div class="mt-3">
+                                            <v-chip
+                                              v-for="author in item.book_author_main"
+                                              :key="author.id"
+                                              color="primary"
+                                              variant="outlined"
+                                            >
+                                              {{ author.name }}
+                                            </v-chip>
+                                          </div>
+                                          <v-row class="mt-2">
+                                            <v-col>
+                                              <div><strong>Язык:</strong></div>
+                                              <div>
+                                                {{
+                                                  item.book_language
+                                                    ? item.book_language
+                                                        .map((obj) => obj.title)
+                                                        .join(', ')
+                                                    : ''
+                                                }}
+                                              </div>
+                                            </v-col>
+                                            <v-col>
+                                              <div><strong>Год издания:</strong></div>
+                                              <div>{{ item.year }}</div>
+                                            </v-col>
+                                          </v-row>
+                                          <v-row>
+                                            <v-col>
+                                              <div><strong>Издатель:</strong></div>
+                                              <div>
+                                                {{
+                                                  item.book_publisher
+                                                    ? item.book_publisher
+                                                        .map((obj) => obj.title)
+                                                        .join(', ')
+                                                    : ''
+                                                }}
+                                              </div>
+                                            </v-col>
+                                            <v-col>
+                                              <div><strong>ББК:</strong></div>
+                                              <div>
+                                                {{
+                                                  item.book_bbk
+                                                    ? item.book_bbk
+                                                        .map((obj) => obj.title)
+                                                        .join(', ')
+                                                    : ''
+                                                }}
+                                              </div>
+                                            </v-col>
+                                          </v-row>
+                                        </v-col>
+                                      </v-row>
+                                      <v-row>
+                                        <v-textarea
+                                          v-model="message"
+                                          label="Информация для дополнения записи"
+                                          placholder="Пропишите пункты, которые нужно исправить или дополнить"
+                                          variant="outlined"
+                                        ></v-textarea>
+                                      </v-row>
+                                    </v-container>
+                                  </v-card-text>
+
+                                  <v-card-actions>
+                                    <v-btn
+                                      class="ml-auto mr-3"
+                                      variant="tonal"
+                                      @click="isActive.value = false"
+                                      >Отменить
+                                    </v-btn>
+                                    <v-btn
+                                      class="mr-auto"
+                                      color="primary"
+                                      variant="flat"
+                                      @click="sendRequest(item.id, message, 2, isActive)"
+                                      >Отправить запрос
+                                    </v-btn>
+                                  </v-card-actions>
+                                </v-card>
+                              </template>
+                            </v-dialog>
+
+                            <v-dialog max-width="650">
+                              <template v-slot:activator="{ props }">
+                                <v-list-item :value="2" v-bind="props"
+                                  ><span class="text-success">Запрос удаления</span></v-list-item
+                                >
+                              </template>
+
+                              <template v-slot:default="{ isActive }">
+                                <v-card>
+                                  <v-card-title>Запрос на удаление</v-card-title>
+
+                                  <v-card-text>
+                                    <v-container fluid>
+                                      <v-row>
+                                        <v-col cols="4">
+                                          <v-img
+                                            :src="
+                                              item.book_cover
+                                                ? `https://test.api.qazaqmura.kz/storage/covers/${item.book_cover.storage}`
+                                                : nocover
+                                            "
+                                            class="rounded"
+                                            fluid
+                                          ></v-img>
+                                        </v-col>
+                                        <v-col cols="6">
+                                          <div class="text-h6 font-weight-bold">
+                                            {{ item.title }}
+                                          </div>
+                                          <div class="mt-3">
+                                            <v-chip
+                                              v-for="author in item.book_author_main"
+                                              :key="author.id"
+                                              color="primary"
+                                              variant="outlined"
+                                            >
+                                              {{ author.name }}
+                                            </v-chip>
+                                          </div>
+                                          <v-row class="mt-2">
+                                            <v-col>
+                                              <div><strong>Язык:</strong></div>
+                                              <div>
+                                                {{
+                                                  item.book_language
+                                                    ? item.book_language
+                                                        .map((obj) => obj.title)
+                                                        .join(', ')
+                                                    : ''
+                                                }}
+                                              </div>
+                                            </v-col>
+                                            <v-col>
+                                              <div><strong>Год издания:</strong></div>
+                                              <div>{{ item.year }}</div>
+                                            </v-col>
+                                          </v-row>
+                                          <v-row>
+                                            <v-col>
+                                              <div><strong>Издатель:</strong></div>
+                                              <div>
+                                                {{
+                                                  item.book_publisher
+                                                    ? item.book_publisher
+                                                        .map((obj) => obj.title)
+                                                        .join(', ')
+                                                    : ''
+                                                }}
+                                              </div>
+                                            </v-col>
+                                            <v-col>
+                                              <div><strong>ББК:</strong></div>
+                                              <div>
+                                                {{
+                                                  item.book_bbk
+                                                    ? item.book_bbk
+                                                        .map((obj) => obj.title)
+                                                        .join(', ')
+                                                    : ''
+                                                }}
+                                              </div>
+                                            </v-col>
+                                          </v-row>
+                                        </v-col>
+                                      </v-row>
+                                      <v-row>
+                                        <v-textarea
+                                          v-model="message"
+                                          label="Причина"
+                                          placholder="Укажите причину удаления из базы"
+                                          variant="outlined"
+                                        ></v-textarea>
+                                      </v-row>
+                                    </v-container>
+                                  </v-card-text>
+
+                                  <v-card-actions>
+                                    <v-btn
+                                      class="ml-auto mr-3"
+                                      variant="tonal"
+                                      @click="isActive.value = false"
+                                      >Отменить
+                                    </v-btn>
+                                    <v-btn
+                                      class="mr-auto"
+                                      color="primary"
+                                      variant="flat"
+                                      @click="sendRequest(item.id, message, 1, isActive)"
+                                      >Отправить запрос
+                                    </v-btn>
+                                  </v-card-actions>
+                                </v-card>
+                              </template>
+                            </v-dialog>
+                          </v-list>
+                        </v-menu>
+                      </v-col>
+                      <v-col cols="4">
+                        <v-dialog max-width="650">
+                          <template v-slot:activator="{ props }">
+                            <v-btn color="green" size="small" v-bind="props" variant="flat"
+                              >Добавить в фонд
+                            </v-btn>
+                          </template>
+
+                          <template v-slot:default="{ isActive }">
+                            <v-card>
+                              <v-card-title>Добавить в фонд</v-card-title>
+
+                              <v-card-text>
+                                <v-container fluid>
+                                  <v-row>
+                                    <v-col cols="4">
+                                      <v-img
+                                        :src="
+                                          item.book_cover
+                                            ? `https://test.api.qazaqmura.kz/storage/covers/${item.book_cover.storage}`
+                                            : nocover
+                                        "
+                                        class="rounded"
+                                        fluid
+                                      ></v-img>
+                                    </v-col>
+                                    <v-col cols="6">
+                                      <div class="text-h6 font-weight-bold">
+                                        {{ item.title }}
+                                      </div>
+                                      <div class="mt-3">
+                                        <v-chip
+                                          v-for="author in item.book_author_main"
+                                          :key="author.id"
+                                          color="primary"
+                                          variant="outlined"
+                                          >{{ author.name }}
+                                        </v-chip>
+                                      </div>
+                                      <v-row class="mt-2">
+                                        <v-col>
+                                          <div><strong>Язык:</strong></div>
+                                          <div>
+                                            {{
+                                              item.book_language
+                                                ? item.book_language
+                                                    .map((obj) => obj.title)
+                                                    .join(', ')
+                                                : ''
+                                            }}
+                                          </div>
+                                        </v-col>
+                                        <v-col>
+                                          <div><strong>Год издания:</strong></div>
+                                          <div>{{ item.year }}</div>
+                                        </v-col>
+                                      </v-row>
+                                      <v-row>
+                                        <v-col>
+                                          <div><strong>Издатель:</strong></div>
+                                          <div>
+                                            {{
+                                              item.book_publisher
+                                                ? item.book_publisher
+                                                    .map((obj) => obj.title)
+                                                    .join(', ')
+                                                : ''
+                                            }}
+                                          </div>
+                                        </v-col>
+                                        <v-col>
+                                          <div><strong>ББК:</strong></div>
+                                          <div>
+                                            {{
+                                              item.book_bbk
+                                                ? item.book_bbk.map((obj) => obj.title).join(', ')
+                                                : ''
+                                            }}
+                                          </div>
+                                        </v-col>
+                                      </v-row>
+                                    </v-col>
+                                  </v-row>
+                                  <v-row>
+                                    <v-col>
+                                      <v-autocomplete
+                                        v-model="admission.book_admission_id"
+                                        :items="admissions"
+                                        item-value="id"
+                                        label="Поступление"
+                                        placeholder="Выберите"
+                                        variant="outlined"
+                                      ></v-autocomplete>
+                                    </v-col>
+                                    <v-col>
+                                      <v-text-field
+                                        v-model="admission.admission_at"
+                                        label="Дата поступления"
+                                        placeholder="ДД.ММ.ГГ"
+                                        type="date"
+                                        variant="outlined"
+                                      ></v-text-field>
+                                    </v-col>
+                                  </v-row>
+
+                                  <v-row>
+                                    <v-col>
+                                      <v-autocomplete
+                                        v-model="admission.contractor_id"
+                                        :items="contractors"
+                                        item-value="id"
+                                        label="Контрагент"
+                                        placeholder="Укажите"
+                                        variant="outlined"
+                                        @update:search="getContractors"
+                                      ></v-autocomplete>
+                                    </v-col>
+                                  </v-row>
+
+                                  <v-row>
+                                    <v-col>
+                                      <v-text-field
+                                        v-model="admission.amount"
+                                        label="Количество"
+                                        placeholder="Выберите"
+                                        type="number"
+                                        variant="outlined"
+                                      ></v-text-field>
+                                    </v-col>
+                                    <v-col>
+                                      <v-text-field
+                                        v-model="admission.price"
+                                        label="Цена"
+                                        placeholder="0,00"
+                                        step="0.01"
+                                        type="number"
+                                        variant="outlined"
+                                      ></v-text-field>
+                                    </v-col>
+                                  </v-row>
+
+                                  <v-row>
+                                    <v-col>
+                                      <v-autocomplete
+                                        v-model="admission.book_state_id"
+                                        :items="states"
+                                        item-value="id"
+                                        label="Состояние книги"
+                                        placeholder="Выберите"
+                                        variant="outlined"
+                                      ></v-autocomplete>
+                                    </v-col>
+                                  </v-row>
+                                </v-container>
+                              </v-card-text>
+
+                              <v-card-actions>
+                                <v-btn
+                                  class="ml-auto mr-3"
+                                  variant="tonal"
+                                  @click="isActive.value = false"
+                                  >Отменить
+                                </v-btn>
+                                <v-btn
+                                  class="mr-auto"
+                                  color="primary"
+                                  variant="flat"
+                                  @click="sendAdmission(admission, isActive)"
+                                  >Отправить
+                                </v-btn>
+                              </v-card-actions>
+                            </v-card>
+                          </template>
+                        </v-dialog>
+                      </v-col>
+                    </v-row>
+                  </v-col>
+                </v-row>
               </v-col>
             </v-row>
           </v-container>
@@ -146,8 +1341,15 @@ watch(page, () => { getBooks() });
     </v-row>
 
     <v-row class="mt-4">
-      <v-pagination class="ml-auto mr-2" :length="length" :total-visible="4" v-model="page" size="small" variant="flat"
-        active-color="primary"></v-pagination>
+      <v-pagination
+        v-model="page"
+        :length="length"
+        :total-visible="4"
+        active-color="primary"
+        class="ml-auto mr-2"
+        size="small"
+        variant="flat"
+      ></v-pagination>
     </v-row>
   </v-container>
 </template>

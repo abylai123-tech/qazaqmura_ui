@@ -1,75 +1,76 @@
-<script setup lang="ts">
-import { ref, type Ref } from 'vue';
-import { useAPI } from '@/api';
+<script lang="ts" setup>
+import { ref, type Ref } from 'vue'
+import { useAPI } from '@/api'
 
 const api = useAPI()
 
 interface Form {
-  author_id: number[] | null;
-  author_id_main: number[] | null;
-  bbk_id: number | null;
-  udk_id: number | null;
-  category_id: number | null;
-  annotation: string;
-  genre_id: number[] | null;
-  ISBN: string;
-  language_id: number[] | null;
-  pages: number | null;
-  publisher_id: number | null;
-  quotes: string;
-  title: string;
-  type_id: number | null;
-  year: number | null;
-  book_classroom: number | null;
-  book_classroom_language_id: number | null;
-  country_id: number | null;
-  amount: number | null;
-  copyright_sign_id: number | null;
-  content_type_id: number | null;
-  age_characteristic_id: number | null;
-  binding_id: number | null;
-  education_level_id: number | null;
-  reprint_book_id: number[] | null;
-  reprint_publisher_id: number[] | null;
-  titles: { language_id: number; title: string }[];
-  tags: number[] | null;
-  part: number | null;
-  volume: number | null;
-  materials: number[] | null;
-  link: { URL: string; title: string };
+  author_id: number[] | null
+  author_id_main: number[] | null
+  bbk_id: number | null
+  udk_id: number | null
+  category_id: number | null
+  annotation: string
+  genre_id: number[] | null
+  ISBN: string
+  language_id: number[] | null
+  pages: number | null
+  publisher_id: number | null
+  quotes: string
+  title: string
+  type_id: number | null
+  year: number | null
+  book_classroom: number | null
+  book_classroom_language_id: number | null
+  country_id: number | null
+  amount: number | null
+  copyright_sign_id: number | null
+  content_type_id: number | null
+  age_characteristic_id: number | null
+  binding_id: number | null
+  education_level_id: number | null
+  reprint_book_id: number[] | null
+  reprint_publisher_id: number[] | null
+  titles: { language_id: number; title: string }[]
+  tags: number[] | null
+  part: number | null
+  volume: number | null
+  materials: number[] | null
+  link: { URL: string; title: string }
+  subject_heading_id: number | null
 }
 
 interface BookAdmission {
-  amount: number;
-  book_id: number;
-  book_state_id: number | null;
-  price: number;
-  admission_at: string;
-  contractor_id: number | null;
-  book_admission_id: number | null;
+  amount: number
+  book_id: number
+  book_state_id: number | null
+  price: number
+  admission_at: string
+  contractor_id: number | null
+  book_admission_id: number | null
 }
 
 interface Author {
-  id: number,
-  name: string,
+  id: number
+  name: string
 }
 
 interface Publisher {
-  id: number,
-  title: string,
+  id: number
+  title: string
 }
 
 interface Material {
-  id: number,
-  label: string,
+  id: number
+  label: string
 }
 
 interface Contractor {
-  address: string;
-  company_ID: string;
-  id: number;
-  system: boolean;
-  title: string;
+  address: string
+  company_ID: string
+  id: number
+  system: boolean
+  title: string
 }
 
 const valid: Ref<boolean> = ref(false)
@@ -85,15 +86,20 @@ const contractors: Ref<Contractor[]> = ref([])
 const states: Ref<Publisher[]> = ref([])
 const admissions: Ref<Publisher[]> = ref([])
 const materials: Ref<Material[]> = ref([])
+const subjectHeading: Ref<Author[]> = ref([])
+const ageCharacteristics: Ref<Author[]> = ref([])
+const bindings: Ref<Publisher[]> = ref([])
+const genres: Ref<Publisher[]> = ref([])
+const contentTypes: Ref<Publisher[]> = ref([])
 const parts = [
   {
     id: 1,
-    title: 'Часть',
+    title: 'Часть'
   },
   {
     id: 1,
-    title: 'Том',
-  },
+    title: 'Том'
+  }
 ]
 const form: Ref<Form> = ref({
   author_id: [],
@@ -101,14 +107,14 @@ const form: Ref<Form> = ref({
   bbk_id: null,
   udk_id: null,
   category_id: null,
-  annotation: "",
+  annotation: '',
   genre_id: [],
-  ISBN: "",
+  ISBN: '',
   language_id: [],
   pages: null,
   publisher_id: null,
-  quotes: "",
-  title: "",
+  quotes: '',
+  title: '',
   type_id: null,
   year: null,
   book_classroom: null,
@@ -127,14 +133,15 @@ const form: Ref<Form> = ref({
   part: null,
   volume: null,
   materials: [],
-  link: { URL: "", title: "" }
+  link: { URL: '', title: '' },
+  subject_heading_id: null
 })
 const admission: Ref<BookAdmission> = ref({
   amount: 0,
   book_id: 0,
   book_state_id: null,
   price: 0,
-  admission_at: "",
+  admission_at: '',
   contractor_id: null,
   book_admission_id: null
 })
@@ -142,10 +149,12 @@ const language: Ref<number> = ref(1)
 
 async function getAuthors(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/author`;
-    if (search) { request += `?search=${search}` }
+    let request = `https://test.api.qazaqmura.kz/v1/author`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Author[] } }>(request)
-    if (response.data) authors.value = response.data.data.items;
+    if (response.data) authors.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -153,10 +162,12 @@ async function getAuthors(search = null) {
 
 async function getPublishers(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/publisher`;
-    if (search) { request += `?search=${search}` }
+    let request = `https://test.api.qazaqmura.kz/v1/publisher`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
-    if (response.data) publishers.value = response.data.data.items;
+    if (response.data) publishers.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -164,10 +175,12 @@ async function getPublishers(search = null) {
 
 async function getCities(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/city`;
-    if (search) { request += `?search=${search}` }
+    let request = `https://test.api.qazaqmura.kz/v1/city`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
-    if (response.data) cities.value = response.data.data.items;
+    if (response.data) cities.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -175,10 +188,12 @@ async function getCities(search = null) {
 
 async function getTypes(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/type`;
-    if (search) { request += `?search=${search}` }
+    let request = `https://test.api.qazaqmura.kz/v1/type`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
-    if (response.data) types.value = response.data.data.items;
+    if (response.data) types.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -186,10 +201,12 @@ async function getTypes(search = null) {
 
 async function getLanguages(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/language`;
-    if (search) { request += `?search=${search}` }
+    let request = `https://test.api.qazaqmura.kz/v1/language`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
-    if (response.data) languages.value = response.data.data.items;
+    if (response.data) languages.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -197,10 +214,12 @@ async function getLanguages(search = null) {
 
 async function getContractors(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/contractor`;
-    if (search) { request += `?search=${search}` }
+    let request = `https://test.api.qazaqmura.kz/v1/contractor`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Contractor[] } }>(request)
-    if (response.data) contractors.value = response.data.data.items;
+    if (response.data) contractors.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -208,10 +227,12 @@ async function getContractors(search = null) {
 
 async function getStates(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/book/state`;
-    if (search) { request += `?search=${search}` }
+    let request = `https://test.api.qazaqmura.kz/v1/book/state`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
-    if (response.data) states.value = response.data.data.items;
+    if (response.data) states.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -219,10 +240,12 @@ async function getStates(search = null) {
 
 async function getAdmissions(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/book/admission`;
-    if (search) { request += `?search=${search}` }
+    let request = `https://test.api.qazaqmura.kz/v1/book/admission`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
-    if (response.data) admissions.value = response.data.data.items;
+    if (response.data) admissions.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -230,41 +253,122 @@ async function getAdmissions(search = null) {
 
 async function getMaterials(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/material`;
-    if (search) { request += `?search=${search}` }
+    let request = `https://test.api.qazaqmura.kz/v1/material`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Material[] } }>(request)
-    if (response.data) materials.value = response.data.data.items;
+    if (response.data) materials.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getSubjectHeadings(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/subject/heading`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Author[] } }>(request)
+    if (response.data) subjectHeading.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getAgeCharacteristics(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/age/characteristic`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Author[] } }>(request)
+    if (response.data) ageCharacteristics.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getBindings(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/binding`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) bindings.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getGenres(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/genre`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) genres.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function getContentTypes(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/content/type`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) contentTypes.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
 }
 
 function removeNullOrEmptyFields(obj: any): any {
-  const newObj: any = {};
+  const newObj: any = {}
   for (const key in obj) {
-    const value = obj[key];
+    const value = obj[key]
     if (
       value !== null &&
       value !== undefined &&
       !(Array.isArray(value) && value.length === 0) &&
       !(typeof value === 'string' && value.trim() === '')
     ) {
-      newObj[key] = value;
+      newObj[key] = value
     }
   }
-  return newObj;
+  return newObj
 }
 
+function formatDate(dateToFormat: string) {
+  const date = new Date(dateToFormat)
+  const day = date.getDate().toString().length > 1 ? date.getDate() : '0' + date.getDate()
+  const month =
+    (date.getMonth() + 1).toString().length > 1 ? date.getMonth() + 1 : '0' + date.getMonth()
+  return `${day}.${month}.${date.getFullYear()}`
+}
 
 async function sendBookData() {
   const body = removeNullOrEmptyFields(form.value)
   try {
-    const response = await api.postData<Form, { id: number }>('https://test.api.qazaqmura.kz/v1/book', body);
+    const response = await api.postData<Form, { id: number }>(
+      'https://test.api.qazaqmura.kz/v1/book',
+      body
+    )
     if (response.data && showFundData.value) {
-      const id = response.data.id;
-      admission.value.book_id = id;
+      const id = response.data.id
+      const admissionForm = { ...admission.value }
+      admissionForm.book_id = id
+      admissionForm.admission_at = formatDate(admission.value.admission_at)
       await api.postData<{ books: BookAdmission[] }, {}>(
-        'https://test.api.qazaqmura.kz/v1/book/school/link', { books: [admission.value] });
+        'https://test.api.qazaqmura.kz/v1/book/school/link',
+        { books: [admissionForm] }
+      )
     }
   } catch (error: any) {
     console.error('Error:', error.message)
@@ -280,6 +384,11 @@ getContractors()
 getStates()
 getAdmissions()
 getMaterials()
+getSubjectHeadings()
+getAgeCharacteristics()
+getGenres()
+getBindings()
+getContentTypes()
 </script>
 
 <template>
@@ -288,73 +397,102 @@ getMaterials()
       <template v-slot:title>
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold">M-DATA</span>
-          <span class="text-subtitle-2 text-medium-emphasis">База данных по РК (библиографических записей)</span>
+          <span class="text-subtitle-2 text-medium-emphasis"
+            >База данных по РК (библиографических записей)</span
+          >
         </div>
       </template>
 
       <template v-slot:append>
-        <v-btn variant="tonal" class="mr-3" prepend-icon="mdi-video-outline">Помощь</v-btn>
-        <v-btn variant="flat" color="primary" to="/m-data/add" prepend-icon="mdi-plus">Добавить</v-btn>
+        <v-btn class="mr-3" prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
+        <v-btn color="primary" prepend-icon="mdi-plus" to="/m-data/add" variant="flat"
+          >Добавить</v-btn
+        >
       </template>
     </v-app-bar>
 
     <v-row>
       <v-col>
-        <v-btn to="/m-data" variant="text" prepend-icon="mdi-arrow-left">Назад</v-btn>
+        <v-btn prepend-icon="mdi-arrow-left" to="/m-data" variant="text">Назад</v-btn>
       </v-col>
     </v-row>
 
     <v-row class="mt-6">
       <v-col cols="8" offset="2">
         <v-card>
-          <v-card-title>
-            Основные данные
-          </v-card-title>
+          <v-card-title> Основные данные </v-card-title>
 
-          <v-card-subtitle>
-            1/2
-          </v-card-subtitle>
+          <v-card-subtitle> 1/2 </v-card-subtitle>
 
           <v-card-text>
             <v-form v-model="valid">
               <v-container fluid>
                 <v-row>
                   <v-col>
-                    <v-text-field v-model="form.title" label="Название" variant="outlined" placeholder="Напишите название"
-                      required></v-text-field>
+                    <v-text-field
+                      v-model="form.title"
+                      label="Название"
+                      placeholder="Напишите название"
+                      required
+                      variant="outlined"
+                    ></v-text-field>
                   </v-col>
                 </v-row>
 
                 <v-row v-for="item in form.titles" :key="item.title">
                   <v-col>
-                    <v-text-field v-model="item.title" label="Доп заголовок" variant="outlined"
-                      placeholder="Напишите название"></v-text-field>
+                    <v-text-field
+                      v-model="item.title"
+                      label="Доп заголовок"
+                      placeholder="Напишите название"
+                      variant="outlined"
+                    ></v-text-field>
                   </v-col>
                 </v-row>
 
                 <v-row>
                   <v-col>
-                    <v-btn @click="form.titles.push({ title: '', language_id: language++ })" color="primary"
-                      variant="outlined" prepend-icon="mdi-plus">Другое название</v-btn>
+                    <v-btn
+                      color="primary"
+                      prepend-icon="mdi-plus"
+                      variant="outlined"
+                      @click="form.titles.push({ title: '', language_id: language++ })"
+                      >Другое название
+                    </v-btn>
                   </v-col>
                 </v-row>
 
                 <v-row>
                   <v-col>
-                    <v-textarea v-model="form.annotation" label="Аннотация" variant="outlined"
-                      placeholder="Напишите более 15 слов"></v-textarea>
+                    <v-textarea
+                      v-model="form.annotation"
+                      label="Аннотация"
+                      placeholder="Напишите более 15 слов"
+                      variant="outlined"
+                    ></v-textarea>
                   </v-col>
                 </v-row>
 
                 <v-row>
                   <v-col>
-                    <v-text-field type="number" v-model="form.pages" label="Страницы" variant="outlined"
-                      placeholder="Укажите"></v-text-field>
+                    <v-text-field
+                      v-model="form.pages"
+                      label="Страницы"
+                      placeholder="Укажите"
+                      type="number"
+                      variant="outlined"
+                    ></v-text-field>
                   </v-col>
 
                   <v-col>
-                    <v-text-field type="number" v-model="form.year" label="Год издания" variant="outlined"
-                      placeholder="Укажите" prepend-inner-icon="mdi-magnify"></v-text-field>
+                    <v-text-field
+                      v-model="form.year"
+                      label="Год издания"
+                      placeholder="Укажите"
+                      prepend-inner-icon="mdi-magnify"
+                      type="number"
+                      variant="outlined"
+                    ></v-text-field>
                   </v-col>
                 </v-row>
               </v-container>
@@ -367,35 +505,52 @@ getMaterials()
     <v-row>
       <v-col cols="8" offset="2">
         <v-card>
-          <v-card-title>
-            Основные данные
-          </v-card-title>
+          <v-card-title> Основные данные </v-card-title>
 
-          <v-card-subtitle>
-            2/2
-          </v-card-subtitle>
+          <v-card-subtitle> 2/2 </v-card-subtitle>
 
           <v-card-text>
             <v-container fluid>
               <v-row>
                 <v-col>
-                  <v-autocomplete @update:search="getAuthors" multiple v-model="form.author_id_main" :items="authors"
-                    item-title="name" item-value="id" variant="outlined" label="Основной автор"
-                    placeholder="Укажите автора"></v-autocomplete>
+                  <v-autocomplete
+                    v-model="form.author_id_main"
+                    :items="authors"
+                    item-title="name"
+                    item-value="id"
+                    label="Основной автор"
+                    multiple
+                    placeholder="Укажите автора"
+                    variant="outlined"
+                    @update:search="getAuthors"
+                  ></v-autocomplete>
                 </v-col>
               </v-row>
 
               <v-row v-if="additionalAuthors">
                 <v-col>
-                  <v-autocomplete @update:search="getAuthors" multiple v-model="form.author_id" :items="authors"
-                    item-title="name" item-value="id" variant="outlined" label="Другие авторы"
-                    placeholder="Укажите автора"></v-autocomplete>
+                  <v-autocomplete
+                    v-model="form.author_id"
+                    :items="authors"
+                    item-title="name"
+                    item-value="id"
+                    label="Другие авторы"
+                    multiple
+                    placeholder="Укажите автора"
+                    variant="outlined"
+                    @update:search="getAuthors"
+                  ></v-autocomplete>
                 </v-col>
               </v-row>
 
               <v-row v-if="!additionalAuthors">
                 <v-col>
-                  <v-btn @click="additionalAuthors = true" variant="outlined" color="primary" prepend-icon="mdi-plus">
+                  <v-btn
+                    color="primary"
+                    prepend-icon="mdi-plus"
+                    variant="outlined"
+                    @click="additionalAuthors = true"
+                  >
                     Добавить других авторов
                   </v-btn>
                 </v-col>
@@ -403,37 +558,55 @@ getMaterials()
 
               <v-row>
                 <v-col>
-                  <v-text-field variant="outlined" prepend-inner-icon="mdi-magnify" label="Квалификация"
-                    placeholder="Поиск"></v-text-field>
+                  <v-text-field
+                    label="Квалификация"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
-                  <v-text-field variant="outlined" v-model="form.ISBN" prepend-inner-icon="mdi-magnify" label="ISBN"
-                    placeholder="Укажите ISBN"></v-text-field>
+                  <v-text-field
+                    v-model="form.ISBN"
+                    label="ISBN"
+                    placeholder="Укажите ISBN"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col cols="3">
-                  <strong>
-                    Раздел произведения:
-                  </strong>
+                  <strong> Раздел произведения: </strong>
                 </v-col>
                 <v-col>
-                  <v-select variant="outlined" v-model="form.part" :items="parts" item-value="id" label="Произведение"
-                    placeholder="Укажите произведение"></v-select>
+                  <v-select
+                    v-model="form.part"
+                    :items="parts"
+                    item-value="id"
+                    label="Произведение"
+                    placeholder="Укажите произведение"
+                    variant="outlined"
+                  ></v-select>
                 </v-col>
                 <v-col>
-                  <v-select variant="outlined" v-model="form.volume" :items="[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]"
-                    label="Цифра" placeholder="Выберите цифру"></v-select>
+                  <v-select
+                    v-model="form.volume"
+                    :items="[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]"
+                    label="Цифра"
+                    placeholder="Выберите цифру"
+                    variant="outlined"
+                  ></v-select>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
-                  <v-btn variant="outlined" color="primary" prepend-icon="mdi-plus">
+                  <v-btn color="primary" prepend-icon="mdi-plus" variant="outlined">
                     ISBN дополнительный
                   </v-btn>
                 </v-col>
@@ -441,36 +614,80 @@ getMaterials()
 
               <v-row>
                 <v-col>
-                  <v-autocomplete @update:search="getPublishers" v-model="form.publisher_id" :items="publishers"
-                    item-value="id" variant="outlined" prepend-inner-icon="mdi-magnify" label="Издатель"
-                    placeholder="Укажите издателя"></v-autocomplete>
+                  <v-autocomplete
+                    v-model="form.publisher_id"
+                    :items="publishers"
+                    item-value="id"
+                    label="Издатель"
+                    placeholder="Укажите издателя"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                    @update:search="getPublishers"
+                  ></v-autocomplete>
                 </v-col>
                 <v-col>
-                  <v-autocomplete @update:search="getCities" item-value="id" :items="cities" variant="outlined"
-                    prepend-inner-icon="mdi-magnify" label="Город" placeholder="Поиск"></v-autocomplete>
+                  <v-autocomplete
+                    v-model="form.city_id"
+                    :items="cities"
+                    item-value="id"
+                    label="Город"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                    @update:search="getCities"
+                  ></v-autocomplete>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
-                  <v-text-field type="number" v-model="form.amount" variant="outlined" label="Тираж"
-                    placeholder="Поиск"></v-text-field>
+                  <v-text-field
+                    v-model="form.amount"
+                    label="Тираж"
+                    placeholder="Поиск"
+                    type="number"
+                    variant="outlined"
+                  ></v-text-field>
                 </v-col>
                 <v-col>
-                  <v-autocomplete item-value="id" v-model="form.type_id" :items="types" variant="outlined" label="Тип"
-                    placeholder="Поиск" prepend-inner-icon="mdi-magnify"></v-autocomplete>
+                  <v-autocomplete
+                    v-model="form.type_id"
+                    :items="types"
+                    item-value="id"
+                    label="Тип"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-autocomplete>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
-                  <v-autocomplete multiple item-value="id" v-model="form.language_id" :items="languages"
-                    variant="outlined" label="Язык" placeholder="Поиск" prepend-inner-icon="mdi-magnify"></v-autocomplete>
+                  <v-autocomplete
+                    v-model="form.language_id"
+                    :items="languages"
+                    item-value="id"
+                    label="Язык"
+                    multiple
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-autocomplete>
                 </v-col>
                 <v-col>
-                  <v-autocomplete multiple item-value="id" item-title="label" v-model="form.materials" chips
-                    :items="materials" variant="outlined" label="Обозначение материала" placeholder="Поиск"
-                    prepend-inner-icon="mdi-magnify"></v-autocomplete>
+                  <v-autocomplete
+                    v-model="form.materials"
+                    :items="materials"
+                    chips
+                    item-title="label"
+                    item-value="id"
+                    label="Обозначение материала"
+                    multiple
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-autocomplete>
                 </v-col>
               </v-row>
             </v-container>
@@ -488,15 +705,27 @@ getMaterials()
             <v-container fluid>
               <v-row>
                 <v-col>
-                  <v-text-field variant="outlined" label="Предметная рубрика" placeholder="Поиск"
-                    prepend-inner-icon="mdi-magnify"></v-text-field>
+                  <v-autocomplete
+                    v-model="form.subject_heading_id"
+                    :items="subjectHeading"
+                    item-title="name"
+                    item-value="id"
+                    label="Предметная рубрика"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-autocomplete>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
-                  <v-text-field variant="outlined" label="Ключевые слова" placeholder="Поиск"
-                    prepend-inner-icon="mdi-magnify"></v-text-field>
+                  <v-text-field
+                    label="Ключевые слова"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
@@ -505,11 +734,11 @@ getMaterials()
                   <div class="d-flex">
                     <div class="d-flex flex-column">
                       <span class="mb-2">ББК</span>
-                      <v-btn variant="outlined" color="primary">Выбрать ББК</v-btn>
+                      <v-btn color="primary" variant="outlined">Выбрать ББК</v-btn>
                     </div>
                     <div class="d-flex flex-column ml-4">
                       <span class="mb-2">УДК</span>
-                      <v-btn variant="outlined" color="primary">Выбрать УДК</v-btn>
+                      <v-btn color="primary" variant="outlined">Выбрать УДК</v-btn>
                     </div>
                   </div>
                 </v-col>
@@ -517,47 +746,91 @@ getMaterials()
 
               <v-row>
                 <v-col>
-                  <v-text-field variant="outlined" label="Авторский знак" placeholder="Поиск"
-                    prepend-inner-icon="mdi-magnify"></v-text-field>
+                  <v-text-field
+                    label="Авторский знак"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
-                  <v-text-field variant="outlined" label="Виды содержания" placeholder="Поиск"
-                    prepend-inner-icon="mdi-magnify"></v-text-field>
+                  <v-autocomplete
+                    v-model="form.content_type_id"
+                    :items="contentTypes"
+                    item-value="id"
+                    label="Виды содержания"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-autocomplete>
                 </v-col>
                 <v-col>
-                  <v-text-field variant="outlined" label="Возрастная характеристика" placeholder="Поиск"
-                    prepend-inner-icon="mdi-magnify"></v-text-field>
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col>
-                  <v-text-field variant="outlined" label="Переплет" placeholder="Поиск"
-                    prepend-inner-icon="mdi-magnify"></v-text-field>
-                </v-col>
-                <v-col>
-                  <v-text-field variant="outlined" label="Жанры" placeholder="Поиск"
-                    prepend-inner-icon="mdi-magnify"></v-text-field>
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col>
-                  <v-switch color="primary" label="Укажите для какого класса , если это учебник"></v-switch>
+                  <v-autocomplete
+                    v-model="form.age_characteristic_id"
+                    :items="ageCharacteristics"
+                    item-value="id"
+                    label="Возрастная характеристика"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-autocomplete>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
-                  <v-text-field variant="outlined" label="Класс" placeholder="Укажите класс"
-                    prepend-inner-icon="mdi-magnify"></v-text-field>
+                  <v-autocomplete
+                    v-model="form.binding_id"
+                    :items="bindings"
+                    item-value="id"
+                    label="Переплет"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-autocomplete>
                 </v-col>
                 <v-col>
-                  <v-text-field variant="outlined" label="Страна" placeholder="Поиск"
-                    prepend-inner-icon="mdi-magnify"></v-text-field>
+                  <v-autocomplete
+                    v-model="form.genre_id"
+                    :items="genres"
+                    item-value="id"
+                    label="Жанры"
+                    multiple
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-autocomplete>
+                </v-col>
+              </v-row>
+
+              <v-row>
+                <v-col>
+                  <v-switch
+                    color="primary"
+                    label="Укажите для какого класса , если это учебник"
+                  ></v-switch>
+                </v-col>
+              </v-row>
+
+              <v-row>
+                <v-col>
+                  <v-text-field
+                    label="Класс"
+                    placeholder="Укажите класс"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-text-field>
+                </v-col>
+                <v-col>
+                  <v-text-field
+                    label="Страна"
+                    placeholder="Поиск"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
@@ -566,11 +839,11 @@ getMaterials()
                   <div class="d-flex">
                     <div class="d-flex flex-column">
                       <span class="mb-2">Обложка</span>
-                      <v-btn variant="outlined" color="primary">Выбрать файл</v-btn>
+                      <v-btn color="primary" variant="outlined">Выбрать файл</v-btn>
                     </div>
                     <div class="d-flex flex-column ml-4">
                       <span class="mb-2">EPUB</span>
-                      <v-btn variant="outlined" color="primary">Выбрать файл</v-btn>
+                      <v-btn color="primary" variant="outlined">Выбрать файл</v-btn>
                     </div>
                   </div>
                 </v-col>
@@ -578,11 +851,19 @@ getMaterials()
 
               <v-row>
                 <v-col>
-                  <v-text-field v-model="form.link.title" variant="outlined" label="Ссылка"
-                    placeholder="Название"></v-text-field>
+                  <v-text-field
+                    v-model="form.link.title"
+                    label="Ссылка"
+                    placeholder="Название"
+                    variant="outlined"
+                  ></v-text-field>
                 </v-col>
                 <v-col>
-                  <v-text-field v-model="form.link.URL" variant="outlined" placeholder="URL"></v-text-field>
+                  <v-text-field
+                    v-model="form.link.URL"
+                    placeholder="URL"
+                    variant="outlined"
+                  ></v-text-field>
                 </v-col>
               </v-row>
             </v-container>
@@ -600,46 +881,84 @@ getMaterials()
             <v-container fluid>
               <v-row>
                 <v-col>
-                  <v-autocomplete v-model="admission.book_admission_id" item-value="id" :items="admissions"
-                    variant="outlined" label="Поступление" placeholder="Выберите"></v-autocomplete>
+                  <v-autocomplete
+                    v-model="admission.book_admission_id"
+                    :items="admissions"
+                    item-value="id"
+                    label="Поступление"
+                    placeholder="Выберите"
+                    variant="outlined"
+                  ></v-autocomplete>
                 </v-col>
                 <v-col>
-                  <v-text-field v-model="admission.admission_at" type="date" variant="outlined" label="Дата поступления"
-                    placeholder="ДД.ММ.ГГ"></v-text-field>
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col>
-                  <v-autocomplete @update:search="getContractors" v-model="admission.contractor_id" :items="contractors"
-                    item-value="id" variant="outlined" label="Контрагент" placeholder="Укажите"></v-autocomplete>
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col>
-                  <v-text-field v-model="admission.amount" variant="outlined" type="number" label="Количество"
-                    placeholder="Выберите"></v-text-field>
-                </v-col>
-                <v-col>
-                  <v-text-field v-model="admission.price" type="number" step="0.01" variant="outlined" label="Цена"
-                    placeholder="0,00"></v-text-field>
+                  <v-text-field
+                    v-model="admission.admission_at"
+                    label="Дата поступления"
+                    placeholder="ДД.ММ.ГГ"
+                    type="date"
+                    variant="outlined"
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
-                  <v-autocomplete item-value="id" :items="states" v-model="admission.book_state_id" variant="outlined"
-                    label="Состояние книги" placeholder="Выберите"></v-autocomplete>
+                  <v-autocomplete
+                    v-model="admission.contractor_id"
+                    :items="contractors"
+                    item-value="id"
+                    label="Контрагент"
+                    placeholder="Укажите"
+                    variant="outlined"
+                    @update:search="getContractors"
+                  ></v-autocomplete>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
-                  <v-sheet class="px-2 py-2" rounded color="#FFE4AF">
-                    <span>Обложка может быть незначительно повреждена, или потерта. На страницах могут быть незначительные
-                      пометки или помарки. Страницы не порваны. Книга может быть покороблена от воздействия влаги.
-                      Суперобложка может быть порвана или утеряна. Переплет прочный.</span>
+                  <v-text-field
+                    v-model="admission.amount"
+                    label="Количество"
+                    placeholder="Выберите"
+                    type="number"
+                    variant="outlined"
+                  ></v-text-field>
+                </v-col>
+                <v-col>
+                  <v-text-field
+                    v-model="admission.price"
+                    label="Цена"
+                    placeholder="0,00"
+                    step="0.01"
+                    type="number"
+                    variant="outlined"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+
+              <v-row>
+                <v-col>
+                  <v-autocomplete
+                    v-model="admission.book_state_id"
+                    :items="states"
+                    item-value="id"
+                    label="Состояние книги"
+                    placeholder="Выберите"
+                    variant="outlined"
+                  ></v-autocomplete>
+                </v-col>
+              </v-row>
+
+              <v-row>
+                <v-col>
+                  <v-sheet class="px-2 py-2" color="#FFE4AF" rounded>
+                    <span
+                      >Обложка может быть незначительно повреждена, или потерта. На страницах могут
+                      быть незначительные пометки или помарки. Страницы не порваны. Книга может быть
+                      покороблена от воздействия влаги. Суперобложка может быть порвана или утеряна.
+                      Переплет прочный.</span
+                    >
                   </v-sheet>
                 </v-col>
               </v-row>
@@ -651,15 +970,29 @@ getMaterials()
 
     <v-row>
       <v-col class="text-center">
-        <v-btn v-if="!showAdditionalData" prepend-icon="mdi-plus" class="mr-2" variant="flat" color="primary"
-          @click="showAdditionalData = true">Добавить
-          дополнительные параметры</v-btn>
+        <v-btn
+          v-if="!showAdditionalData"
+          class="mr-2"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="flat"
+          @click="showAdditionalData = true"
+          >Добавить дополнительные параметры
+        </v-btn>
 
-        <v-btn v-if="!showFundData" prepend-icon="mdi-plus" class="mr-2" variant="flat" color="primary"
-          @click="showFundData = true">Добавить
-          фонд</v-btn>
+        <v-btn
+          v-if="!showFundData"
+          class="mr-2"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="flat"
+          @click="showFundData = true"
+          >Добавить фонд
+        </v-btn>
 
-        <v-btn @click="sendBookData" prepend-icon="mdi-plus" variant="flat" color="green">Добавить запись</v-btn>
+        <v-btn color="green" prepend-icon="mdi-plus" variant="flat" @click="sendBookData"
+          >Добавить запись</v-btn
+        >
       </v-col>
     </v-row>
 

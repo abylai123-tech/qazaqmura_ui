@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAPI } from '@/api';
-import { defineProps, ref, type Ref } from 'vue'
+import { ref, type Ref } from 'vue'
 
 const api = useAPI()
 
@@ -85,7 +85,8 @@ if (props.mdata) {
         </v-row>
         <v-row class="mb-2">
           <v-col v-if="mdata" cols="2">
-            <v-select :items="languages" item-value="id" item-title="title" variant="solo-filled" label="Язык"></v-select>
+            <v-select :items="languages" item-value="id" item-title="title" variant="solo-filled"
+              label="Язык"></v-select>
           </v-col>
           <v-col v-if="mdata || inventory" cols="2">
             <v-autocomplete :items="authors" @update:search="getAuthors" item-title="name" variant="solo-filled"

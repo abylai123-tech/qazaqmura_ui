@@ -1,14 +1,20 @@
-<script setup lang="ts">
-import { useAPI } from '@/api';
-import { watch } from 'vue';
-import { ref, type Ref } from 'vue';
-import FilterBlock from '@/components/FilterBlock.vue';
+<script lang="ts" setup>
+import { useAPI } from '@/api'
+import { ref, type Ref, watch } from 'vue'
+import FilterBlock from '@/components/FilterBlock.vue'
 
 interface Inventory {
-  id: number,
+  amount: any
+  id: number
   book: {
-    book_author_main: { id: string, name: string }[]
+    year: number
+    title: string
+    book_author_main: { id: string; title: string; name: string }[]
   }
+  price: number
+  book_school_id: number
+  book_inventory: any[]
+  admission_at: string
 }
 
 const bottomItems = [
@@ -19,87 +25,238 @@ const bottomItems = [
 
 const headers = [
   { title: 'ID', key: 'id' },
-  { title: 'Название книги', key: 'book.title' },
-  { title: 'Автор', key: 'author' },
-  { title: 'Год издания', key: 'book.year' },
-  { title: 'Цена', key: 'price' },
+  { title: 'Книга', key: 'book' },
+  { title: 'Поступление', key: 'admission' },
+  { title: 'Инвент', key: 'invent' },
   { title: '', key: 'actions', sortable: false }
 ]
 
-const loading: Ref<boolean> = ref(false);
-const page: Ref<number> = ref(1);
-const length: Ref<number> = ref(0);
-const items: Ref<Inventory[]> = ref([]);
-const search: Ref<string | null> = ref(null);
+interface SearchItem {
+  amount: number
+  author_main: { id: number; name: string }
+  book_school_id: number
+  title: string
+}
 
-const api = useAPI();
+const inventorySearch: Ref<SearchItem[]> = ref([])
+const loading: Ref<boolean> = ref(false)
+const page: Ref<number> = ref(1)
+const length: Ref<number> = ref(0)
+const items: Ref<Inventory[]> = ref([])
+const search: Ref<string | null> = ref(null)
+const drawer: Ref<boolean> = ref(false)
+const book: Ref<Inventory | null> = ref(null)
+const inventories: Ref<Number[]> = ref([])
+
+const api = useAPI()
 
 async function getContractors() {
-  loading.value = true;
+  loading.value = true
   try {
-    const request = `https://test.api.qazaqmura.kz/v1/book/school?book_inventory=1&page=${page.value}`;
-    const response = await api.fetchData<{ data: { items: Inventory[] }, meta: { last_page: number } }>(request)
+    const request = `https://test.api.qazaqmura.kz/v1/book/school?book_inventory=1&page=${page.value}`
+    const response = await api.fetchData<{
+      data: { items: Inventory[] }
+      meta: { last_page: number }
+    }>(request)
     if (response.data) {
-      items.value = response.data.data.items;
-      length.value = response.data.meta.last_page;
-      loading.value = false;
+      items.value = response.data.data.items
+      length.value = response.data.meta.last_page
+      loading.value = false
     }
   } catch (error: any) {
-    console.error('Error:', error.message);
+    console.error('Error:', error.message)
   }
 }
 
-getContractors()
+async function addToInventory(inventories: Number[]) {
+  const bookSchoolId = book.value ? book.value.book_school_id : null
+  try {
+    const response = await api.postData('https://test.api.qazaqmura.kz/v1/book/inventory', {
+      book_school_id: bookSchoolId,
+      inventories: inventories
+    })
+    console.log('Response:', response.data)
+  } catch (error) {
+    console.error('Error:', error)
+  }
+  closeInventory()
+}
 
-watch(page, () => { getContractors() })
-watch(search, () => { getContractors() })
+async function getInventorySearch(search: string | null = null) {
+  const request = search
+    ? `https://test.api.qazaqmura.kz/v1/book/school/inventory/search?search=${search}`
+    : 'https://test.api.qazaqmura.kz/v1/book/school/inventory/search'
+  try {
+    const response = await api.fetchData<SearchItem[]>(request)
+    if (response.data) {
+      inventorySearch.value = response.data
+    }
+  } catch (error) {
+    console.error('Error:', error)
+  }
+}
+
+function closeInventory() {
+  book.value = null
+  drawer.value = false
+}
+
+function downloadPDF() {
+  const link = document.createElement('a')
+  link.href = inventory
+  link.download = 'document.pdf'
+  link.click()
+  document.body.removeChild(link)
+}
+
+getContractors()
+getInventorySearch()
+
+watch(book, (value) => {
+  if (value) {
+    inventories.value = []
+    const length = value.amount - value.book_inventory.length
+    inventories.value = new Array(length).fill(undefined)
+  }
+})
+
+watch(page, () => {
+  getContractors()
+})
+watch(search, () => {
+  getContractors()
+})
 </script>
 
 <template>
   <v-container fluid>
+    <v-navigation-drawer v-model="drawer" :absolute="true" location="right" temporary width="400">
+      <v-list-item>
+        <span class="font-weight-bold">Инвентаризация книги</span>
+      </v-list-item>
+      <v-divider></v-divider>
+      <v-list-item>
+        <v-autocomplete
+          v-model="book"
+          :items="inventorySearch"
+          class="pt-10"
+          item-title="title"
+          label="Книга"
+          placeholder="Напишите название"
+          return-object
+          variant="outlined"
+          @update:search="getInventorySearch"
+        ></v-autocomplete>
+      </v-list-item>
+      <div v-if="book">
+        <v-list-item><strong>Инвентарные номера</strong></v-list-item>
+        <v-list-item v-for="n in book.amount - book.book_inventory.length" :key="n">
+          <v-text-field
+            v-model="inventories[n - 1]"
+            label="Инвентарный номер"
+            placeholder="Напишите номер"
+            type="number"
+            variant="outlined"
+          ></v-text-field>
+        </v-list-item>
+        <v-list-item>
+          <v-btn class="mr-3" variant="tonal" @click="closeInventory">Закрыть</v-btn>
+          <v-btn color="primary" variant="flat" @click="addToInventory(inventories)"
+            >Добавить
+          </v-btn>
+        </v-list-item>
+      </div>
+    </v-navigation-drawer>
+
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold">Инвентарный учет</span>
-          <span class="text-subtitle-2 text-medium-emphasis">Инвентаризация книг по мере поступления и списания
-            онлайн</span>
+          <span class="text-subtitle-2 text-medium-emphasis"
+            >Инвентаризация книг по мере поступления и списания онлайн</span
+          >
         </div>
       </template>
 
       <template v-slot:append>
-        <v-btn variant="tonal" prepend-icon="mdi-chevron-down" class="mr-3">Скачать список как PDF</v-btn>
-        <v-btn variant="tonal" class="mr-3">Списание</v-btn>
-        <v-btn variant="flat" color="primary" class="mr-3">Инвентаризация</v-btn>
-        <v-btn variant="tonal" prepend-icon="mdi-video-outline">Помощь</v-btn>
+        <v-btn class="mr-3" prepend-icon="mdi-chevron-down" variant="tonal" @click="downloadPDF"
+          >Скачать список как PDF
+        </v-btn>
+        <v-btn class="mr-3" variant="tonal">Списание</v-btn>
+        <v-btn class="mr-3" color="primary" variant="flat" @click="drawer = true"
+          >Инвентаризация
+        </v-btn>
+        <v-btn prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
       </template>
     </v-app-bar>
 
     <v-row>
       <v-col cols="12">
-        <FilterBlock inventory :mdata="false" :users="false" :one-line="false" :bottom-items="bottomItems">
+        <FilterBlock
+          :bottom-items="bottomItems"
+          :mdata="false"
+          :one-line="false"
+          :users="false"
+          inventory
+        >
         </FilterBlock>
       </v-col>
     </v-row>
 
-    <v-data-table show-select :headers="headers" :items="items" class="mt-2">
-      <template v-slot:[`item.author`]="{ item }">
-        <span>
-          {{ item.book.book_author_main.map(item => item.name).join(', ') }}
-        </span>
-      </template>
-
-      <template v-slot:[`item.actions`]="{ }">
-        <div class="d-flex justify-center">
-          <v-btn variant="outlined" append-icon="mdi-arrow-right">Перейти</v-btn>
+    <v-data-table :headers="headers" :items="items" class="mt-2" show-select>
+      <template v-slot:[`item.book`]="{ item }">
+        <div class="mt-3">{{ item.book.title }}</div>
+        <div class="text-subtitle-2 text-medium-emphasis">Год издания: {{ item.book.year }}</div>
+        <div class="mb-3">
+          <v-chip
+            v-for="author in item.book.book_author_main"
+            :key="author.id"
+            color="primary"
+            size="x-small"
+            variant="outlined"
+            >{{ author.name }}
+          </v-chip>
         </div>
       </template>
 
-      <template v-slot:bottom> </template>
+      <template v-slot:[`item.admission`]="{ item }">
+        <div class="mt-3">
+          <v-chip color="primary" size="x-small" variant="outlined">Новая</v-chip>
+        </div>
+        <div>Дата: {{ item.admission_at }}</div>
+        <div>Цена: {{ item.price }}</div>
+      </template>
+
+      <template v-slot:[`item.invent`]="{ item }">
+        <div class="mt-3">
+          <v-chip color="primary" size="x-small" variant="flat"
+            >{{ item.book_inventory.length }}
+          </v-chip>
+        </div>
+        <div class="text-subtitle-2 text-medium-emphasis">
+          <v-chip size="x-small" variant="flat"> Статус: в фонде</v-chip>
+        </div>
+      </template>
+
+      <template v-slot:[`item.actions`]="{}">
+        <div class="d-flex justify-center">
+          <v-btn append-icon="mdi-arrow-right" variant="outlined">Перейти</v-btn>
+        </div>
+      </template>
+
+      <template v-slot:bottom></template>
     </v-data-table>
 
     <v-row class="mt-4">
-      <v-pagination class="ml-auto mr-2" :length="length" :total-visible="4" v-model="page" size="small" variant="flat"
-        active-color="primary"></v-pagination>
+      <v-pagination
+        v-model="page"
+        :length="length"
+        :total-visible="4"
+        active-color="primary"
+        class="ml-auto mr-2"
+        size="small"
+        variant="flat"
+      ></v-pagination>
     </v-row>
   </v-container>
 </template>
