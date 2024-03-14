@@ -18,6 +18,7 @@ interface Form {
   publisher_id: number | null
   quotes: string
   title: string
+  city_id: number
   type_id: number | null
   year: number | null
   book_classroom: number | null
@@ -109,6 +110,7 @@ const form: Ref<Form> = ref({
   category_id: null,
   annotation: '',
   genre_id: [],
+  city_id: 0,
   ISBN: '',
   language_id: [],
   pages: null,
@@ -146,6 +148,19 @@ const admission: Ref<BookAdmission> = ref({
   book_admission_id: null
 })
 const language: Ref<number> = ref(1)
+const newItem: Ref<{
+  name: string
+  title: string
+  active: boolean
+  label: string
+  itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading' | null
+}> = ref({
+  name: '',
+  active: false,
+  title: '',
+  label: '',
+  itemType: null
+})
 
 async function getAuthors(search = null) {
   try {
@@ -158,6 +173,26 @@ async function getAuthors(search = null) {
   } catch (error: any) {
     console.error('Error:', error.message)
   }
+}
+
+async function addNewItem(
+  itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading',
+  isActive: Ref<boolean>
+) {
+  const request = itemType === 'subjectHeading' ? 'subject/heading' : itemType
+  const requestBody: { name?: string; title?: string } = {}
+  if (itemType === 'subjectHeading' || itemType === 'author') {
+    requestBody.name = newItem.value.name
+  } else {
+    requestBody.title = newItem.value.name
+  }
+  try {
+    const response = await api.postData(`https://test.api.qazaqmura.kz/v1/${request}`, requestBody)
+    console.log('Response:', response.data)
+  } catch (e) {
+    console.error('Error:', e)
+  }
+  isActive.value = false
 }
 
 async function getPublishers(search = null) {
@@ -353,6 +388,26 @@ function formatDate(dateToFormat: string) {
   return `${day}.${month}.${date.getFullYear()}`
 }
 
+function setNewItem(itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading') {
+  if (itemType === 'author') {
+    newItem.value.title = 'Добавление автора'
+    newItem.value.label = 'Имя автора'
+  } else if (itemType === 'publisher') {
+    newItem.value.title = 'Добавление издателя'
+    newItem.value.label = 'Название издателя'
+  } else if (itemType === 'genre') {
+    newItem.value.title = 'Добавление жанра'
+    newItem.value.label = 'Название жанра'
+  } else if (itemType === 'subjectHeading') {
+    newItem.value.title = 'Добавление предметной рубрики'
+    newItem.value.label = 'Название предметной рубрики'
+  }
+
+  newItem.value.name = ''
+  newItem.value.itemType = itemType
+  newItem.value.active = true
+}
+
 async function sendBookData() {
   const body = removeNullOrEmptyFields(form.value)
   try {
@@ -406,8 +461,8 @@ getContentTypes()
       <template v-slot:append>
         <v-btn class="mr-3" prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
         <v-btn color="primary" prepend-icon="mdi-plus" to="/m-data/add" variant="flat"
-          >Добавить</v-btn
-        >
+          >Добавить
+        </v-btn>
       </template>
     </v-app-bar>
 
@@ -420,9 +475,9 @@ getContentTypes()
     <v-row class="mt-6">
       <v-col cols="8" offset="2">
         <v-card>
-          <v-card-title> Основные данные </v-card-title>
+          <v-card-title> Основные данные</v-card-title>
 
-          <v-card-subtitle> 1/2 </v-card-subtitle>
+          <v-card-subtitle> 1/2</v-card-subtitle>
 
           <v-card-text>
             <v-form v-model="valid">
@@ -505,9 +560,9 @@ getContentTypes()
     <v-row>
       <v-col cols="8" offset="2">
         <v-card>
-          <v-card-title> Основные данные </v-card-title>
+          <v-card-title> Основные данные</v-card-title>
 
-          <v-card-subtitle> 2/2 </v-card-subtitle>
+          <v-card-subtitle> 2/2</v-card-subtitle>
 
           <v-card-text>
             <v-container fluid>
@@ -523,7 +578,16 @@ getContentTypes()
                     placeholder="Укажите автора"
                     variant="outlined"
                     @update:search="getAuthors"
-                  ></v-autocomplete>
+                  >
+                    <template v-slot:no-data>
+                      <div class="px-4 d-flex justify-space-between align-center">
+                        <span>Данного автора нет в списке</span>
+                        <v-btn color="primary" variant="flat" @click="setNewItem('author')"
+                          >Добавить
+                        </v-btn>
+                      </div>
+                    </template>
+                  </v-autocomplete>
                 </v-col>
               </v-row>
 
@@ -539,7 +603,16 @@ getContentTypes()
                     placeholder="Укажите автора"
                     variant="outlined"
                     @update:search="getAuthors"
-                  ></v-autocomplete>
+                  >
+                    <template v-slot:no-data>
+                      <div class="px-4 d-flex justify-space-between align-center">
+                        <span>Данного автора нет в списке</span>
+                        <v-btn color="primary" variant="flat" @click="setNewItem('author')"
+                          >Добавить
+                        </v-btn>
+                      </div>
+                    </template>
+                  </v-autocomplete>
                 </v-col>
               </v-row>
 
@@ -623,7 +696,16 @@ getContentTypes()
                     prepend-inner-icon="mdi-magnify"
                     variant="outlined"
                     @update:search="getPublishers"
-                  ></v-autocomplete>
+                  >
+                    <template v-slot:no-data>
+                      <div class="px-4 d-flex justify-space-between align-center">
+                        <span>Данного издателя нет в списке</span>
+                        <v-btn color="primary" variant="flat" @click="setNewItem('publisher')"
+                          >Добавить
+                        </v-btn>
+                      </div>
+                    </template>
+                  </v-autocomplete>
                 </v-col>
                 <v-col>
                   <v-autocomplete
@@ -714,7 +796,16 @@ getContentTypes()
                     placeholder="Поиск"
                     prepend-inner-icon="mdi-magnify"
                     variant="outlined"
-                  ></v-autocomplete>
+                  >
+                    <template v-slot:no-data>
+                      <div class="px-4 d-flex justify-space-between align-center">
+                        <span>Данной рубрики нет в списке</span>
+                        <v-btn color="primary" variant="flat" @click="setNewItem('subjectHeading')"
+                          >Добавить
+                        </v-btn>
+                      </div>
+                    </template>
+                  </v-autocomplete>
                 </v-col>
               </v-row>
 
@@ -802,7 +893,16 @@ getContentTypes()
                     placeholder="Поиск"
                     prepend-inner-icon="mdi-magnify"
                     variant="outlined"
-                  ></v-autocomplete>
+                  >
+                    <template v-slot:no-data>
+                      <div class="px-4 d-flex justify-space-between align-center">
+                        <span>Данного жанра нет в списке</span>
+                        <v-btn color="primary" variant="flat" @click="setNewItem('genre')"
+                          >Добавить</v-btn
+                        >
+                      </div>
+                    </template>
+                  </v-autocomplete>
                 </v-col>
               </v-row>
 
@@ -991,10 +1091,34 @@ getContentTypes()
         </v-btn>
 
         <v-btn color="green" prepend-icon="mdi-plus" variant="flat" @click="sendBookData"
-          >Добавить запись</v-btn
-        >
+          >Добавить запись
+        </v-btn>
       </v-col>
     </v-row>
+
+    <v-dialog v-model="newItem.active" max-width="500">
+      <template v-slot:default="{ isActive }">
+        <v-card :title="newItem.title">
+          <v-card-text>
+            <v-form>
+              <v-text-field
+                v-model="newItem.name"
+                :label="newItem.label"
+                variant="outlined"
+              ></v-text-field>
+            </v-form>
+          </v-card-text>
+
+          <v-card-actions>
+            <v-btn variant="outlined" @click="isActive.value = false">Отмена</v-btn>
+            <v-spacer></v-spacer>
+            <v-btn color="primary" variant="flat" @click="addNewItem(newItem.itemType, isActive)"
+              >Добавить
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </template>
+    </v-dialog>
 
     <v-row></v-row>
   </v-container>

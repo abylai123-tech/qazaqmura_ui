@@ -1,81 +1,120 @@
-<script setup lang="ts">
-import { useAPI } from '@/api';
-import type { Ref } from 'vue';
-import { ref, computed } from 'vue';
+<script lang="ts" setup>
+import { useAPI } from '@/api'
+import type { Ref } from 'vue'
+import { ref, watch } from 'vue'
 
-const api = useAPI();
+const api = useAPI()
 
 const headers = [
   { title: 'Название книги', key: 'title' },
-  { title: 'Автор' },
-  { title: 'Типы книг' },
+  { title: 'Автор', key: 'author' },
+  { title: 'Типы книг', key: 'bookType' },
   { title: 'Год издания' },
-  { title: 'Цифры', key: 'amount' }
+  { title: 'Цифры', key: 'count' }
 ]
 
 interface Subscription {
-  title: string,
-  status: string,
-  count: number,
+  title: string
+  status: string
+  count: number
+  book_author_main: string[]
+  book_type: string[]
+}
+
+interface Publisher {
+  id: number
+  title: string
 }
 
 const items: Ref<Subscription[]> = ref([])
-
-const loading: Ref<boolean> = ref(false);
-
-const tab: Ref<number> = ref(1);
+const subscriptionStatus: Ref<number | null> = ref(null)
+const bookTypes: Ref<Publisher[]> = ref([])
+const bookType: Ref<number | null> = ref(null)
+const loading: Ref<boolean> = ref(false)
 
 async function getItems() {
-  loading.value = true;
+  loading.value = true
   try {
-    const response = await api.fetchData<{ data: { items: Subscription[] } }>('https://test.api.qazaqmura.kz/v1/dashboard/subscription-modal')
-    if (response.data) items.value = response.data.data.items;
-    loading.value = false;
+    let request = 'https://test.api.qazaqmura.kz/v1/dashboard/subscription-modal'
+    if (subscriptionStatus.value) request += `?status=${subscriptionStatus.value}`
+    if (subscriptionStatus.value && bookType.value) request += `&type_id=${bookType.value}`
+    else if (!subscriptionStatus.value && bookType.value) request += `?type_id=${bookType.value}`
+    const response = await api.fetchData<{
+      data: { items: Subscription[] }
+    }>(request)
+    if (response.data) items.value = response.data.data.items
+    loading.value = false
   } catch (error: any) {
     console.error('Error:', error.message)
   }
 }
 
-const returns = computed(() => {
-  return items.value.filter((item) => {
-    return item.status === 'return';
-  })
+async function getTypes(search = null) {
+  try {
+    let request = `https://test.api.qazaqmura.kz/v1/type`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) bookTypes.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+getItems()
+getTypes()
+
+watch(subscriptionStatus, () => {
+  getItems()
 })
 
-const requests = computed(() => {
-  return items.value.filter((item) => {
-    return item.status === 'request';
-  })
+watch(bookType, () => {
+  getItems()
 })
-
-getItems();
-
 </script>
 
 <template>
   <v-container fluid>
     <v-row>
       <v-col cols="4">
-        <v-tabs class="mb-5" color="primary" v-model="tab">
-          <v-tab :value="1">Выдача</v-tab>
-          <v-tab :value="2">Возврат</v-tab>
-        </v-tabs>
-
-        <v-select variant="outlined" label="Типы книг"></v-select>
-        <v-select variant="outlined" label="Выдача и возврат"></v-select>
-        <v-text-field variant="outlined" label="Фильтр по дате" prepend-inner-icon="mdi-calendar"></v-text-field>
+        <v-autocomplete
+          v-model="bookType"
+          :items="bookTypes"
+          clearable
+          item-value="id"
+          label="Типы книг"
+          variant="outlined"
+        ></v-autocomplete>
+        <v-select
+          v-model="subscriptionStatus"
+          :items="[
+            { title: 'Выдача', value: 1 },
+            { title: 'Возврат', value: 2 }
+          ]"
+          clearable
+          label="Выдача и возврат"
+          variant="outlined"
+        >
+        </v-select>
+        <v-text-field
+          label="Фильтр по дате"
+          prepend-inner-icon="mdi-calendar"
+          type="date"
+          variant="outlined"
+        ></v-text-field>
       </v-col>
       <v-col>
-        <v-window v-model="tab">
-          <v-window-item :value="1">
-            <v-data-table color="primary" :loading="loading" :items="requests" :headers="headers">
-              <template v-slot:bottom></template>
-            </v-data-table>
-          </v-window-item>
+        <v-window>
+          <v-window-item>
+            <v-data-table :headers="headers" :items="items" :loading="loading" color="primary">
+              <template v-slot:[`item.author`]="{ item }">
+                {{ item.book_author_main ? item.book_author_main.join(', ') : '' }}
+              </template>
 
-          <v-window-item :value="2">
-            <v-data-table color="primary" :loading="loading" :items="returns" :headers="headers">
-              <template v-slot:bottom></template>
+              <template v-slot:[`item.type`]="{ item }">
+                {{ item.book_type ? item.book_type.join(', ') : '' }}
+              </template>
             </v-data-table>
           </v-window-item>
         </v-window>
