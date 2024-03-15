@@ -7,7 +7,7 @@ import catalogCard from '@/assets/catalog-card.pdf'
 import publisher from '@/assets/publisher.pdf'
 import admission from '@/assets/admission.pdf'
 import fund from '@/assets/fund.pdf'
-import nocover from '@/assets/no-book-cover.svg'
+import noCover from '@/assets/no-book-cover.svg'
 import nonfiction from '@/assets/admission_nonfiction.pdf'
 import fiction from '@/assets/admission_fiction.pdf'
 
@@ -24,7 +24,7 @@ interface Contractor {
 interface Book {
   id: number
   price: number
-  book: SubBook
+  book: SubBook | null
   book_annotation: string
   amount: number
   book_ISBN: string
@@ -33,7 +33,7 @@ interface Book {
   book_language: string[]
   contractor: string
   book_state: string
-  book_bbk: { id: number; title: string }
+  book_bbk: { id: number; title: string }[]
   admission_at: string
   book_admission_id: number
 }
@@ -52,24 +52,24 @@ interface SubBook {
   pages: number
   quotes: string[] | null
   annotation: string
-  book_school: any // You may replace 'any' with a specific type if it's known
+  book_school: any
   book_author: { id: number; name: string }[]
   book_author_main: { id: number; name: string }[]
-  book_category: any[] // You may replace 'any' with a specific type if it's known
-  book_cover: any // You may replace 'any' with a specific type if it's known
-  book_epub: any // You may replace 'any' with a specific type if it's known
-  book_genre: any[] // You may replace 'any' with a specific type if it's known
+  book_category: any[]
+  book_cover: any
+  book_epub: any
+  book_genre: any[]
   book_language: { id: number; title: string }[]
   book_publisher: { id: number; title: string }[]
-  book_bbk: any[] // You may replace 'any' with a specific type if it's known
-  book_classroom: any // You may replace 'any' with a specific type if it's known
-  book_classroom_language: any // You may replace 'any' with a specific type if it's known
+  book_bbk: any[]
+  book_classroom: any
+  book_classroom_language: any
   book_type: { id: number; title: string }[]
-  book_udk: any[] // You may replace 'any' with a specific type if it's known
-  book_copyright_sign: any[] // You may replace 'any' with a specific type if it's known
-  book_age_characteristic: any[] // You may replace 'any' with a specific type if it's known
-  book_education_level: any[] // You may replace 'any' with a specific type if it's known
-  book_country: any[] // You may replace 'any' with a specific type if it's known
+  book_udk: any[]
+  book_copyright_sign: any[]
+  book_age_characteristic: any[]
+  book_education_level: any[]
+  book_country: any[]
 }
 
 interface Publisher {
@@ -84,7 +84,22 @@ const length: Ref<number> = ref(0)
 const admissions: Ref<Publisher[]> = ref([])
 const contractors: Ref<Contractor[]> = ref([])
 const states: Ref<Publisher[]> = ref([])
-const selectedItem: Ref<Book> = ref(null)
+const selectedItem: Ref<Book> = ref({
+  id: 0,
+  price: 0,
+  book: null,
+  book_annotation: '',
+  amount: 0,
+  book_ISBN: '',
+  book_author_main: [],
+  book_pages: 0,
+  book_language: [],
+  contractor: '',
+  book_state: '',
+  book_bbk: [],
+  admission_at: '',
+  book_admission_id: 0
+})
 
 async function getBooks() {
   loading.value = true
@@ -132,11 +147,11 @@ function downloadPDF(title: string) {
   document.body.removeChild(link)
 }
 
-async function submitClear(isActive: Ref<boolean>, bookId: number) {
+async function submitClear(isActive: Ref<boolean>, bookId: number | null) {
   try {
     await api.deleteData(`https://test.api.qazaqmura.kz/v1/book/school/inventory/${bookId}`)
     isActive.value = false
-    getBooks()
+    await getBooks()
   } catch (error) {
     console.error('Error:', error)
   }
@@ -146,7 +161,7 @@ async function submitDeletion(isActive: Ref<boolean>, bookId: number) {
   try {
     await api.deleteData(`https://test.api.qazaqmura.kz/v1/book/school/${bookId}`)
     isActive.value = false
-    getBooks()
+    await getBooks()
   } catch (error) {
     console.error('Error:', error)
   }
@@ -266,11 +281,13 @@ watch(page, () => {
           <v-container fluid>
             <v-row>
               <v-col cols="2">
-                <v-img :src="nocover" fluid></v-img>
+                <v-img :src="noCover" fluid></v-img>
               </v-col>
               <v-col cols="2">
                 <div class="mb-2">
-                  <span class="text-h5 font-weight-bold">{{ item.book.title }}</span>
+                  <span class="text-h5 font-weight-bold">{{
+                    item.book ? item.book.title : ''
+                  }}</span>
                 </div>
 
                 <v-chip
@@ -288,7 +305,7 @@ watch(page, () => {
                       <v-row>
                         <v-col cols="4">
                           <div><strong>Год издания:</strong></div>
-                          <div>{{ item.book.year }}</div>
+                          <div>{{ item.book ? item.book.year : '' }}</div>
                         </v-col>
                         <v-col cols="4">
                           <div><strong>Язык:</strong></div>
@@ -318,7 +335,7 @@ watch(page, () => {
                         </v-col>
                         <v-col cols="4">
                           <div><strong>Цена:</strong></div>
-                          <div>{{ item.book.amount }} ₸</div>
+                          <div>{{ item.book ? item.book.amount : '' }} ₸</div>
                         </v-col>
                         <v-col cols="4">
                           <div><strong>Цена за все:</strong></div>
@@ -367,9 +384,9 @@ watch(page, () => {
                             <v-col cols="4">
                               <v-img
                                 :src="
-                                  item.book.book_cover
+                                  item.book && item.book.book_cover
                                     ? `https://test.api.qazaqmura.kz/storage/covers/${item.book.book_cover.storage}`
-                                    : nocover
+                                    : noCover
                                 "
                                 class="rounded"
                                 fluid
@@ -377,9 +394,9 @@ watch(page, () => {
                             </v-col>
                             <v-col cols="6">
                               <div class="text-h6 font-weight-bold">
-                                {{ item.book.title }}
+                                {{ item.book ? item.book.title : '' }}
                               </div>
-                              <div class="mt-3">
+                              <div v-if="item.book" class="mt-3">
                                 <v-chip
                                   v-for="author in item.book.book_author_main"
                                   :key="author.id"
@@ -401,7 +418,7 @@ watch(page, () => {
                                 </v-col>
                                 <v-col>
                                   <div><strong>Год издания:</strong></div>
-                                  <div>{{ item.book.year }}</div>
+                                  <div>{{ item.book ? item.book.year : '' }}</div>
                                 </v-col>
                               </v-row>
                               <v-row>
@@ -504,7 +521,7 @@ watch(page, () => {
                           class="ml-auto"
                           color="primary"
                           variant="flat"
-                          @click="submitClear(isActive, item.book.id)"
+                          @click="submitClear(isActive, item.book ? item.book.id : null)"
                           >Да, сбросить
                         </v-btn>
                         <v-btn class="ml-3 mr-auto" variant="tonal" @click="isActive.value = false"
@@ -529,7 +546,7 @@ watch(page, () => {
                           class="ml-auto"
                           color="primary"
                           variant="flat"
-                          @click="submitDeletion(isActive, item.book.id)"
+                          @click="submitDeletion(isActive, item.book ? item.book.id : 0)"
                           >Да, удалить
                         </v-btn>
                         <v-btn class="ml-3 mr-auto" variant="tonal" @click="isActive.value = false"

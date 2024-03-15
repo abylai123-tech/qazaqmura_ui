@@ -130,7 +130,7 @@ watch(search, () => {
 
 <template>
   <v-container fluid>
-    <v-navigation-drawer v-model="drawer" :absolute="true" location="right" temporary width="400">
+    <v-navigation-drawer v-model="drawer" location="right" temporary width="400">
       <v-list-item>
         <span class="font-weight-bold">Инвентаризация книги</span>
       </v-list-item>

@@ -1,15 +1,20 @@
-<script setup lang="ts">
-import { useAPI } from '@/api';
-import { watch } from 'vue';
-import { ref, type Ref } from 'vue';
+<script lang="ts" setup>
+import { useAPI } from '@/api'
+import { ref, type Ref, watch } from 'vue'
 
 interface Contractor {
-  id: number,
-  system: boolean,
-  title: string,
-  address: string,
+  id: number
+  system: boolean
+  title: string
+  address: string
   company_ID: string
 }
+
+const newItem: Ref<{ address: string; company_ID: string; title: string }> = ref({
+  address: '',
+  company_ID: '',
+  title: ''
+})
 
 const headers = [
   { title: 'ID', key: 'id' },
@@ -20,59 +25,131 @@ const headers = [
   { title: '', key: 'actions', sortable: false }
 ]
 
-const loading: Ref<boolean> = ref(false);
-const page: Ref<number> = ref(1);
-const length: Ref<number> = ref(0);
-const items: Ref<Contractor[]> = ref([]);
-const search: Ref<string | null> = ref(null);
-
-const api = useAPI();
+const loading: Ref<boolean> = ref(false)
+const page: Ref<number> = ref(1)
+const length: Ref<number> = ref(0)
+const items: Ref<Contractor[]> = ref([])
+const search: Ref<string | null> = ref(null)
+const drawer: Ref<boolean> = ref(false)
+const api = useAPI()
 
 async function getContractors() {
-  loading.value = true;
+  loading.value = true
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/contractor?page=${page.value}`;
+    let request = `https://test.api.qazaqmura.kz/v1/contractor?page=${page.value}`
     if (search.value) {
       request += `&search=${search.value}`
     }
-    const response = await api.fetchData<{ data: { items: Contractor[] }, meta: { last_page: number } }>(request)
+    const response = await api.fetchData<{
+      data: { items: Contractor[] }
+      meta: { last_page: number }
+    }>(request)
     if (response.data) {
-      items.value = response.data.data.items;
-      length.value = response.data.meta.last_page;
-      loading.value = false;
+      items.value = response.data.data.items
+      length.value = response.data.meta.last_page
+      loading.value = false
     }
   } catch (error: any) {
-    console.error('Error:', error.message);
+    console.error('Error:', error.message)
+  }
+}
+
+async function createContractor() {
+  const requestObject: { title: string; company_ID?: string; address?: string } = {
+    title: newItem.value.title
+  }
+  if (newItem.value.address.length > 0) requestObject.address = newItem.value.address
+  if (newItem.value.company_ID.length > 0) requestObject.company_ID = newItem.value.company_ID
+
+  try {
+    const response = await api.postData(
+      'https://test.api.qazaqmura.kz/v1/contractor',
+      requestObject
+    )
+    console.log(response)
+    await getContractors()
+    drawer.value = false
+    newItem.value = { title: '', company_ID: '', address: '' }
+  } catch (e) {
+    console.error('Error:', e)
   }
 }
 
 getContractors()
 
-watch(page, () => { getContractors() })
-watch(search, () => { getContractors() })
+watch(page, () => {
+  getContractors()
+})
+watch(search, () => {
+  getContractors()
+})
 </script>
 
 <template>
   <v-container fluid>
+    <v-navigation-drawer v-model="drawer" location="right" temporary width="600">
+      <v-list-item>
+        <span class="font-weight-bold">Добавить контрагент</span>
+      </v-list-item>
+      <v-divider></v-divider>
+      <v-list-item class="my-2">
+        <span class="font-weight-bold">Основная</span>
+      </v-list-item>
+      <v-list-item>
+        <v-form>
+          <v-text-field v-model="newItem.title" label="Название" variant="outlined"></v-text-field>
+          <v-text-field
+            v-model="newItem.company_ID"
+            label="БИН (необязательно)"
+            variant="outlined"
+          ></v-text-field>
+          <v-text-field
+            v-model="newItem.address"
+            label="Адрес (необязательно)"
+            variant="outlined"
+          ></v-text-field>
+          <!--          <v-autocomplete label="Особенность (необязательно)" variant="outlined"></v-autocomplete>-->
+        </v-form>
+      </v-list-item>
+
+      <v-list-item>
+        <v-btn class="mr-10" variant="tonal" @click="drawer = false">Закрыть</v-btn>
+        <v-btn color="primary" variant="flat" @click="createContractor">Добавить</v-btn>
+      </v-list-item>
+    </v-navigation-drawer>
+
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold">Контрагент</span>
-          <span class="text-subtitle-2 text-medium-emphasis">Название организации откуда вы покупаете книги</span>
+          <span class="text-subtitle-2 text-medium-emphasis"
+            >Название организации откуда вы покупаете книги</span
+          >
         </div>
       </template>
 
       <template v-slot:append>
-        <v-btn variant="tonal" class="mr-3" prepend-icon="mdi-video-outline">Помощь</v-btn>
-        <v-btn variant="flat" color="primary" prepend-icon="mdi-plus">Добавить</v-btn>
+        <v-btn class="mr-3" prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
+        <v-btn color="primary" prepend-icon="mdi-plus" variant="flat" @click="drawer = true"
+          >Добавить
+        </v-btn>
       </template>
     </v-app-bar>
 
-    <v-data-table show-select :headers="headers" :items="items" :loading="loading" class="mt-2">
+    <v-data-table :headers="headers" :items="items" :loading="loading" class="mt-2" show-select>
       <template v-slot:top>
         <div class="d-flex my-3 mx-4">
-          <v-text-field v-model="search" label="Поиск по Названию и БИН" density="compact" variant="outlined" flat
-            single-line hide-details class="rounded-xl" prepend-inner-icon="mdi-magnify"></v-text-field>
+          <v-text-field
+            v-model="search"
+            class="rounded-xl"
+            density="compact"
+            flat
+            hide-details
+            label="Поиск по Названию и БИН"
+            prepend-inner-icon="mdi-magnify"
+            single-line
+            variant="outlined"
+          ></v-text-field>
           <div class="d-flex justify-space-around w-50">
             <div class="d-flex flex-column">
               <strong>420</strong>
@@ -88,37 +165,44 @@ watch(search, () => { getContractors() })
         </div>
       </template>
 
-      <template v-slot:item.name="{ item }">
+      <template v-slot:[`item.name`]="{ item }">
         <div class="d-flex flex-column">
           <strong>{{ item.title }}</strong>
           <span>{{ item.company_ID }}</span>
         </div>
       </template>
 
-      <template v-slot:item.amount="{ }">
+      <template v-slot:[`item.amount`]="{}">
         <div class="d-flex flex-column my-2">
-          <v-chip variant="flat" class="mb-2" color="primary">Наименование: 5</v-chip>
-          <v-chip variant="flat" color="primary">Экземпляров: 36</v-chip>
+          <v-chip class="mb-2" color="primary" variant="flat">Наименование: 5</v-chip>
+          <v-chip color="primary" variant="flat">Экземпляров: 36</v-chip>
         </div>
       </template>
 
-      <template v-slot:item.system="{ item }">
-        <v-chip v-if="item.system" variant="flat" color="primary">Да</v-chip>
-        <v-chip v-else variant="flat" color="secondary">Нет</v-chip>
+      <template v-slot:[`item.system`]="{ item }">
+        <v-chip v-if="item.system" color="primary" variant="flat">Да</v-chip>
+        <v-chip v-else color="secondary" variant="flat">Нет</v-chip>
       </template>
 
-      <template v-slot:item.actions="{ }">
+      <template v-slot:[`item.actions`]="{}">
         <div class="d-flex justify-center">
-          <v-btn variant="text" icon="mdi-pencil"></v-btn>
-          <v-btn variant="text" icon="mdi-trash-can-outline" color="error"></v-btn>
+          <v-btn icon="mdi-pencil" variant="text"></v-btn>
+          <v-btn color="error" icon="mdi-trash-can-outline" variant="text"></v-btn>
         </div>
       </template>
 
-      <template v-slot:bottom> </template>
+      <template v-slot:bottom></template>
     </v-data-table>
     <v-row class="mt-4">
-      <v-pagination class="ml-auto mr-2" size="small" variant="flat" active-color="primary" :length="length"
-        :total-visible="4" v-model="page"></v-pagination>
+      <v-pagination
+        v-model="page"
+        :length="length"
+        :total-visible="4"
+        active-color="primary"
+        class="ml-auto mr-2"
+        size="small"
+        variant="flat"
+      ></v-pagination>
     </v-row>
   </v-container>
 </template>

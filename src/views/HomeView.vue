@@ -14,6 +14,7 @@ import ClassModalVue from '@/components/home/ClassModal.vue'
 import FundModalVue from '@/components/home/FundModal.vue'
 import bookstate from '@/assets/bookstate.pdf'
 import AgesModal from '@/components/home/AgesModal.vue'
+import HistoryTable from '@/components/home/HistoryTable.vue'
 
 const auth = useAuth()
 const api = useAPI()
@@ -64,6 +65,29 @@ async function getBookState(): Promise<void> {
     console.error('Error:', error.message)
   }
 }
+
+const classroomHeaders: { key: string; title: string }[] = [
+  { key: 'name', title: 'ФИО' },
+  { key: 'books', title: 'Книги' },
+  {
+    key: 'amount',
+    title: 'Формуляр'
+  },
+  {
+    key: 'actions',
+    title: '',
+    sortable: false
+  }
+]
+
+const classroomItems: { name: string; books: number; amount: number }[] = [
+  { name: 'Новое', books: 25, amount: 100 },
+  { name: 'Новое', books: 25, amount: 100 },
+  { name: 'Новое', books: 25, amount: 100 },
+  { name: 'Новое', books: 25, amount: 100 },
+  { name: 'Новое', books: 25, amount: 100 },
+  { name: 'Новое', books: 25, amount: 100 }
+]
 
 async function getPublishers(): Promise<void> {
   publishersLoading.value = true
@@ -144,6 +168,42 @@ const agesChartData = computed(() => {
   }
 })
 
+const role = computed(() => {
+  return auth.user.value ? auth.user.value.roles[0].id : 0
+})
+
+const librarianStatistics = [
+  { subtitle: 'М-DATA', color: '#0161F2', title: 2000, route: '/m-data' },
+  { subtitle: 'Школьный фонд', color: '#6900C7', title: 300, route: '/fund' },
+  { subtitle: 'Наименование книг', color: '#F86300', title: 100, name: 'admission' },
+  { subtitle: 'Сумма поступления', color: '#05AC69', title: 12000000 },
+  { subtitle: 'Списанных с фонда', color: '#E81600', title: 77, name: 'refund' }
+]
+
+const classroomStatistics = [
+  { subtitle: 'Читатели', color: '#0161F2', title: 2000 },
+  { subtitle: 'Выдачи', color: '#6900C7', title: 300 },
+  { subtitle: 'Возвраты', color: '#F86300', title: 100 },
+  { subtitle: 'Заявки', color: '#05AC69', title: 12000000 }
+]
+
+const publisherStatistics = [
+  { subtitle: 'Количество книг в базе', color: '#0161F2', title: 2000 },
+  { subtitle: 'Количество книг по фонду', color: '#6900C7', title: 300 },
+  { subtitle: 'Количество экз. по фонду', color: '#F86300', title: 100 }
+]
+
+const statistics = computed(() => {
+  if (auth.user.value && auth.user.value.roles.some((obj) => obj.id === 3)) {
+    return librarianStatistics
+  } else if (auth.user.value && auth.user.value.roles.some((obj) => obj.id === 4)) {
+    return classroomStatistics
+  } else if (auth.user.value && auth.user.value.roles.some((obj) => obj.id === 7)) {
+    return publisherStatistics
+  }
+  return []
+})
+
 function downloadPDF() {
   const link = document.createElement('a')
   link.href = bookstate
@@ -184,9 +244,9 @@ getUserAges()
 
       <v-row>
         <v-col cols="3">
-          <StatisticsList></StatisticsList>
+          <StatisticsList :statistics="statistics"></StatisticsList>
         </v-col>
-        <v-col cols="6">
+        <v-col v-if="role === 3" cols="6">
           <v-card>
             <v-card-title>Статистика по выдачам и возвратам книг</v-card-title>
             <v-card-subtitle>Легко отслеживай статистику</v-card-subtitle>
@@ -232,7 +292,7 @@ getUserAges()
             </v-card-text>
           </v-card>
         </v-col>
-        <v-col cols="3">
+        <v-col v-if="role === 3" cols="3">
           <v-card>
             <v-card-title>Выдача и возврат</v-card-title>
             <v-card-subtitle>Быстрый поиск по ИИН</v-card-subtitle>
@@ -246,9 +306,67 @@ getUserAges()
             </v-card-text>
           </v-card>
         </v-col>
+        <v-col v-if="role === 3" cols="3">
+          <v-card>
+            <v-card-title>Выдача и возврат</v-card-title>
+            <v-card-subtitle>Быстрый поиск по ИИН</v-card-subtitle>
+
+            <v-card-text>
+              <v-text-field
+                label="Напишите ИИН"
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+              ></v-text-field>
+            </v-card-text>
+          </v-card>
+        </v-col>
+
+        <v-col v-if="role === 4">
+          <v-card title="Список">
+            <v-card-text>
+              <v-data-table :headers="classroomHeaders" :items="classroomItems">
+                <template v-slot:[`item.actions`]="{}">
+                  <v-btn append-icon="mdi-chevron-right" color="primary" variant="text"
+                    >Подробнее
+                  </v-btn>
+                </template>
+                <template v-slot:bottom></template>
+              </v-data-table>
+            </v-card-text>
+
+            <v-card-actions>
+              <v-btn color="primary" variant="flat">Подробнее</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
+
+        <v-col v-if="role === 4" cols="3">
+          <v-card>
+            <v-card-title>Заявки на класс</v-card-title>
+            <v-card-subtitle>Выдача на класс</v-card-subtitle>
+
+            <v-card-text>
+              <v-autocomplete label="Для кого" variant="outlined"></v-autocomplete>
+              <v-autocomplete
+                label="Книга"
+                prepend-inner-icon="mdi-magnify"
+                variant="outlined"
+              ></v-autocomplete>
+              <v-text-field
+                label="Дата выдачи"
+                prepend-inner-icon="mdi-magnify"
+                type="date"
+                variant="outlined"
+              ></v-text-field>
+            </v-card-text>
+            <v-card-actions>
+              <v-btn color="primary" variant="flat">Заявка</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
       </v-row>
 
-      <v-row>
+      <v-row v-if="role === 3">
         <v-col cols="3">
           <v-card>
             <v-card-title>Книги по странам</v-card-title>
@@ -300,7 +418,7 @@ getUserAges()
           </v-card>
         </v-col>
       </v-row>
-      <v-row>
+      <v-row v-if="role === 3">
         <v-col>
           <v-card>
             <v-card-title>Состояние по фонду книг</v-card-title>
@@ -347,7 +465,21 @@ getUserAges()
         </v-col>
       </v-row>
 
-      <v-row>
+      <v-row v-if="role === 4">
+        <v-col>
+          <v-card>
+            <v-card-title>История заявок</v-card-title>
+            <v-card-text>
+              <HistoryTable></HistoryTable>
+            </v-card-text>
+            <v-card-actions>
+              <v-btn color="primary" variant="flat">Подробнее</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-col>
+      </v-row>
+
+      <v-row v-if="role === 3 && role === 7">
         <v-col>
           <v-card>
             <v-card-title>Выдача и возврат</v-card-title>
