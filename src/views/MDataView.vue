@@ -2,6 +2,8 @@
 import { useAPI } from '@/api'
 import { ref, type Ref, watch } from 'vue'
 import nocover from '@/assets/no-book-cover.svg'
+import HelpButton from '@/components/HelpButton.vue'
+import { useAuth } from '@/auth'
 
 const api = useAPI()
 
@@ -146,10 +148,13 @@ const languageId: Ref<number | null> = ref(null),
   }),
   tab: Ref<string> = ref('one')
 
+const auth = useAuth()
+const booksTotal = ref(0)
+
 async function getBooks() {
   loading.value = true
   try {
-    let requestString = `https://test.api.qazaqmura.kz/v1/book?page=${page.value}`
+    let requestString = `/v1/book?page=${page.value}`
     if (search.value) {
       requestString += `&title=${search.value}`
     }
@@ -186,6 +191,12 @@ async function getBooks() {
     if (bookClassroom.value) {
       requestString += `&book_classroom=${bookClassroom.value}`
     }
+    if (local.value) {
+      requestString += '&local=1'
+    }
+    if (sorting.value) {
+      requestString += `&sort=${sorting.value}`
+    }
 
     const response = await api.fetchData<{ data: { items: Book[] }; meta: { last_page: number } }>(
       requestString
@@ -194,10 +205,18 @@ async function getBooks() {
     if (response.data) {
       items.value = response.data.data.items
       length.value = response.data.meta.last_page
+      booksTotal.value = response.data.meta.total
     }
   } catch (error: any) {
     console.error('Error:', error.message)
   }
+}
+
+const downloadEPUB = (epub: { id: number; book_id: number; value: string }) => {
+  const link = document.createElement('a')
+  link.href = `/storage/epub/${epub.value}`
+  link.click()
+  document.body.removeChild(link)
 }
 
 function resetFilters() {
@@ -224,7 +243,7 @@ async function sendRequest(
 ) {
   const form = { book_id: bookId, message: formMessage, type: type }
   try {
-    await api.postData('https://test.api.qazaqmura.kz/v1/user/request', form)
+    await api.postData('/v1/user/request', form)
     isActive.value = false
     message.value = ''
   } catch (error) {
@@ -240,12 +259,12 @@ function formatDate(dateToFormat: string) {
   return `${day}.${month}.${date.getFullYear()}`
 }
 
-async function sendAdmission(admissionForm: BookAdmission, isActive: Ref<boolean>) {
+async function sendAdmission(admissionForm: BookAdmission, isActive: Ref<boolean>, id: number) {
   const form = { ...admissionForm }
   form.admission_at = formatDate(form.admission_at)
+  form.book_id = id
   try {
-    console.log(form)
-    await api.postData('https://test.api.qazaqmura.kz/v1/book/school/link', { books: [form] })
+    await api.postData('/v1/book/school/link', { books: [form] })
     isActive.value = false
     admission.value = {
       amount: 0,
@@ -263,7 +282,7 @@ async function sendAdmission(admissionForm: BookAdmission, isActive: Ref<boolean
 
 async function getTypes(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/type`
+    let request = `/v1/type`
     if (search) {
       request += `?search=${search}`
     }
@@ -276,7 +295,7 @@ async function getTypes(search = null) {
 
 async function getContractors(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/contractor`
+    let request = `/v1/contractor`
     if (search) {
       request += `?search=${search}`
     }
@@ -289,7 +308,7 @@ async function getContractors(search = null) {
 
 async function getGenres(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/genre`
+    let request = `/v1/genre`
     if (search) {
       request += `?search=${search}`
     }
@@ -302,7 +321,7 @@ async function getGenres(search = null) {
 
 async function getAgeCharacteristics(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/age/characteristic`
+    let request = `/v1/age/characteristic`
     if (search) {
       request += `?search=${search}`
     }
@@ -315,7 +334,7 @@ async function getAgeCharacteristics(search = null) {
 
 async function getStates(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/book/state`
+    let request = `/v1/book/state`
     if (search) {
       request += `?search=${search}`
     }
@@ -328,7 +347,7 @@ async function getStates(search = null) {
 
 async function getAdmissions(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/book/admission`
+    let request = `/v1/book/admission`
     if (search) {
       request += `?search=${search}`
     }
@@ -341,7 +360,7 @@ async function getAdmissions(search = null) {
 
 async function getLanguages(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/language`
+    let request = `/v1/language`
     if (search) {
       request += `?search=${search}`
     }
@@ -354,7 +373,7 @@ async function getLanguages(search = null) {
 
 async function getAuthors(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/author`
+    let request = `/v1/author`
     if (search) {
       request += `?search=${search}`
     }
@@ -367,7 +386,7 @@ async function getAuthors(search = null) {
 
 async function getPublishers(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/publisher`
+    let request = `/v1/publisher`
     if (search) {
       request += `?search=${search}`
     }
@@ -380,7 +399,7 @@ async function getPublishers(search = null) {
 
 async function getCountries(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/country`
+    let request = `/v1/country`
     if (search) {
       request += `?search=${search}`
     }
@@ -393,7 +412,7 @@ async function getCountries(search = null) {
 
 async function getCopyrightSigns(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/copyright/sign`
+    let request = `/v1/copyright/sign`
     if (search) {
       request += `?search=${search}`
     }
@@ -402,6 +421,73 @@ async function getCopyrightSigns(search = null) {
   } catch (error: any) {
     console.error('Error:', error.message)
   }
+}
+
+const newItem: Ref<{
+  name: string
+  title: string
+  active: boolean
+  label: string
+  itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading' | 'contractor' | null
+  companyId?: string
+  address?: string
+}> = ref({
+  name: '',
+  active: false,
+  title: '',
+  label: '',
+  itemType: null
+})
+
+function setNewItem(itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading') {
+  if (itemType === 'author') {
+    newItem.value.title = 'Добавление автора'
+    newItem.value.label = 'Имя автора'
+  } else if (itemType === 'publisher') {
+    newItem.value.title = 'Добавление издателя'
+    newItem.value.label = 'Название издателя'
+  } else if (itemType === 'genre') {
+    newItem.value.title = 'Добавление жанра'
+    newItem.value.label = 'Название жанра'
+  } else if (itemType === 'subjectHeading') {
+    newItem.value.title = 'Добавление предметной рубрики'
+    newItem.value.label = 'Название предметной рубрики'
+  } else if (itemType === 'contractor') {
+    newItem.value.title = 'Добавление контрагента'
+    newItem.value.label = 'Название контрагента'
+  }
+
+  newItem.value.name = ''
+  newItem.value.itemType = itemType
+  newItem.value.active = true
+}
+
+async function addNewItem(
+  itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading',
+  isActive: Ref<boolean>
+) {
+  const request = itemType === 'subjectHeading' ? 'subject/heading' : itemType
+  const requestBody: { name?: string; title?: string } = {}
+  if (itemType === 'subjectHeading' || itemType === 'author') {
+    requestBody.name = newItem.value.name
+  } else {
+    requestBody.title = newItem.value.name
+  }
+  try {
+    await api.postData(`/v1/${request}`, requestBody)
+  } catch (e) {
+    console.error('Error:', e)
+  }
+  isActive.value = false
+}
+
+const sorting: Ref<string | null> = ref(null)
+const local: Ref<boolean> = ref(false)
+
+const deleteItem = async (id: number, isActive: Ref<boolean>) => {
+  await api.deleteData(`/v1/book/${id}`)
+  await getBooks()
+  isActive.value = false
 }
 
 getBooks()
@@ -423,6 +509,42 @@ watch(page, () => {
 </script>
 
 <template>
+  <v-dialog v-model="newItem.active" max-width="500">
+    <template v-slot:default="{ isActive }">
+      <v-card :title="newItem.title">
+        <v-card-text>
+          <v-form>
+            <v-text-field
+              v-model="newItem.name"
+              :label="newItem.label"
+              variant="outlined"
+            ></v-text-field>
+            <v-text-field
+              v-if="newItem.itemType === 'contractor'"
+              v-model="newItem.companyId"
+              label="БИН"
+              variant="outlined"
+            ></v-text-field>
+            <v-text-field
+              v-if="newItem.itemType === 'contractor'"
+              v-model="newItem.address"
+              label="Адрес"
+              variant="outlined"
+            ></v-text-field>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-btn variant="outlined" @click="isActive.value = false">Отмена</v-btn>
+          <v-spacer></v-spacer>
+          <v-btn color="primary" variant="flat" @click="addNewItem(newItem.itemType, isActive)"
+            >Добавить
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </template>
+  </v-dialog>
+
   <v-container fluid>
     <v-app-bar>
       <template v-slot:title>
@@ -435,8 +557,36 @@ watch(page, () => {
       </template>
 
       <template v-slot:append>
-        <v-btn class="mr-3" prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
-        <v-btn color="primary" prepend-icon="mdi-plus" to="m-data/add" variant="flat"
+        <v-divider class="mr-6" inset vertical></v-divider>
+        <div class="mr-4">
+          <div>
+            <span class="font-weight-bold">{{ booksTotal }}</span>
+          </div>
+          <div><small class="text-medium-emphasis">Наименования книг</small></div>
+        </div>
+
+        <v-switch
+          v-model="local"
+          class="my-auto mr-3"
+          color="primary"
+          label="Показывать добавленные книги"
+        ></v-switch>
+        <v-menu>
+          <template v-slot:activator="{ props }">
+            <v-btn append-icon="mdi-chevron-down" class="mr-6" v-bind="props" variant="tonal"
+              >Сортировка
+            </v-btn>
+          </template>
+
+          <v-list>
+            <v-list-item @click="sorting = 'a-z'">Сортировать от А до Я</v-list-item>
+            <v-list-item @click="sorting = 'z-a'">Сортировать от Я до А</v-list-item>
+            <v-list-item @click="sorting = 'new'">Сортировать от старых к новым</v-list-item>
+            <v-list-item @click="sorting = 'old'">Сортировать от новых к старым</v-list-item>
+          </v-list>
+        </v-menu>
+        <help-button />
+        <v-btn class="ml-3" color="primary" prepend-icon="mdi-plus" to="m-data/add" variant="flat"
           >Добавить
         </v-btn>
       </template>
@@ -633,35 +783,57 @@ watch(page, () => {
               </v-row>
               <v-row class="mb-2">
                 <v-col cols="2">
-                  <v-select
+                  <v-autocomplete
                     v-model="languageId"
                     :items="languages"
+                    clearable
                     item-title="title"
                     item-value="id"
                     label="Язык"
                     variant="solo-filled"
-                  ></v-select>
+                  ></v-autocomplete>
                 </v-col>
                 <v-col cols="2">
                   <v-autocomplete
                     v-model="authorId"
                     :items="authors"
+                    clearable
                     item-title="name"
+                    item-value="id"
                     label="Автор"
                     variant="solo-filled"
                     @update:search="getAuthors"
-                  ></v-autocomplete>
+                  >
+                    <template v-slot:no-data>
+                      <div class="px-4 d-flex justify-space-between align-center">
+                        <span>Данного автора нет в списке</span>
+                        <v-btn color="primary" variant="flat" @click="setNewItem('author')"
+                          >Добавить
+                        </v-btn>
+                      </div>
+                    </template>
+                  </v-autocomplete>
                 </v-col>
                 <v-col cols="2">
                   <v-autocomplete
                     v-model="publisherId"
                     :items="publishers"
+                    clearable
                     item-title="title"
                     item-value="id"
                     label="Издатель"
                     variant="solo-filled"
                     @update:search="getPublishers"
-                  ></v-autocomplete>
+                  >
+                    <template v-slot:no-data>
+                      <div class="px-4 d-flex justify-space-between align-center">
+                        <span>Данного издателя нет в списке</span>
+                        <v-btn color="primary" variant="flat" @click="setNewItem('publisher')"
+                          >Добавить
+                        </v-btn>
+                      </div>
+                    </template>
+                  </v-autocomplete>
                 </v-col>
                 <v-col cols="2">
                   <v-text-field
@@ -688,7 +860,16 @@ watch(page, () => {
                             item-value="id"
                             label="Жанр книги"
                             variant="solo-filled"
-                          ></v-autocomplete>
+                          >
+                            <template v-slot:no-data>
+                              <div class="px-4 d-flex justify-space-between align-center">
+                                <span>Данного жанра нет в списке</span>
+                                <v-btn color="primary" variant="flat" @click="setNewItem('genre')"
+                                  >Добавить
+                                </v-btn>
+                              </div>
+                            </template>
+                          </v-autocomplete>
                         </v-col>
                         <v-col cols="2">
                           <v-text-field
@@ -788,11 +969,7 @@ watch(page, () => {
             <v-row>
               <v-col cols="2">
                 <v-img
-                  :src="
-                    item.book_cover
-                      ? `https://test.api.qazaqmura.kz/storage/covers/${item.book_cover.storage}`
-                      : nocover
-                  "
+                  :src="item.book_cover ? `/storage/covers/${item.book_cover.value}` : nocover"
                   class="rounded"
                   fluid
                 ></v-img>
@@ -810,16 +987,33 @@ watch(page, () => {
                     </v-chip>
                   </v-col>
                   <v-col class="text-right" cols="6">
-                    <v-chip color="green" variant="flat">Добавлен в фонд</v-chip>
+                    <v-chip v-if="item.book_school" color="green" variant="flat"
+                      >Добавлен в фонд
+                    </v-chip>
                     <v-chip v-if="item.book_epub" class="ml-2" color="success" variant="flat"
                       >EPUB
                     </v-chip>
+                    <v-btn
+                      v-if="item.book_epub && auth.user.value.roles.some((obj) => obj.id === 1)"
+                      class="ml-2"
+                      color="warning"
+                      rounded="xl"
+                      variant="flat"
+                      @click="downloadEPUB(item.book_epub)"
+                      >Скачать
+                    </v-btn>
                   </v-col>
                 </v-row>
 
                 <v-row>
                   <v-col cols="6">
-                    <div class="text-h6 font-weight-bold">{{ item.title }}</div>
+                    <div class="text-h6 font-weight-bold">
+                      {{ item.title }}
+                      <span v-if="item.books_in_fund > 0" class="px-2 ml-2 border rounded">{{
+                        item.books_in_fund
+                      }}</span>
+                    </div>
+
                     <div>{{ item.title2 }}</div>
                     <div class="mt-3">
                       <v-chip
@@ -941,7 +1135,7 @@ watch(page, () => {
                                           <v-img
                                             :src="
                                               item.book_cover
-                                                ? `https://test.api.qazaqmura.kz/storage/covers/${item.book_cover.storage}`
+                                                ? `/storage/covers/${item.book_cover.storage}`
                                                 : nocover
                                             "
                                             class="rounded"
@@ -1056,7 +1250,7 @@ watch(page, () => {
                                           <v-img
                                             :src="
                                               item.book_cover
-                                                ? `https://test.api.qazaqmura.kz/storage/covers/${item.book_cover.storage}`
+                                                ? `/storage/covers/${item.book_cover.storage}`
                                                 : nocover
                                             "
                                             class="rounded"
@@ -1156,7 +1350,12 @@ watch(page, () => {
                         </v-menu>
                       </v-col>
                       <v-col cols="4">
-                        <v-dialog max-width="650">
+                        <v-dialog
+                          v-if="
+                            auth.user.value && auth.user.value.roles.some((obj) => obj.id !== 1)
+                          "
+                          max-width="800"
+                        >
                           <template v-slot:activator="{ props }">
                             <v-btn color="green" size="small" v-bind="props" variant="flat"
                               >Добавить в фонд
@@ -1166,7 +1365,6 @@ watch(page, () => {
                           <template v-slot:default="{ isActive }">
                             <v-card>
                               <v-card-title>Добавить в фонд</v-card-title>
-
                               <v-card-text>
                                 <v-container fluid>
                                   <v-row>
@@ -1174,7 +1372,7 @@ watch(page, () => {
                                       <v-img
                                         :src="
                                           item.book_cover
-                                            ? `https://test.api.qazaqmura.kz/storage/covers/${item.book_cover.storage}`
+                                            ? `/storage/covers/${item.book_cover.storage}`
                                             : nocover
                                         "
                                         class="rounded"
@@ -1270,7 +1468,21 @@ watch(page, () => {
                                         placeholder="Укажите"
                                         variant="outlined"
                                         @update:search="getContractors"
-                                      ></v-autocomplete>
+                                      >
+                                        <template v-slot:no-data>
+                                          <div
+                                            class="px-4 d-flex justify-space-between align-center"
+                                          >
+                                            <span>Данного контрагента нет в списке</span>
+                                            <v-btn
+                                              color="primary"
+                                              variant="flat"
+                                              @click="setNewItem('contractor')"
+                                              >Добавить
+                                            </v-btn>
+                                          </div>
+                                        </template>
+                                      </v-autocomplete>
                                     </v-col>
                                   </v-row>
 
@@ -1322,13 +1534,69 @@ watch(page, () => {
                                   class="mr-auto"
                                   color="primary"
                                   variant="flat"
-                                  @click="sendAdmission(admission, isActive)"
+                                  @click="sendAdmission(admission, isActive, item.id)"
                                   >Отправить
                                 </v-btn>
                               </v-card-actions>
                             </v-card>
                           </template>
                         </v-dialog>
+
+                        <v-dialog
+                          v-if="
+                            auth.user.value && auth.user.value.roles.some((obj) => obj.id === 1)
+                          "
+                          width="600"
+                        >
+                          <template v-slot:activator="{ props }">
+                            <v-btn
+                              class="mr-3"
+                              color="red"
+                              size="small"
+                              v-bind="props"
+                              variant="flat"
+                            >
+                              <v-icon icon="mdi-delete"></v-icon>
+                            </v-btn>
+                          </template>
+
+                          <template v-slot:default="{ isActive }">
+                            <v-card
+                              class="text-center"
+                              text="Вы уверены что хотите библиографическию запись?"
+                              title="Удаление"
+                            >
+                              <v-card-actions>
+                                <v-btn
+                                  class="ml-auto mr-3"
+                                  color="primary"
+                                  variant="flat"
+                                  @click="deleteItem(item.id, isActive)"
+                                  >Да, удалить
+                                </v-btn>
+                                <v-btn
+                                  class="mr-auto"
+                                  variant="tonal"
+                                  @click="isActive.value = false"
+                                  >Отмена
+                                </v-btn>
+                              </v-card-actions>
+                            </v-card>
+                          </template>
+                        </v-dialog>
+
+                        <v-btn
+                          v-if="
+                            auth.user.value && auth.user.value.roles.some((obj) => obj.id === 1)
+                          "
+                          :to="`/m-data/edit/${item.id}`"
+                          class="rounded"
+                          color="green"
+                          size="small"
+                          variant="flat"
+                        >
+                          <v-icon icon="mdi-pencil"></v-icon>
+                        </v-btn>
                       </v-col>
                     </v-row>
                   </v-col>
@@ -1344,7 +1612,7 @@ watch(page, () => {
       <v-pagination
         v-model="page"
         :length="length"
-        :total-visible="4"
+        :total-visible="6"
         active-color="primary"
         class="ml-auto mr-2"
         size="small"

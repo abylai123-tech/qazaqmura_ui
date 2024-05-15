@@ -35,7 +35,7 @@ const loading: Ref<boolean> = ref(false)
 async function getItems() {
   loading.value = true
   try {
-    let request = 'https://test.api.qazaqmura.kz/v1/dashboard/subscription-modal'
+    let request = '/v1/dashboard/subscription-modal'
     if (subscriptionStatus.value) request += `?status=${subscriptionStatus.value}`
     if (subscriptionStatus.value && bookType.value) request += `&type_id=${bookType.value}`
     else if (!subscriptionStatus.value && bookType.value) request += `?type_id=${bookType.value}`
@@ -51,7 +51,7 @@ async function getItems() {
 
 async function getTypes(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/type`
+    let request = `/v1/type`
     if (search) {
       request += `?search=${search}`
     }

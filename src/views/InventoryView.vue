@@ -2,6 +2,9 @@
 import { useAPI } from '@/api'
 import { ref, type Ref, watch } from 'vue'
 import FilterBlock from '@/components/FilterBlock.vue'
+import HelpButton from '@/components/HelpButton.vue'
+import { useAuth } from '@/auth'
+import fileDownload from 'js-file-download'
 
 interface Inventory {
   amount: any
@@ -17,17 +20,17 @@ interface Inventory {
   admission_at: string
 }
 
-const bottomItems = [
-  { label: 'Инвентаризованные книги', value: 420 },
-  { label: 'Списанные книги', value: 300 },
-  { label: 'Не инвентаризованные', value: 3 }
-]
+const bottomItems = ref([
+  { label: 'Инвентаризованные книги', value: 0 },
+  { label: 'Списанные книги', value: 0 },
+  { label: 'Не инвентаризованные', value: 0 }
+])
 
 const headers = [
-  { title: 'ID', key: 'id' },
+  { title: 'Инвент', key: 'inventory.number' },
   { title: 'Книга', key: 'book' },
   { title: 'Поступление', key: 'admission' },
-  { title: 'Инвент', key: 'invent' },
+  { title: 'Статус', key: 'invent' },
   { title: '', key: 'actions', sortable: false }
 ]
 
@@ -43,39 +46,19 @@ const loading: Ref<boolean> = ref(false)
 const page: Ref<number> = ref(1)
 const length: Ref<number> = ref(0)
 const items: Ref<Inventory[]> = ref([])
-const search: Ref<string | null> = ref(null)
 const drawer: Ref<boolean> = ref(false)
 const book: Ref<Inventory | null> = ref(null)
 const inventories: Ref<Number[]> = ref([])
 
 const api = useAPI()
 
-async function getContractors() {
-  loading.value = true
-  try {
-    const request = `https://test.api.qazaqmura.kz/v1/book/school?book_inventory=1&page=${page.value}`
-    const response = await api.fetchData<{
-      data: { items: Inventory[] }
-      meta: { last_page: number }
-    }>(request)
-    if (response.data) {
-      items.value = response.data.data.items
-      length.value = response.data.meta.last_page
-      loading.value = false
-    }
-  } catch (error: any) {
-    console.error('Error:', error.message)
-  }
-}
-
 async function addToInventory(inventories: Number[]) {
   const bookSchoolId = book.value ? book.value.book_school_id : null
   try {
-    const response = await api.postData('https://test.api.qazaqmura.kz/v1/book/inventory', {
+    const response = await api.postData('/v1/book/inventory', {
       book_school_id: bookSchoolId,
       inventories: inventories
     })
-    console.log('Response:', response.data)
   } catch (error) {
     console.error('Error:', error)
   }
@@ -84,8 +67,8 @@ async function addToInventory(inventories: Number[]) {
 
 async function getInventorySearch(search: string | null = null) {
   const request = search
-    ? `https://test.api.qazaqmura.kz/v1/book/school/inventory/search?search=${search}`
-    : 'https://test.api.qazaqmura.kz/v1/book/school/inventory/search'
+    ? `/v1/book/school/inventory/search?search=${search}`
+    : '/v1/book/school/inventory/search'
   try {
     const response = await api.fetchData<SearchItem[]>(request)
     if (response.data) {
@@ -101,12 +84,25 @@ function closeInventory() {
   drawer.value = false
 }
 
-function downloadPDF() {
-  const link = document.createElement('a')
-  link.href = inventory
-  link.download = 'document.pdf'
-  link.click()
-  document.body.removeChild(link)
+async function downloadPDF(mode: 1 | 2) {
+  if (mode === 1) {
+    const response = await api.postData(`/v1/book/school/inventory/pdf`, null, true)
+    if (response.data) fileDownload(response.data, 'Список инвентаризации.pdf')
+  } else {
+    const response = await api.postData(`/v1/book/school/inventory/decommissioned/pdf`, null, true)
+    if (response.data) fileDownload(response.data, 'Список списанных книг.pdf')
+  }
+}
+
+const info: Ref<any | null> = ref(null)
+
+async function getBookInfo(bookSchoolId: number) {
+  try {
+    const response = await api.fetchData(`/v1/book/school/${bookSchoolId}`)
+    info.value = response.data
+  } catch (e) {
+    console.error('Error:', e)
+  }
 }
 
 getContractors()
@@ -117,24 +113,186 @@ watch(book, (value) => {
     inventories.value = []
     const length = value.amount - value.book_inventory.length
     inventories.value = new Array(length).fill(undefined)
+    getBookInfo(value.book_school_id)
   }
 })
 
-watch(page, () => {
-  getContractors()
+interface Filter {
+  search: string
+  authorId: number | null
+  publisherId: number | null
+  inventoryStatus: number | null
+  fundBooks: boolean
+  book_type_id: number | null
+}
+
+const filters: Ref<Filter> = ref({
+  search: '',
+  authorId: null,
+  publisherId: null,
+  inventoryStatus: null,
+  fundBooks: false,
+  book_type_id: null
 })
-watch(search, () => {
-  getContractors()
+
+const auth = useAuth()
+
+const getInventoryCount = async (id: number) => {
+  const response = await api.fetchData(`/v1/book/inventory/count?school_id=${id}`)
+  if (response.data) {
+    bottomItems.value = [
+      { label: 'Инвентаризованные книги', value: response.data.active },
+      { label: 'Списанные книги', value: response.data.deprecated },
+      { label: 'Не инвентаризованные', value: response.data.uninventoried }
+    ]
+  }
+}
+
+const sort = ref(0)
+
+if (auth.user.value && auth.user.value.roles.some((obj) => obj.id === 3)) {
+  getInventoryCount(auth.userData.value.school.id)
+}
+
+async function getContractors() {
+  loading.value = true
+  try {
+    let request = `/v2/inventory?page=${page.value}`
+
+    const response = await api.fetchData<{
+      data: { items: Inventory[] }
+      meta: { last_page: number }
+    }>(request)
+    if (response.data) {
+      length.value = response.data.meta.last_page
+      loading.value = false
+      items.value = response.data.data
+    }
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+async function searchContractors() {
+  loading.value = true
+  try {
+    let request = `/v2/inventory?page=${page.value}`
+
+    if (filters.value.search.length > 0) {
+      request += `&search=${filters.value.search}`
+    }
+    if (filters.value.authorId) {
+      request += `&author_id=${filters.value.authorId}`
+    }
+    if (filters.value.publisherId) {
+      request += `&publisher_id=${filters.value.publisherId}`
+    }
+    if (filters.value.inventoryStatus) {
+      request += `&active=0`
+    }
+
+    if (filters.value.book_type_id) {
+      request += `&type_id=${filters.value.book_type_id}`
+    }
+
+    if (filters.value.fundBooks) {
+      request += `&active=1`
+    }
+
+    if (sort.value === 0) {
+      request += '&sort_by=title&order_by=asc'
+    } else if (sort.value === 1) {
+      request += '&sort_by=title&order_by=desc'
+    } else if (sort.value === 2) {
+      request += '&sort_by=inventory&order_by=asc'
+    } else if (sort.value === 3) {
+      request += '&sort_by=inventory&order_by=desc'
+    } else if (sort.value === 4) {
+      request += '&sort_by=created&order_by=asc'
+    } else if (sort.value === 5) {
+      request += '&sort_by=created&order_by=desc'
+    }
+
+    const response = await api.fetchData<{
+      data: { items: Inventory[] }
+      meta: { last_page: number }
+    }>(request)
+    if (response.data) {
+      length.value = response.data.meta.last_page
+      loading.value = false
+      items.value = response.data.data
+    }
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+const turnOnEditMode = (item) => {
+  item.editMode = true
+  item.numberDouble = item.inventory.number
+}
+
+const editInvent = async (item) => {
+  const body = {
+    id: item.inventory.id,
+    book_school_id: item.book_school_id,
+    inventory: item.numberDouble
+  }
+  await api.putData(`/v1/book/inventory/${item.inventory.id}`, body)
+  await searchContractors()
+  item.editMode = false
+}
+
+watch(page, () => {
+  searchContractors()
+})
+
+watch(sort, () => {
+  searchContractors()
 })
 </script>
 
 <template>
   <v-container fluid>
-    <v-navigation-drawer v-model="drawer" location="right" temporary width="400">
+    <v-navigation-drawer v-model="drawer" location="right" temporary width="600">
       <v-list-item>
         <span class="font-weight-bold">Инвентаризация книги</span>
       </v-list-item>
       <v-divider></v-divider>
+      <v-list-item v-if="book">
+        <div class="mt-4 font-weight-bold text-h6">{{ book.title }} / {{ book.amount }}</div>
+        <div class="mt-2">
+          <v-chip
+            v-for="author in book.author"
+            :key="author.id"
+            class="mr-2"
+            color="primary"
+            size="small"
+            variant="outlined"
+          >
+            {{ author.name }}
+          </v-chip>
+        </div>
+        <div class="d-flex w-50 mt-2">
+          <div class="d-flex w-50 flex-column">
+            <strong>Язык</strong>
+            <span></span>
+          </div>
+          <div class="d-flex w-50 flex-column">
+            <strong>Год издания</strong>
+            <span>{{ info ? info.book.year : '' }}</span>
+          </div>
+        </div>
+        <div class="d-flex w-50 mt-2">
+          <div class="d-flex w-50 flex-column">
+            <strong>Издатель</strong>
+            <div></div>
+          </div>
+          <div class="d-flex w-50 flex-column">
+            <strong>ББК</strong>
+          </div>
+        </div>
+      </v-list-item>
       <v-list-item>
         <v-autocomplete
           v-model="book"
@@ -153,6 +311,7 @@ watch(search, () => {
         <v-list-item v-for="n in book.amount - book.book_inventory.length" :key="n">
           <v-text-field
             v-model="inventories[n - 1]"
+            class="mt-2"
             label="Инвентарный номер"
             placeholder="Напишите номер"
             type="number"
@@ -179,44 +338,116 @@ watch(search, () => {
       </template>
 
       <template v-slot:append>
-        <v-btn class="mr-3" prepend-icon="mdi-chevron-down" variant="tonal" @click="downloadPDF"
-          >Скачать список как PDF
-        </v-btn>
-        <v-btn class="mr-3" variant="tonal">Списание</v-btn>
-        <v-btn class="mr-3" color="primary" variant="flat" @click="drawer = true"
-          >Инвентаризация
-        </v-btn>
-        <v-btn prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
+        <v-menu>
+          <template v-slot:activator="{ props }">
+            <v-btn class="mr-3" prepend-icon="mdi-chevron-down" v-bind="props" variant="tonal"
+              >Сортировка
+            </v-btn>
+          </template>
+
+          <v-list>
+            <v-list-item @click="sort = 0">Cортировать от А до Я</v-list-item>
+            <v-list-item @click="sort = 1">Cортировать от Я до А</v-list-item>
+            <v-list-item @click="sort = 2">Cортировать по возрастанию</v-list-item>
+            <v-list-item @click="sort = 3">Cортировать по убыванию</v-list-item>
+            <v-list-item @click="sort = 4">Cортировать от старых к новым</v-list-item>
+            <v-list-item @click="sort = 5">Cортировать от новых к старым</v-list-item>
+          </v-list>
+        </v-menu>
+
+        <v-menu>
+          <template v-slot:activator="{ props }">
+            <v-btn
+              class="mr-3"
+              color="primary"
+              prepend-icon="mdi-chevron-down"
+              v-bind="props"
+              variant="flat"
+              >Скачать
+            </v-btn>
+          </template>
+
+          <v-list>
+            <v-list-item @click="downloadPDF(1)">Список инвентаризации</v-list-item>
+            <v-list-item @click="downloadPDF(2)">Список списанных книг</v-list-item>
+          </v-list>
+        </v-menu>
+
+        <v-menu>
+          <template v-slot:activator="{ props }">
+            <v-btn class="mr-3" prepend-icon="mdi-chevron-down" v-bind="props" variant="tonal"
+              >Инвент
+            </v-btn>
+          </template>
+
+          <v-list>
+            <v-list-item @click="drawer = true"> Инвентаризация</v-list-item>
+            <v-list-item :to="{ name: 'inventoryWriteOff' }"> Списание</v-list-item>
+            <v-list-item :to="{ name: 'inventoryDecline' }"> Откат</v-list-item>
+          </v-list>
+        </v-menu>
+
+        <help-button class="mr-3" />
       </template>
     </v-app-bar>
 
     <v-row>
       <v-col cols="12">
         <FilterBlock
-          :bottom-items="bottomItems"
+          v-model="filters"
+          :bottom-items="
+            auth.user.value && auth.user.value.roles.some((obj) => obj.id === 1) ? [] : bottomItems
+          "
           :mdata="false"
           :one-line="false"
           :users="false"
           inventory
+          @search="searchContractors"
         >
         </FilterBlock>
       </v-col>
     </v-row>
 
-    <v-data-table :headers="headers" :items="items" class="mt-2" show-select>
+    <v-data-table
+      :headers="headers"
+      :items="
+        items.filter((item) => {
+          return item.inventory
+        })
+      "
+      :items-per-page="items.length"
+      class="mt-2"
+    >
       <template v-slot:[`item.book`]="{ item }">
-        <div class="mt-3">{{ item.book.title }}</div>
-        <div class="text-subtitle-2 text-medium-emphasis">Год издания: {{ item.book.year }}</div>
+        <div class="mt-3">{{ item.title }}</div>
+        <div class="text-subtitle-2 text-medium-emphasis">Год издания: {{ item.year }}</div>
         <div class="mb-3">
           <v-chip
-            v-for="author in item.book.book_author_main"
-            :key="author.id"
+            v-for="author in item.author"
+            :key="author"
+            class="mr-2"
             color="primary"
             size="x-small"
             variant="outlined"
-            >{{ author.name }}
+            >{{ author }}
           </v-chip>
         </div>
+        <div class="my-1">
+          <v-chip
+            v-for="pub in item.publisher"
+            :key="pub"
+            class="mr-2"
+            color="green"
+            size="small"
+            variant="flat"
+            >Издатель: <span>{{ pub }}</span></v-chip
+          >
+        </div>
+      </template>
+
+      <template v-slot:[`item.inventory.number`]="{ item }">
+        <span v-if="!item.editMode">{{ item.inventory.number }}</span>
+        <v-text-field v-else v-model="item.numberDouble" density="compact"></v-text-field>
       </template>
 
       <template v-slot:[`item.admission`]="{ item }">
@@ -228,19 +459,31 @@ watch(search, () => {
       </template>
 
       <template v-slot:[`item.invent`]="{ item }">
-        <div class="mt-3">
-          <v-chip color="primary" size="x-small" variant="flat"
-            >{{ item.book_inventory.length }}
-          </v-chip>
-        </div>
+        <div class="mt-3"></div>
         <div class="text-subtitle-2 text-medium-emphasis">
-          <v-chip size="x-small" variant="flat"> Статус: в фонде</v-chip>
+          <v-chip v-if="item.inventory.status === 1" size="x-small" variant="flat"
+            >Статус: в фонде
+          </v-chip>
+          <v-chip v-else-if="item.inventory.status === 0" color="red" size="x-small" variant="flat"
+            >Статус: списано
+          </v-chip>
         </div>
       </template>
 
-      <template v-slot:[`item.actions`]="{}">
-        <div class="d-flex justify-center">
-          <v-btn append-icon="mdi-arrow-right" variant="outlined">Перейти</v-btn>
+      <template v-slot:[`item.actions`]="{ item }">
+        <v-btn
+          v-if="!item.editMode"
+          icon="mdi-pencil"
+          variant="flat"
+          @click="turnOnEditMode(item)"
+        ></v-btn>
+        <div v-else>
+          <v-btn color="green" variant="flat" @click="editInvent(item)">
+            <v-icon icon="mdi-check"></v-icon>
+          </v-btn>
+          <v-btn class="ml-2" variant="outlined" @click="item.editMode = false">
+            <v-icon icon="mdi-close"></v-icon>
+          </v-btn>
         </div>
       </template>
 
@@ -251,7 +494,7 @@ watch(search, () => {
       <v-pagination
         v-model="page"
         :length="length"
-        :total-visible="4"
+        :total-visible="6"
         active-color="primary"
         class="ml-auto mr-2"
         size="small"

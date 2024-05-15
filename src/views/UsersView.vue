@@ -1,7 +1,10 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
-import { type Ref, ref, watch } from 'vue'
+import { computed, type Ref, ref, watch } from 'vue'
 import FilterBlock from '@/components/FilterBlock.vue'
+import HelpButton from '@/components/HelpButton.vue'
+import { useAuth } from '@/auth'
+import fileDownload from 'js-file-download'
 
 interface User {
   id: number
@@ -22,41 +25,104 @@ interface RequestBody {
   email: string
   fathername: string
   firstname: string
-  role_id: number
   lastname: string
   phone: string
+  role: { id: number }
+  school_id: number
   sex: number
+  account: {
+    login: string
+    password: string
+  }
   relation: {
     firstname: string
     lastname: string
     phone: string
-    user_relation_id: number
+    user_relative_id: number
   }
+  region_id: number
 }
+
+interface Filter {
+  search: string
+  class_id: number | null
+  classroom_id: number | null
+  isActive: boolean
+  promiser: boolean
+  status: boolean
+  class: number | null
+  teacher: number | null
+  role_id: number | null
+}
+
+const filters: Ref<Filter> = ref({
+  search: '',
+  class_id: null,
+  classroom_id: null,
+  isActive: false,
+  promiser: false,
+  status: false,
+  class: null,
+  teacher: null,
+  role_id: null
+})
 
 const requestBody: Ref<RequestBody> = ref({
   birthday: '',
   document_ID: '',
   email: '',
   fathername: '',
-  role_id: '',
   firstname: '',
   lastname: '',
   phone: '',
-  sex: 1,
+  role: null,
+  school_id: 0,
+  sex: 0,
+  account: {
+    login: '',
+    password: ''
+  },
   relation: {
     firstname: '',
     lastname: '',
     phone: '',
-    user_relation_id: 0
-  }
+    user_relative_id: 0
+  },
+  region_id: 0
 })
 
-const bottomItems = [
-  { label: 'Выдачи', value: 12 },
-  { label: 'Возвраты', value: 8 },
-  { label: 'Должники', value: 1 }
-]
+const phoneNumberRules = computed(() => {
+  return [
+    (v) => !!v || 'Обязательное поле',
+    (v) => /^\+\d\(\d{3}\)\d{3}-\d{2}-\d{2}$/.test(v) || 'Неправильный формат телефона'
+  ]
+})
+
+const formatPhoneNumber = () => {
+  let formatted = requestBody.value.phone.replace(/\D/g, '')
+  if (formatted.length > 0) {
+    formatted =
+      '+7(' +
+      formatted.substring(1, 4) +
+      ')' +
+      formatted.substring(4, 7) +
+      '-' +
+      formatted.substring(7, 9) +
+      '-' +
+      formatted.substring(9, 11)
+  }
+  requestBody.value.phone = formatted
+}
+
+const handleBackspace = (event) => {
+  if (
+    event.target.selectionStart === event.target.selectionEnd &&
+    event.target.selectionStart === 0
+  ) {
+    requestBody.value.phone = ''
+    event.preventDefault()
+  }
+}
 
 const api = useAPI()
 
@@ -81,7 +147,7 @@ const roles: Ref<{ id: number; title: string }[]> = ref([])
 
 async function getRelatives() {
   try {
-    const response = await api.fetchData('https://test.api.qazaqmura.kz/v1/user/relative')
+    const response = await api.fetchData('/v1/user/relative')
     if (response.data) {
       userRelative.value = response.data.data.items
     }
@@ -92,7 +158,7 @@ async function getRelatives() {
 
 async function getRoles() {
   try {
-    const response = await api.fetchData('https://test.api.qazaqmura.kz/v1/role')
+    const response = await api.fetchData('/v1/role')
     if (response.data) {
       roles.value = response.data.data.items
     }
@@ -104,10 +170,17 @@ async function getRoles() {
 async function getUsers() {
   loading.value = true
   try {
+    let request = `/v2/user?page=${page.value}`
+    if (filters.value.search.length > 0) request += `&search=${filters.value.search}`
+    if (filters.value.promiser) request += '&promiser=1'
+    if (filters.value.status) request += '&status=0'
+    if (filters.value.class) request += `&classroom=${filters.value.class}`
+    if (filters.value.teacher) request += `&teacher_id=${filters.value.teacher}`
+    if (filters.value.role_id) request += `&role_id=${filters.value.role_id}`
     const response = await api.fetchData<{
       data: User[]
       meta: { last_page: number }
-    }>(`https://test.api.qazaqmura.kz/v2/user?page=${page.value}`)
+    }>(request)
     if (response.data) {
       items.value = response.data.data
       length.value = response.data.meta.last_page
@@ -118,13 +191,18 @@ async function getUsers() {
   }
 }
 
+const snackbar = ref(false)
+
 async function sendFile() {
   try {
     if (importFile.value) {
       const formData = new FormData()
       formData.append('file', importFile.value[0])
-      const response = await api.postData('https://test.api.qazaqmura.kz/v2/user/excel', formData)
-      console.log('Response:', response)
+      const response = await api.postData('/v2/user/excel', formData)
+      if (response.data && response.data.success) {
+        snackbar.value = true
+        drawer.value = false
+      }
     }
   } catch (error: any) {
     console.error('Error:', error)
@@ -133,23 +211,272 @@ async function sendFile() {
 
 function downloadExcel() {
   const link = document.createElement('a')
-  link.href = '/src/assets/excel.xlsx'
-  link.download = 'document.xlsx'
+  link.href = '/assets/excel.xlsx'
+  link.download = 'user-list.xlsx'
   link.click()
   document.body.removeChild(link)
+}
+
+const subscriptionBlock: Ref<{ label: string; value: string }[]> = ref([])
+
+async function getSubscriptionBlock() {
+  try {
+    const response = await api.fetchData<{
+      promisers: string
+      requests: string
+      returns: string
+    }>('/v1/dashboard/subscriptions')
+    if (response.data) {
+      subscriptionBlock.value = [
+        { label: 'Выдачи', value: response.data.requests },
+        {
+          label: 'Возвраты',
+          value: response.data.returns
+        },
+        { label: 'Должники', value: response.data.promisers }
+      ]
+    }
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+const letters: Ref<string[]> = ref([])
+const numbers: Ref<number[]> = ref([])
+
+interface Classroom {
+  number: number | null
+  letter: string | null
+  user_id: number | null
+  pupil_id: number | null
+}
+
+const classroom: Ref<Classroom> = ref({
+  number: null,
+  letter: null,
+  user_id: null,
+  pupil_id: null
+})
+
+const getLettersAndNumbers = async () => {
+  try {
+    const response = await api.fetchData<{
+      data: {
+        items: { id: number; letter: string; number: number }[]
+      }
+    }>('/v1/classroom/letters?full=1')
+    if (response.data) {
+      numbers.value = response.data.numbers
+      letters.value = response.data.letters
+    }
+    numbers.value = [...new Set(numbers.value)].sort()
+    letters.value = [...new Set(letters.value)].sort()
+  } catch (e) {
+    console.error('Error:', e)
+  }
 }
 
 getUsers()
 getRelatives()
 getRoles()
+getSubscriptionBlock()
+getLettersAndNumbers()
 
 watch(page, () => {
   getUsers()
 })
+
+function formatDate(dateToFormat: string) {
+  const parts = dateToFormat.split('-')
+  const year = parts[0]
+  const month = parts[1]
+  const day = parts[2]
+
+  return `${day}.${month}.${year}`
+}
+
+const createUser = async () => {
+  try {
+    const birthday = formatDate(requestBody.value.birthday)
+    const request = {
+      firstname: requestBody.value.firstname,
+      lastname: requestBody.value.lastname,
+      fathername: requestBody.value.fathername,
+      role_id: requestBody.value.role.id,
+      birthday: birthday,
+      sex: requestBody.value.sex
+    }
+    if (requestBody.value.email.length > 0) request.email = requestBody.value.email
+    if (requestBody.value.phone.length > 0) request.phone = requestBody.value.phone
+    if (requestBody.value.document_ID.length > 0)
+      request.document_ID = requestBody.value.document_ID
+
+    if (addContactPerson.value) request.relation = requestBody.value.relation
+    if (regionId.value) request['region_id'] = regionId.value
+
+    const response = await api.postData('/v1/user', request)
+    if (response.data && addStructure.value) {
+      const auth = useAuth()
+
+      classroom.value.pupil_id = response.data.id
+      classroom.value.user_id = auth.user.value.id
+
+      await api.postData('/v1/classroom/user', classroom.value)
+
+      createDrawer.value = false
+      await getUsers()
+
+      requestBody.value = {
+        birthday: '',
+        document_ID: '',
+        email: '',
+        fathername: '',
+        firstname: '',
+        lastname: '',
+        phone: '',
+        role: null,
+        school_id: 0,
+        sex: 0,
+        account: {
+          login: '',
+          password: ''
+        },
+        relation: {
+          firstname: '',
+          lastname: '',
+          phone: '',
+          user_relative_id: 0
+        },
+        region_id: 0
+      }
+    }
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+const structureDrawer: Ref<boolean> = ref(false)
+const structure: Ref<
+  {
+    id: number
+    school_id: number
+    title: string
+  }[]
+> = ref([])
+
+const schools: Ref<any[]> = ref([])
+const getSchools = async () => {
+  try {
+    const response = await api.fetchData<{
+      data: { items: { id: number; school_id: number; title: string }[] }
+    }>(`/v1/school?page=1`)
+    if (response.data) schools.value = response.data.data.items
+    schools.value.forEach(async (item) => {
+      item.structure = await getStructure(item.id)
+      item.structure.forEach(async (structureItem) => {
+        structureItem.classrooms = await getClassroom(structureItem.id)
+      })
+    })
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+const getStructure = async (id: number) => {
+  try {
+    const response = await api.fetchData<{
+      data: { items: { id: number; school_id: number; title: string }[] }
+    }>(`/v1/school/structure?school_id=${id}`)
+    return response.data.data.items
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+const getClassroom = async (id: number) => {
+  try {
+    const response = await api.fetchData<{
+      data: { items: { id: number; school_id: number; title: string }[] }
+    }>(`/v1/classroom?school_structure_id=${id}`)
+    return response.data.data.items
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+const downloadList = async (id?: number) => {
+  let url = '/v1/user/user/pdf'
+  if (id) url += `?role_id=${id}`
+  const response = await api.postData(url, null, true)
+  if (response.data) fileDownload(response.data, 'users.pdf')
+}
+
+const getFilterSearch = () => {
+  page.value = 1
+  getUsers()
+}
+
+const getRegions = async (parentId: number | null = null) => {
+  try {
+    let request = '/v1/region'
+    if (parentId) request += `?parent_id=${parentId}`
+    const response = await api.fetchData<{ data: { items: Region[] } }>(request)
+    if (response.data) {
+      if (parentRegion.value && childRegion.value) thirdRegions.value = response.data.data.items
+      else if (parentRegion.value) childrenRegions.value = response.data.data.items
+      else parentRegions.value = response.data.data.items
+    }
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+interface Region {
+  id: number
+  parent_id: number | null
+  number: string
+  title: string
+}
+
+const parentRegions: Ref<Region[]> = ref([])
+const childrenRegions: Ref<Region[]> = ref([])
+const thirdRegions: Ref<Region[]> = ref([])
+const parentRegion: Ref<Region | null> = ref(null)
+const childRegion: Ref<Region | null> = ref(null)
+const thirdRegion: Ref<Region | null> = ref(null)
+const regionId: Ref<number | null> = ref(null)
+const regionTitle: Ref<string> = ref('')
+
+const chooseRegion = (isActive: Ref<boolean>) => {
+  if (parentRegion.value && childRegion.value && thirdRegion.value) {
+    regionId.value = thirdRegion.value.id
+    regionTitle.value = `${parentRegion.value.title} / ${childRegion.value.title} / ${thirdRegion.value.title}`
+  } else if (parentRegion.value && childRegion.value) {
+    regionId.value = childRegion.value.id
+    regionTitle.value = `${parentRegion.value.title} / ${childRegion.value.title}`
+  } else if (parentRegion.value) {
+    regionId.value = parentRegion.value.id
+    regionTitle.value = `${parentRegion.value.title}`
+  }
+  isActive.value = false
+}
+
+watch(parentRegion, async (value) => {
+  if (value) await getRegions(value.id)
+})
+
+watch(childRegion, async (value) => {
+  if (value) await getRegions(value.id)
+})
+
+getSchools()
+getRegions()
 </script>
 
 <template>
   <v-container fluid>
+    <v-snackbar v-model="snackbar" :timeout="10000" color="primary"
+      >Список учеников добавлен в систему
+    </v-snackbar>
     <v-navigation-drawer v-model="drawer" location="right" temporary width="400">
       <v-list-item>
         <span class="font-weight-bold">Импорт пользователя</span>
@@ -205,13 +532,75 @@ watch(page, () => {
             variant="outlined"
           ></v-text-field>
           <v-autocomplete
-            v-model="requestBody.role_id"
+            v-model="requestBody.role"
             :items="roles"
             item-title="label"
             item-value="id"
             label="Роль"
+            return-object
             variant="outlined"
           ></v-autocomplete>
+          <v-dialog v-if="requestBody.role && requestBody.role.id === 8" width="65vw">
+            <template v-slot:activator="{ props }">
+              <v-text-field
+                :model-value="regionTitle"
+                label="Регион"
+                placeholder="Выберите регион"
+                v-bind="props"
+                variant="outlined"
+              ></v-text-field>
+            </template>
+
+            <template v-slot:default="{ isActive }">
+              <v-card>
+                <v-card-title>
+                  <div class="d-flex justify-space-between align-center w-100">
+                    <span class="text-h6 font-weight-bold">Выбрать регион</span>
+                    <v-btn icon="mdi-close" variant="text" @click="isActive.value = false"></v-btn>
+                  </div>
+                </v-card-title>
+                <v-card-text>
+                  <v-select
+                    v-model="parentRegion"
+                    :items="parentRegions"
+                    item-value="id"
+                    label="Регион"
+                    placeholder="Выберите регион"
+                    return-object
+                    variant="outlined"
+                  ></v-select>
+                  <v-select
+                    v-if="childrenRegions.length > 0"
+                    v-model="childRegion"
+                    :items="childrenRegions"
+                    item-value="id"
+                    label="Регион"
+                    placeholder="Выберите регион"
+                    return-object
+                    variant="outlined"
+                  ></v-select>
+                  <v-select
+                    v-if="thirdRegions.length > 0"
+                    v-model="thirdRegion"
+                    :items="thirdRegions"
+                    item-value="id"
+                    label="Регион"
+                    placeholder="Выберите регион"
+                    return-object
+                    variant="outlined"
+                  ></v-select>
+                </v-card-text>
+                <v-card-actions>
+                  <v-spacer></v-spacer>
+                  <v-btn variant="tonal" @click="isActive.value = false">Закрыть</v-btn>
+                  <v-btn color="primary" variant="flat" @click="chooseRegion(isActive)"
+                    >Выбрать
+                  </v-btn>
+                  <v-spacer></v-spacer>
+                </v-card-actions>
+              </v-card>
+            </template>
+          </v-dialog>
         </v-form>
       </v-list-item>
 
@@ -241,17 +630,21 @@ watch(page, () => {
           <v-text-field v-model="requestBody.email" label="Email" variant="outlined"></v-text-field>
           <v-text-field
             v-model="requestBody.phone"
+            :rules="phoneNumberRules"
             class="ml-4"
             label="Номер телефона"
+            maxlength="16"
             variant="outlined"
+            @input="formatPhoneNumber"
           ></v-text-field>
         </div>
         <v-switch
           v-model="addContactPerson"
+          class="ml-2"
           color="primary"
           label="Добавить контактное лицо"
         ></v-switch>
-        <v-switch v-model="addStructure" color="primary" label="Структура"></v-switch>
+        <v-switch v-model="addStructure" class="ml-2" color="primary" label="Структура"></v-switch>
       </v-list-item>
 
       <v-list-item v-if="addContactPerson">
@@ -288,14 +681,132 @@ watch(page, () => {
       <v-list-item v-if="addStructure">
         <div class="font-weight-bold">Структура</div>
         <div class="d-flex">
-          <v-text-field label="Цифра класса" variant="outlined"></v-text-field>
-          <v-text-field class="ml-4" label="Буква класса" variant="outlined"></v-text-field>
+          <v-select
+            v-model="classroom.number"
+            :items="numbers"
+            class="mt-2"
+            clearable
+            label="Цифра класса"
+            variant="outlined"
+          ></v-select>
+          <v-select
+            v-model="classroom.letter"
+            :items="letters"
+            class="ml-4 mt-2"
+            clearable
+            label="Буква класса"
+            variant="outlined"
+          ></v-select>
         </div>
       </v-list-item>
 
       <v-list-item class="mt-2 mb-6 text-center">
         <v-btn class="mr-10" variant="tonal" @click="createDrawer = false">Закрыть</v-btn>
         <v-btn color="primary" variant="flat" @click="createUser">Добавить</v-btn>
+      </v-list-item>
+    </v-navigation-drawer>
+
+    <v-navigation-drawer v-model="structureDrawer" location="right" temporary width="600">
+      <v-list-item>
+        <span class="font-weight-bold">Структура</span>
+      </v-list-item>
+      <v-divider></v-divider>
+      <v-list-item>
+        <v-data-table
+          :headers="[
+            { key: 'id', title: 'ID' },
+            { key: 'name', title: 'Название' }
+          ]"
+          :items="schools"
+          :items-per-page="15"
+          show-expand
+        >
+          <template v-slot:expanded-row="{ columns, item }">
+            <tr>
+              <td :colspan="columns.length">
+                <v-data-table
+                  :headers="[
+                    { key: 'id', title: 'ID' },
+                    { key: 'title', title: 'Название' }
+                  ]"
+                  :items="item.structure"
+                  show-expand
+                >
+                  <template v-slot:headers></template>
+                  <template v-slot:expanded-row="{ columns, item }">
+                    <tr>
+                      <td :colspan="columns.length">
+                        <v-data-table
+                          :headers="[
+                            { key: 'id', title: 'ID' },
+                            { key: 'title', title: 'Название' }
+                          ]"
+                          :items="item.classrooms"
+                          show-expand
+                        >
+                          <template v-slot:headers></template>
+                          <template v-slot:[`item.title`]="{ item }">
+                            <span>{{ item.number }} {{ item.letter }}</span>
+                          </template>
+
+                          <template v-slot:expanded-row="{ columns, item }">
+                            <tr>
+                              <td :colspan="columns.length">
+                                <v-data-table
+                                  v-if="item.pupils.length > 0"
+                                  :headers="[
+                                    { key: 'id', title: 'ID' },
+                                    { key: 'name', title: 'Имя' }
+                                  ]"
+                                  :items="item.pupils"
+                                >
+                                  <template v-slot:headers></template>
+                                  <template v-slot:[`item.name`]="{ item }">
+                                    <span
+                                      >{{ item.user_data.lastname }} {{ item.user_data.firstname }}
+                                      {{ item.user_data.fathername }}</span
+                                    >
+                                  </template>
+                                  <template v-slot:bottom></template>
+                                </v-data-table>
+                                <v-data-table
+                                  :headers="[
+                                    { key: 'id', title: 'ID' },
+                                    { key: 'name', title: 'Имя' }
+                                  ]"
+                                  :items="[item.teacher]"
+                                >
+                                  <template v-slot:headers></template>
+                                  <template v-slot:[`item.name`]="{ item }">
+                                    <span
+                                      >{{ item.user_data.lastname }} {{ item.user_data.firstname }}
+                                      {{ item.user_data.fathername }}</span
+                                    >
+                                  </template>
+                                  <template v-slot:bottom></template>
+                                </v-data-table>
+                              </td>
+                            </tr>
+                          </template>
+
+                          <template v-slot:bottom></template>
+                        </v-data-table>
+                      </td>
+                    </tr>
+                  </template>
+                  <template v-slot:bottom></template>
+                </v-data-table>
+              </td>
+            </tr>
+          </template>
+
+          <template v-slot:[`item.name`]="{ item }">
+            <v-btn color="primary" variant="text" @click="getStructure(item.id)"
+              >{{ item.name }}
+            </v-btn>
+          </template>
+          <template v-slot:bottom></template>
+        </v-data-table>
       </v-list-item>
     </v-navigation-drawer>
 
@@ -310,7 +821,7 @@ watch(page, () => {
       </template>
 
       <template v-slot:append>
-        <v-btn class="mr-3" variant="tonal">Структура</v-btn>
+        <v-btn class="mr-3" variant="tonal" @click="structureDrawer = true">Структура</v-btn>
         <v-menu>
           <template v-slot:activator="{ props }">
             <v-btn append-icon="mdi-chevron-down" class="mr-3" v-bind="props" variant="tonal"
@@ -319,10 +830,10 @@ watch(page, () => {
           </template>
 
           <v-list>
-            <v-list-item :value="1">Весь список</v-list-item>
-            <v-list-item :value="2">Классный руководитель</v-list-item>
-            <v-list-item :value="3">Школьники</v-list-item>
-            <v-list-item :value="4">Сотрудники школы</v-list-item>
+            <v-list-item :value="1" @click="downloadList()">Весь список</v-list-item>
+            <v-list-item :value="2" @click="downloadList(4)">Классный руководитель</v-list-item>
+            <v-list-item :value="3" @click="downloadList(5)">Школьники</v-list-item>
+            <v-list-item :value="4" @click="downloadList(6)">Сотрудники школы</v-list-item>
           </v-list>
         </v-menu>
         <v-menu>
@@ -346,52 +857,62 @@ watch(page, () => {
           </v-list>
         </v-menu>
 
-        <v-btn prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
+        <help-button />
       </template>
     </v-app-bar>
 
     <v-row>
       <v-col cols="12">
         <FilterBlock
-          :bottom-items="bottomItems"
+          v-model="filters"
+          :bottom-items="subscriptionBlock"
           :inventory="false"
           :mdata="false"
           :oneLine="false"
           users
+          @search="getFilterSearch"
         >
         </FilterBlock>
       </v-col>
     </v-row>
 
-    <v-data-table :headers="headers" :items="items" :loading="loading" class="mt-2" show-select>
-      <template v-slot:top>
-        <div class="d-flex my-3 mx-4">
-          <v-text-field
-            class="rounded-xl"
-            density="compact"
-            flat
-            hide-details
-            label="Поиск по ИИН / ФИО"
-            prepend-inner-icon="mdi-magnify"
-            single-line
-            variant="outlined"
-          ></v-text-field>
-          <v-spacer></v-spacer>
-          <v-select
-            :items="['Показывать по 10']"
-            density="compact"
-            flat
-            hide-details
-            single-line
-            value="Показывать по 10"
-          ></v-select>
-        </div>
-      </template>
+    <v-data-table
+      :headers="headers"
+      :items="items"
+      :items-per-page="15"
+      :loading="loading"
+      class="mt-2"
+      show-select
+    >
+      <!--      <template v-slot:top>-->
+      <!--        <div class="d-flex my-3 mx-4">-->
+      <!--          <v-text-field-->
+      <!--            class="rounded-xl"-->
+      <!--            density="compact"-->
+      <!--            flat-->
+      <!--            hide-details-->
+      <!--            label="Поиск по ИИН / ФИО"-->
+      <!--            prepend-inner-icon="mdi-magnify"-->
+      <!--            single-line-->
+      <!--            variant="outlined"-->
+      <!--          ></v-text-field>-->
+      <!--          <v-spacer></v-spacer>-->
+      <!--          <v-select-->
+      <!--            :items="['Показывать по 10']"-->
+      <!--            density="compact"-->
+      <!--            flat-->
+      <!--            hide-details-->
+      <!--            single-line-->
+      <!--            value="Показывать по 10"-->
+      <!--          ></v-select>-->
+      <!--        </div>-->
+      <!--      </template>-->
 
       <template v-slot:[`item.name`]="{ item }">
         <div class="d-flex flex-column my-2">
           <div>
-            {{ item.lastname }} {{ item.firstname }} {{ item.fathername }} / <strong>1Б</strong>
+            {{ item.lastname }} {{ item.firstname }} {{ item.fathername }} /
+            <strong>{{ item.classroom }}</strong>
           </div>
           <div>
             <span class="text-subtitle-2 text-medium-emphasis"
@@ -404,13 +925,18 @@ watch(page, () => {
             >
           </div>
           <div class="my-2">
-            <v-chip class="mr-2" color="primary" size="small" variant="outlined"
-              >Библиотекарь
+            <v-chip v-if="item.role" class="mr-2" color="primary" size="small" variant="outlined"
+              >{{ item.role }}
             </v-chip>
             <v-chip v-if="item.status" color="green" size="small" variant="flat">Активен</v-chip>
             <v-chip v-else color="error" size="small" variant="flat">Не активен</v-chip>
           </div>
         </div>
+      </template>
+
+      <template v-slot:[`item.id`]="{ item }">
+        <div class="font-weight-bold">ID: {{ item.user_id }}</div>
+        <div class="text-medium-emphasis">{{ item.id_ }}</div>
       </template>
 
       <template v-slot:[`item.data`]="{ item }">
@@ -421,17 +947,19 @@ watch(page, () => {
         </div>
       </template>
 
-      <template v-slot:[`item.status`]="{}">
-        <div class="d-flex flex-column align-center">
-          <v-chip class="mb-2" color="primary" size="small" variant="flat">Выдача: 1</v-chip>
-          <v-chip size="small" variant="flat">Возврат: 4</v-chip>
+      <template v-slot:[`item.status`]="{ item }">
+        <div v-if="item.subscription" class="d-flex flex-column align-center">
+          <v-chip class="mb-2" color="primary" size="small" variant="flat"
+            >Выдача: {{ item.subscription.request }}
+          </v-chip>
+          <v-chip size="small" variant="flat">Возврат: {{ item.subscription.return }}</v-chip>
         </div>
       </template>
 
       <template v-slot:[`item.actions`]="{ item }">
         <div class="d-flex align-center">
           <v-btn
-            :to="`/users/${item.id}`"
+            :to="`/users/${item.user_id}`"
             append-icon="mdi-arrow-right"
             class="mr-2"
             variant="outlined"
@@ -447,7 +975,7 @@ watch(page, () => {
       <v-pagination
         v-model="page"
         :length="length"
-        :total-visible="4"
+        :total-visible="6"
         active-color="primary"
         class="ml-auto mr-2"
         size="small"

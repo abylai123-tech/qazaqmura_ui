@@ -2,8 +2,7 @@
 import { ref, type Ref } from 'vue'
 import { useAPI } from '@/api'
 import HelpButton from '@/components/HelpButton.vue'
-import { useAuth } from '@/auth'
-import BkDialog from '@/components/bkDialog.vue'
+import { useRoute } from 'vue-router'
 
 const api = useAPI()
 
@@ -44,8 +43,6 @@ interface Form {
   link: { URL: string; title: string }
   subject_heading_id: number | null
 }
-
-const hasClass = ref(false)
 
 interface BookAdmission {
   amount: number
@@ -108,7 +105,6 @@ const parts = [
     title: 'Том'
   }
 ]
-const auth = useAuth()
 const form: Ref<Form> = ref({
   author_id: [],
   author_id_main: [],
@@ -186,33 +182,20 @@ async function getAuthors(search = null) {
 }
 
 async function addNewItem(
-  itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading' | 'contractor' | 'tag',
+  itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading' | 'contractor',
   isActive: Ref<boolean>
 ) {
-  const request = itemType === 'subjectHeading' ? 'subject/heading' : itemType
-  const requestBody: {
-    name?: string
-    title?: string
-    company_ID?: string
-    address?: string
-    label?: string
-  } = {}
+  const requestBody: { name?: string; title?: string; company_ID?: string; address?: string } = {}
   if (itemType === 'subjectHeading' || itemType === 'author') {
     requestBody.name = newItem.value.name
   } else if (itemType === 'contractor') {
     requestBody.title = newItem.value.name
     requestBody.company_ID = newItem.value.companyId
     requestBody.address = newItem.value.address
-  } else if (itemType === 'tag') {
-    requestBody.label = newItem.value.name
   } else {
     requestBody.title = newItem.value.name
   }
-  try {
-    const response = await api.postData(`/v1/${request}`, requestBody)
-  } catch (e) {
-    console.error('Error:', e)
-  }
+
   isActive.value = false
 }
 
@@ -333,51 +316,6 @@ async function getSubjectHeadings(search = null) {
   }
 }
 
-const tags = ref([])
-
-async function getTags(search = null) {
-  try {
-    let request = `/v1/tag`
-    if (search) {
-      request += `?search=${search}`
-    }
-    const response = await api.fetchData<{ data: { items: Author[] } }>(request)
-    if (response.data) tags.value = response.data.data.items
-  } catch (error: any) {
-    console.error('Error:', error.message)
-  }
-}
-
-const countries = ref([])
-
-async function getCountries(search = null) {
-  try {
-    let request = `/v1/country`
-    if (search) {
-      request += `?search=${search}`
-    }
-    const response = await api.fetchData<{ data: { items: Author[] } }>(request)
-    if (response.data) countries.value = response.data.data.items
-  } catch (error: any) {
-    console.error('Error:', error.message)
-  }
-}
-
-const copyrightSigns = ref([])
-
-async function getCopyrightSigns(search = null) {
-  try {
-    let request = `/v1/copyright/sign`
-    if (search) {
-      request += `?search=${search}`
-    }
-    const response = await api.fetchData<{ data: { items: Author[] } }>(request)
-    if (response.data) copyrightSigns.value = response.data.data.items
-  } catch (error: any) {
-    console.error('Error:', error.message)
-  }
-}
-
 async function getAgeCharacteristics(search = null) {
   try {
     let request = `/v1/age/characteristic`
@@ -388,17 +326,6 @@ async function getAgeCharacteristics(search = null) {
     if (response.data) ageCharacteristics.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
-  }
-}
-
-const bbk = ref(null)
-const udk = ref(null)
-
-const handleFinish = (value: any, mode: 'bbk' | 'udk') => {
-  if (mode === 'bbk') {
-    bbk.value = value
-  } else {
-    udk.value = value
   }
 }
 
@@ -465,9 +392,7 @@ function formatDate(dateToFormat: string) {
   return `${day}.${month}.${date.getFullYear()}`
 }
 
-function setNewItem(
-  itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading' | 'contractor' | 'tag'
-) {
+function setNewItem(itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading' | 'contractor') {
   if (itemType === 'author') {
     newItem.value.title = 'Добавление автора'
     newItem.value.label = 'Имя автора'
@@ -483,9 +408,6 @@ function setNewItem(
   } else if (itemType === 'contractor') {
     newItem.value.title = 'Добавление контрагента'
     newItem.value.label = 'Название контрагента'
-  } else if (itemType === 'tag') {
-    newItem.value.title = 'Добавление ключевого слова'
-    newItem.value.label = 'Ключевое слово'
   }
 
   newItem.value.name = ''
@@ -496,9 +418,9 @@ function setNewItem(
 async function sendBookData() {
   const body = removeNullOrEmptyFields(form.value)
   body.author_id_main = [body.author_id_main]
-  if (body.materials) body.materials = [body.materials]
+  body.materials = [body.materials]
   try {
-    const response = await api.postData<Form, { id: number }>('/v1/book', body)
+    const response = await api.putData<Form, { id: number }>(`/v1/book/${route.params.id}`, body)
     if (response.data && showFundData.value) {
       const id = response.data.id
       const admissionForm = { ...admission.value }
@@ -513,6 +435,15 @@ async function sendBookData() {
   }
 }
 
+const route = useRoute()
+
+const getItem = async () => {
+  const response = await api.fetchData(`/v1/book/${route.params.id}`)
+  if (response.data) {
+    form.value = response.data
+  }
+}
+
 getAuthors()
 getPublishers()
 getCities()
@@ -523,13 +454,11 @@ getStates()
 getAdmissions()
 getMaterials()
 getSubjectHeadings()
-getTags()
-getCountries()
-getCopyrightSigns()
 getAgeCharacteristics()
 getGenres()
 getBindings()
 getContentTypes()
+getItem()
 </script>
 
 <template>
@@ -922,47 +851,25 @@ getContentTypes()
 
               <v-row>
                 <v-col>
-                  <v-autocomplete
-                    :items="tags"
-                    chips
-                    item-title="label"
-                    item-value="id"
+                  <v-text-field
                     label="Ключевые слова"
-                    multiple
                     placeholder="Поиск"
                     prepend-inner-icon="mdi-magnify"
-                    return-object
                     variant="outlined"
-                    @update:search="getTags"
-                  >
-                    <template v-slot:no-data>
-                      <div class="px-4 d-flex justify-space-between align-center">
-                        <span>Данного слова нет в списке</span>
-                        <v-btn color="primary" variant="flat" @click="setNewItem('tag')"
-                          >Добавить
-                        </v-btn>
-                      </div>
-                    </template>
-                  </v-autocomplete>
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
               <v-row>
                 <v-col>
                   <div class="d-flex">
-                    <div class="d-flex flex-column w-50">
+                    <div class="d-flex flex-column">
                       <span class="mb-2">ББК</span>
-                      <bk-dialog mode="bbk" @finish="handleFinish($event, 'bbk')"></bk-dialog>
-                      <div v-if="bbk" class="mt-2 font-weight-bold">
-                        {{ bbk.map((item) => item.title).join(', ') }}
-                      </div>
+                      <v-btn color="primary" variant="outlined">Выбрать ББК</v-btn>
                     </div>
-                    <div class="d-flex flex-column ml-4 w-50">
+                    <div class="d-flex flex-column ml-4">
                       <span class="mb-2">УДК</span>
-                      <bk-dialog mode="udk" @finish="handleFinish($event, 'udk')"></bk-dialog>
-                      <div v-if="udk" class="mt-2 font-weight-bold">
-                        {{ udk.map((item) => item.title).join(', ') }}
-                      </div>
+                      <v-btn color="primary" variant="outlined">Выбрать УДК</v-btn>
                     </div>
                   </div>
                 </v-col>
@@ -970,24 +877,12 @@ getContentTypes()
 
               <v-row>
                 <v-col>
-                  <v-autocomplete
-                    :items="copyrightSigns"
+                  <v-text-field
                     label="Авторский знак"
                     placeholder="Поиск"
                     prepend-inner-icon="mdi-magnify"
-                    return-object
                     variant="outlined"
-                    @update:search="getCopyrightSigns"
-                  >
-                    <template v-slot:selection="{ item }">
-                      {{ item.raw.number }} - {{ item.raw.title }}
-                    </template>
-                    <template v-slot:item="{ props, item }">
-                      <v-list-item :subtitle="item.raw.number" v-bind="props"
-                        >{{ item.raw.number }} - {{ item.raw.title }}
-                      </v-list-item>
-                    </template>
-                  </v-autocomplete>
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
@@ -1054,7 +949,6 @@ getContentTypes()
               <v-row>
                 <v-col>
                   <v-switch
-                    v-model="hasClass"
                     color="primary"
                     label="Укажите для какого класса , если это учебник"
                   ></v-switch>
@@ -1063,26 +957,20 @@ getContentTypes()
 
               <v-row>
                 <v-col>
-                  <v-select
-                    :disabled="!hasClass"
-                    :items="[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]"
+                  <v-text-field
                     label="Класс"
                     placeholder="Укажите класс"
                     prepend-inner-icon="mdi-magnify"
                     variant="outlined"
-                  ></v-select>
+                  ></v-text-field>
                 </v-col>
                 <v-col>
-                  <v-autocomplete
-                    :items="countries"
-                    item-title="title"
+                  <v-text-field
                     label="Страна"
                     placeholder="Поиск"
                     prepend-inner-icon="mdi-magnify"
-                    return-object
                     variant="outlined"
-                    @update:search="getCountries"
-                  ></v-autocomplete>
+                  ></v-text-field>
                 </v-col>
               </v-row>
 
@@ -1092,12 +980,8 @@ getContentTypes()
                     <div class="d-flex flex-column">
                       <span class="mb-2">Обложка</span>
                       <v-btn color="primary" variant="outlined">Выбрать файл</v-btn>
-                      <small>до 5 MB в соотношении 70×100, формата png, jpg, jpeg</small>
                     </div>
-                    <div
-                      v-if="!auth.user.value && auth.user.value.roles.some((obj) => obj.id === 3)"
-                      class="d-flex flex-column ml-4"
-                    >
+                    <div class="d-flex flex-column ml-4">
                       <span class="mb-2">EPUB</span>
                       <v-btn color="primary" variant="outlined">Выбрать файл</v-btn>
                     </div>
@@ -1128,111 +1012,6 @@ getContentTypes()
       </v-col>
     </v-row>
 
-    <v-row v-if="showFundData">
-      <v-col cols="8" offset="2">
-        <v-card>
-          <v-card-title>Данные для фонда</v-card-title>
-
-          <v-card-text>
-            <v-container fluid>
-              <v-row>
-                <v-col>
-                  <v-autocomplete
-                    v-model="admission.book_admission_id"
-                    :items="admissions"
-                    item-value="id"
-                    label="Поступление"
-                    placeholder="Выберите"
-                    variant="outlined"
-                  ></v-autocomplete>
-                </v-col>
-                <v-col>
-                  <v-text-field
-                    v-model="admission.admission_at"
-                    label="Дата поступления"
-                    placeholder="ДД.ММ.ГГ"
-                    type="date"
-                    variant="outlined"
-                  ></v-text-field>
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col>
-                  <v-autocomplete
-                    v-model="admission.contractor_id"
-                    :items="contractors"
-                    item-value="id"
-                    label="Контрагент"
-                    placeholder="Укажите"
-                    variant="outlined"
-                    @update:search="getContractors"
-                  >
-                    <template v-slot:no-data>
-                      <div class="px-4 d-flex justify-space-between align-center">
-                        <span>Данного контрагента нет в списке</span>
-                        <v-btn color="primary" variant="flat" @click="setNewItem('contractor')"
-                          >Добавить
-                        </v-btn>
-                      </div>
-                    </template>
-                  </v-autocomplete>
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col>
-                  <v-text-field
-                    v-model="admission.amount"
-                    label="Количество"
-                    placeholder="Выберите"
-                    type="number"
-                    variant="outlined"
-                  ></v-text-field>
-                </v-col>
-                <v-col>
-                  <v-text-field
-                    v-model="admission.price"
-                    label="Цена"
-                    placeholder="0,00"
-                    step="0.01"
-                    type="number"
-                    variant="outlined"
-                  ></v-text-field>
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col>
-                  <v-autocomplete
-                    v-model="admission.book_state_id"
-                    :items="states"
-                    item-value="id"
-                    label="Состояние книги"
-                    placeholder="Выберите"
-                    variant="outlined"
-                  ></v-autocomplete>
-                </v-col>
-              </v-row>
-
-              <v-row>
-                <v-col>
-                  <v-sheet class="px-2 py-2" color="#FFE4AF" rounded>
-                    <span
-                      >Обложка может быть незначительно повреждена, или потерта. На страницах могут
-                      быть незначительные пометки или помарки. Страницы не порваны. Книга может быть
-                      покороблена от воздействия влаги. Суперобложка может быть порвана или утеряна.
-                      Переплет прочный.</span
-                    >
-                  </v-sheet>
-                </v-col>
-              </v-row>
-            </v-container>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
-
     <v-row>
       <v-col class="text-center">
         <v-btn
@@ -1243,16 +1022,6 @@ getContentTypes()
           variant="flat"
           @click="showAdditionalData = true"
           >Добавить дополнительные параметры
-        </v-btn>
-
-        <v-btn
-          v-if="!showFundData"
-          class="mr-2"
-          color="primary"
-          prepend-icon="mdi-plus"
-          variant="flat"
-          @click="showFundData = true"
-          >Добавить фонд
         </v-btn>
 
         <v-btn color="green" prepend-icon="mdi-plus" variant="flat" @click="sendBookData"

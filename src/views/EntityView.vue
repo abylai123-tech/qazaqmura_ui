@@ -1,0 +1,549 @@
+<script lang="ts" setup>
+import HelpButton from '@/components/HelpButton.vue'
+import { computed, ref, type Ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAPI } from '@/api'
+
+const route = useRoute()
+const api = useAPI()
+const entities = ref([])
+const page = ref(1)
+const length = ref(1)
+const itemLimit = ref(15)
+const headers = ref([])
+
+const getEntities = async (entityName: string) => {
+  const response = await api.fetchData<{ data: { items: [] } }>(
+    `/v1/${entityName}?page=${page.value}`
+  )
+  if (response.data) {
+    entities.value = response.data.data.items
+
+    headers.value = getHeaders(entities.value[0])
+
+    if (response.data.meta) {
+      length.value = response.data.meta.last_page
+      itemLimit.value = response.data.meta.per_page
+    } else {
+      length.value = 1
+      itemLimit.value = 15
+    }
+  }
+}
+
+const getHeaders = (item) => {
+  let headers = []
+  if (item) {
+    let keys = Object.keys(item)
+    keys.forEach((key) => {
+      if (key === 'id') {
+        headers.push({ key: 'id', title: 'ID' })
+      }
+      if (key === 'number') {
+        headers.push({ key: 'number', title: 'Номер' })
+      }
+      if (key === 'title') {
+        headers.push({ key: 'title', title: 'Название' })
+      }
+      if (key === 'name') {
+        headers.push({ key: 'name', title: 'ФИО' })
+      }
+      if (key === 'label') {
+        headers.push({ key: 'label', title: 'Название' })
+      }
+      if (key === 'description') {
+        headers.push({ key: 'description', title: 'Описание' })
+      }
+    })
+  }
+  headers.push({ key: 'actions', title: 'Действия' })
+  return headers
+}
+
+const entityTitle = computed(() => {
+  switch (route.path) {
+    case '/publisher':
+      return 'Издатели'
+    case '/language':
+      return 'Языки'
+    case '/bookState':
+      return 'Состояния книг'
+    case '/author':
+      return 'Авторы'
+    case '/categories':
+      return 'Классификация'
+    case '/bookAdmission':
+      return 'Поступление'
+    case '/genre':
+      return 'Жанры'
+    case '/ageCharacteristic':
+      return 'Возрастные характеристики'
+    case '/binding':
+      return 'Переплет'
+    case '/contentType':
+      return 'Виды содержания'
+    case '/copyrightSign':
+      return 'Авторский знак'
+    case '/organizationTypes':
+      return 'Типы организаций'
+    case '/userRoles':
+      return 'Роли пользователей'
+    case '/country':
+      return 'Страна'
+    case '/educationLevel':
+      return 'Уровень образования'
+    case '/bookType':
+      return 'Тип'
+    case '/tag':
+      return 'Ключевые слова'
+    case '/material':
+      return 'Обозначение материала'
+    default:
+      return ''
+  }
+})
+
+watch(page, () => {
+  getCurrentPage()
+})
+
+watch(route, () => {
+  page.value = 1
+  getCurrentPage()
+})
+
+const deleteEntity = async (id: number, isActive: Ref<boolean>) => {
+  let url = '/v1/'
+  switch (route.path) {
+    case '/publisher':
+      url += 'publisher'
+      break
+    case '/language':
+      url += 'language'
+      break
+    case '/bookState':
+      url += 'book/state'
+      break
+    case '/author':
+      url += 'author'
+      break
+    case '/categories':
+      url += 'category'
+      break
+    case '/bookAdmission':
+      url += 'book/admission'
+      break
+    case '/genre':
+      url += 'genre'
+      break
+    case '/ageCharacteristic':
+      url += 'age/characteristic'
+      break
+    case '/binding':
+      url += 'binding'
+      break
+    case '/contentType':
+      url += 'content/type'
+      break
+    case '/copyrightSign':
+      url += 'copyright/sign'
+      break
+    case '/organizationTypes':
+      url += 'organization'
+      break
+    case '/userRoles':
+      url += 'role'
+      break
+    default:
+      break
+  }
+  url += `/${id}`
+  await api.deleteData(url)
+  isActive.value = false
+  getCurrentPage()
+}
+
+const editEntity = async (entity: any, isActive: Ref<boolean>) => {
+  let url = '/v1/'
+  switch (route.path) {
+    case '/publisher':
+      url += 'publisher'
+      break
+    case '/language':
+      url += 'language'
+      break
+    case '/bookState':
+      url += 'book/state'
+      break
+    case '/author':
+      url += 'author'
+      break
+    case '/categories':
+      url += 'publisher'
+      break
+    case '/bookAdmission':
+      url += 'book/admission'
+      break
+    case '/genre':
+      url += 'genre'
+      break
+    case '/ageCharacteristic':
+      url += 'age/characteristic'
+      break
+    case '/binding':
+      url += 'binding'
+      break
+    case '/contentType':
+      url += 'content/type'
+      break
+    case '/copyrightSign':
+      url += 'copyright/sign'
+      break
+    case '/organizationTypes':
+      url += 'organization'
+      break
+    case '/userRoles':
+      url += 'role'
+      break
+    case '/country':
+      url += 'country'
+      break
+    case '/educationLevel':
+      url += 'education/level'
+      break
+    case '/bookType':
+      url += 'type'
+      break
+    case '/tag':
+      url += 'tag'
+      break
+    case '/material':
+      url += 'material'
+      break
+    default:
+      break
+  }
+  url += `/${entity.id}`
+  await api.putData(url, entity)
+  isActive.value = false
+  getCurrentPage()
+}
+
+const getCurrentPage = () => {
+  switch (route.path) {
+    case '/publisher':
+      getEntities('publisher')
+      break
+    case '/language':
+      getEntities('language')
+      break
+    case '/bookState':
+      getEntities('book/state')
+      break
+    case '/author':
+      getEntities('author')
+      break
+    case '/categories':
+      getEntities('category')
+      break
+    case '/bookAdmission':
+      getEntities('book/admission')
+      break
+    case '/genre':
+      getEntities('genre')
+      break
+    case '/ageCharacteristic':
+      getEntities('age/characteristic')
+      break
+    case '/binding':
+      getEntities('binding')
+      break
+    case '/contentType':
+      getEntities('content/type')
+      break
+    case '/copyrightSign':
+      getEntities('copyright/sign')
+      break
+    case '/organizationTypes':
+      getEntities('organization')
+      break
+    case '/userRoles':
+      getEntities('role')
+      break
+    case '/country':
+      getEntities('country')
+      break
+    case '/educationLevel':
+      getEntities('education/level')
+      break
+    case '/bookType':
+      getEntities('type')
+      break
+    case '/tag':
+      getEntities('tag')
+      break
+    case '/material':
+      getEntities('material')
+      break
+    default:
+      break
+  }
+}
+
+interface Item {
+  title: string
+  description: string
+  number: string
+}
+
+const newItem = ref<Item>({ title: '', description: '', number: '' })
+
+const createEntity = async (isActive: Ref<boolean>) => {
+  let url = '/v1/'
+  const entity = {}
+  switch (route.path) {
+    case '/publisher':
+      url += 'publisher'
+      entity['title'] = newItem.value.title
+      break
+    case '/language':
+      url += 'language'
+      entity['title'] = newItem.value.title
+      break
+    case '/bookState':
+      url += 'book/state'
+      entity['title'] = newItem.value.title
+      entity['description'] = newItem.value.description
+      break
+    case '/author':
+      url += 'author'
+      entity['name'] = newItem.value.title
+      break
+    case '/categories':
+      url += 'category'
+      entity['title'] = newItem.value.title
+      break
+    case '/bookAdmission':
+      url += 'book/admission'
+      entity['title'] = newItem.value.title
+      break
+    case '/genre':
+      url += 'genre'
+      entity['title'] = newItem.value.title
+      break
+    case '/ageCharacteristic':
+      url += 'age/characteristic'
+      entity['title'] = newItem.value.title
+      break
+    case '/binding':
+      url += 'binding'
+      entity['title'] = newItem.value.title
+      break
+    case '/contentType':
+      url += 'content/type'
+      entity['title'] = newItem.value.title
+      entity['number'] = newItem.value.number
+      break
+    case '/copyrightSign':
+      url += 'copyright/sign'
+      entity['title'] = newItem.value.title
+      entity['number'] = newItem.value.number
+      break
+    case '/organizationTypes':
+      url += 'organization'
+      entity['label'] = newItem.value.title
+      break
+    case '/userRoles':
+      url += 'role'
+      entity['title'] = newItem.value.title
+      break
+    case '/country':
+      url += 'country'
+      entity['title'] = newItem.value.title
+      break
+    case '/educationLevel':
+      url += 'education/level'
+      entity['title'] = newItem.value.title
+      break
+    case '/bookType':
+      url += 'type'
+      entity['title'] = newItem.value.title
+      break
+    case '/tag':
+      url += 'tag'
+      entity['label'] = newItem.value.title
+      break
+    case '/material':
+      url += 'material'
+      entity['label'] = newItem.value.title
+      break
+    default:
+      break
+  }
+  await api.postData(url, entity)
+  isActive.value = false
+  newItem.value = {
+    title: '',
+    name: '',
+    description: ''
+  }
+  getCurrentPage()
+}
+
+getCurrentPage()
+</script>
+
+<template>
+  <v-container fluid>
+    <v-app-bar>
+      <template v-slot:title>
+        <div class="d-flex flex-column">
+          <span class="text-h6 font-weight-bold">{{ entityTitle }}</span>
+        </div>
+      </template>
+
+      <template v-slot:append>
+        <help-button />
+        <v-dialog width="600">
+          <template v-slot:activator="{ props }">
+            <v-btn
+              class="ml-3"
+              color="primary"
+              prepend-icon="mdi-plus"
+              v-bind="props"
+              variant="flat"
+              >Добавить
+            </v-btn>
+          </template>
+
+          <template v-slot:default="{ isActive }">
+            <v-card title="Добавление">
+              <v-card-text>
+                <v-text-field
+                  v-model="newItem.title"
+                  :label="entityTitle === 'Авторы' ? 'Имя' : 'Название'"
+                ></v-text-field>
+                <v-text-field
+                  v-if="entityTitle === 'Виды содержания' || entityTitle === 'Авторский знак'"
+                  v-model="newItem.number"
+                  label="Номер"
+                ></v-text-field>
+                <v-textarea
+                  v-if="entityTitle === 'Состояния книг'"
+                  v-model="newItem.description"
+                  label="Описание"
+                ></v-textarea>
+              </v-card-text>
+              <v-card-actions>
+                <v-btn
+                  class="ml-auto"
+                  color="primary"
+                  variant="flat"
+                  @click="createEntity(isActive)"
+                  >Да, создать
+                </v-btn>
+                <v-btn class="mr-auto" variant="tonal" @click="isActive.value = false"
+                  >Отмена
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </template>
+        </v-dialog>
+      </template>
+    </v-app-bar>
+
+    <v-row>
+      <v-col cols="12">
+        <v-data-table :headers="headers" :items="entities" :items-per-page="itemLimit">
+          <template v-slot:[`item.actions`]="{ item }">
+            <v-dialog width="600">
+              <template v-slot:activator="{ props }">
+                <v-btn icon="mdi-pencil" size="small" v-bind="props" variant="text"></v-btn>
+              </template>
+
+              <template v-slot:default="{ isActive }">
+                <v-card title="Изменение">
+                  <v-card-text>
+                    <v-text-field
+                      v-if="item.label"
+                      v-model="item.label"
+                      label="Название"
+                    ></v-text-field>
+                    <v-text-field
+                      v-if="item.title"
+                      v-model="item.title"
+                      label="Название"
+                    ></v-text-field>
+                    <v-text-field v-if="item.name" v-model="item.name" label="ФИО"></v-text-field>
+                  </v-card-text>
+
+                  <v-card-actions>
+                    <v-btn
+                      class="ml-auto"
+                      color="primary"
+                      variant="flat"
+                      @click="editEntity(item, isActive)"
+                      >Да, изменить
+                    </v-btn>
+                    <v-btn class="mr-auto" variant="tonal" @click="isActive.value = false"
+                      >Отмена
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </template>
+            </v-dialog>
+
+            <v-dialog width="600">
+              <template v-slot:activator="{ props }">
+                <v-btn
+                  color="red"
+                  icon="mdi-delete"
+                  size="small"
+                  v-bind="props"
+                  variant="text"
+                ></v-btn>
+              </template>
+
+              <template v-slot:default="{ isActive }">
+                <v-card class="text-center" title="Удаление">
+                  <v-card-text class="text-center">
+                    Вы уверены что хотите удалить {{ item.label ? item.label : '' }}
+                    {{ item.title ? item.title : '' }}
+                    {{ item.name ? item.name : '' }}?
+                  </v-card-text>
+                  <v-card-actions>
+                    <v-btn
+                      class="ml-auto"
+                      color="primary"
+                      variant="flat"
+                      @click="deleteEntity(item.id, isActive)"
+                      >Да, удалить
+                    </v-btn>
+                    <v-btn class="mr-auto" variant="tonal" @click="isActive.value = false"
+                      >Отмена
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </template>
+            </v-dialog>
+          </template>
+        </v-data-table>
+      </v-col>
+    </v-row>
+    <v-row class="mt-4">
+      <v-col cols="12">
+        <v-pagination
+          v-model="page"
+          :length="length"
+          :total-visible="6"
+          active-color="primary"
+          class="ml-auto mr-2"
+          size="small"
+          variant="flat"
+        ></v-pagination>
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
+
+<style scoped></style>

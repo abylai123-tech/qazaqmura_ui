@@ -1,40 +1,74 @@
-<script setup lang="ts">
-import { useAPI } from '@/api';
-import { ref, type Ref } from 'vue'
+<script lang="ts" setup>
+import { useAPI } from '@/api'
+import { onMounted, ref, type Ref, watch } from 'vue'
 
 const api = useAPI()
 
 interface Props {
-  bottomItems: { label: string, value: number }[],
-  oneLine: boolean,
-  mdata: boolean,
-  inventory: boolean,
+  bottomItems: { label: string; value: number }[]
+  oneLine: boolean
+  mdata: boolean
+  inventory: boolean
   users: boolean
+  modelValue: Filter
 }
 
 interface Item {
-  id: number,
-  title: string,
+  id: number
+  title: string
+}
+
+interface Filter {
+  search: string
+  languageId: number | null
+  authorId: number | null
+  publisherId: number | null
+  year: number | null
+  epub: boolean
+  promiser: boolean
+  status: boolean
+  class: number | null
+  teacher: number | null
+  isActive: boolean
+  role_id: number | null
+  inventoryStatus: number | null
+  fundBooks: number | null
+  book_type_id: number | null
 }
 
 interface Author {
-  id: number,
-  name: string,
+  id: number
+  name: string
 }
 
 const languages: Ref<Item[]> = ref([])
 const authors: Ref<Author[]> = ref([])
 const publishers: Ref<Item[]> = ref([])
+const selectedBookType: Ref<{ id: number; title: string }> = ref({ id: 0, title: 'Тип книги' })
 
 const props = defineProps<Props>()
 
+const internalValue: Ref<Filter> = ref(props.modelValue)
+
+const updateValue = () => {
+  emit('update:modelValue', internalValue.value)
+}
+
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    internalValue.value = newValue
+  }
+)
 
 async function getLanguages(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/language`;
-    if (search) { request += `?search=${search}` }
+    let request = `/v1/language`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Item[] } }>(request)
-    if (response.data) languages.value = response.data.data.items;
+    if (response.data) languages.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -42,10 +76,12 @@ async function getLanguages(search = null) {
 
 async function getAuthors(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/author`;
-    if (search) { request += `?search=${search}` }
+    let request = `/v1/author`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Author[] } }>(request)
-    if (response.data) authors.value = response.data.data.items;
+    if (response.data) authors.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
@@ -53,17 +89,128 @@ async function getAuthors(search = null) {
 
 async function getPublishers(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/publisher`;
-    if (search) { request += `?search=${search}` }
+    let request = `/v1/publisher`
+    if (search) {
+      request += `?search=${search}`
+    }
     const response = await api.fetchData<{ data: { items: Item[] } }>(request)
-    if (response.data) publishers.value = response.data.data.items;
+    if (response.data) publishers.value = response.data.data.items
   } catch (error: any) {
     console.error('Error:', error.message)
   }
 }
 
+onMounted(() => {
+  internalValue.value = props.modelValue
+})
+
+const emit = defineEmits('search')
+
+const startSearch = () => {
+  emit('search')
+}
+
+const resetFilters = () => {
+  internalValue.value = {
+    authorId: null,
+    class: null,
+    epub: false,
+    languageId: null,
+    promiser: false,
+    isActive: false,
+    publisherId: null,
+    search: '',
+    status: false,
+    teacher: null,
+    year: null,
+    role_id: null,
+    inventoryStatus: null,
+    fundBooks: null,
+    book_type_id: null
+  }
+  selectedType.value = { id: 0, label: 'Тип пользователя', name: '' }
+  selectedBookType.value = { id: 0, title: 'Тип книги' }
+  updateValue()
+  emit('search')
+}
+
+const teachers: Ref<{ id: number; user_data: { firstname: string; lastname: string } }[]> = ref([])
+const selectedType: Ref<{ id: number; label: string }> = ref({ id: 0, label: 'Тип пользователя' })
+
+async function getTeachers(search = null) {
+  let request = '/v1/user?teacher=1&page=1'
+  if (search) {
+    request += `&search=${search}`
+  }
+  try {
+    const response = await api.fetchData<{
+      data: {
+        items: { id: number; user_data: { firstname: string; lastname: string } }[]
+      }
+    }>(request)
+    if (response.data) teachers.value = response.data.data.items
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+const types: Ref<Publisher[]> = ref([])
+
+async function getTypes(search = null) {
+  try {
+    let request = `/v1/type`
+    if (search) {
+      request += `?search=${search}`
+    }
+    const response = await api.fetchData<{ data: { items: Publisher[] } }>(request)
+    if (response.data) types.value = response.data.data.items
+  } catch (error: any) {
+    console.error('Error:', error.message)
+  }
+}
+
+getTypes()
+
+const setUserType = (user: { id: number; label: string }) => {
+  selectedType.value = user
+  internalValue.value.role_id = user.id
+  updateValue()
+}
+
+const setBookType = (bookType: { id: number; title: string }) => {
+  selectedBookType.value = bookType
+  internalValue.value.book_type_id = bookType.id
+  updateValue()
+}
+
+const roles: Ref<{ id: number; name: string; label: string }[]> = ref([])
+
+async function getRoles() {
+  try {
+    const response = await api.fetchData<{
+      data: {
+        items: { id: number; name: string; label: string }[]
+      }
+    }>('/v1/role')
+    if (response.data) roles.value = response.data.data.items
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+if (props.users) {
+  getTeachers()
+  getRoles()
+}
+
 if (props.mdata) {
   getLanguages()
+  getAuthors()
+  getPublishers()
+  getPublishers()
+}
+
+if (props.inventory) {
   getAuthors()
   getPublishers()
 }
@@ -75,62 +222,189 @@ if (props.mdata) {
       <div class="d-flex flex-column">
         <v-row class="mb-2">
           <v-col class="d-flex" cols="9">
-            <v-text-field rounded density="compact" hide-details variant="outlined" prepend-inner-icon="mdi-magnify"
-              placeholder="Поиск по названию"></v-text-field>
+            <v-text-field
+              v-model="internalValue.search"
+              density="compact"
+              hide-details
+              placeholder="Поиск по названию"
+              prepend-inner-icon="mdi-magnify"
+              rounded
+              variant="outlined"
+              @input="updateValue"
+            >
+              <template v-if="users || inventory" v-slot:append>
+                <v-menu v-if="users">
+                  <template v-slot:activator="{ props }">
+                    <v-btn append-icon="mdi-chevron-down" v-bind="props" variant="outlined"
+                      >{{ selectedType.label }}
+                    </v-btn>
+                  </template>
+
+                  <v-list>
+                    <v-list-item
+                      v-for="item in roles"
+                      :key="item.id"
+                      :value="item.id"
+                      @click="setUserType(item)"
+                      >{{ item.label }}
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+                <v-menu v-if="inventory">
+                  <template v-slot:activator="{ props }">
+                    <v-btn append-icon="mdi-chevron-down" v-bind="props" variant="outlined"
+                      >{{ selectedBookType.title }}
+                    </v-btn>
+                  </template>
+
+                  <v-list>
+                    <v-list-item
+                      v-for="item in types"
+                      :key="item.id"
+                      :value="item.id"
+                      @click="setBookType(item)"
+                      >{{ item.title }}
+                    </v-list-item>
+                  </v-list>
+                </v-menu>
+              </template>
+            </v-text-field>
           </v-col>
           <v-col class="d-flex justify-space-around">
-            <v-btn variant="flat" color="primary">Искать</v-btn>
-            <v-btn variant="tonal">Сбросить</v-btn>
+            <v-btn color="primary" variant="flat" @click="startSearch">Искать</v-btn>
+            <v-btn variant="tonal" @click="resetFilters">Сбросить</v-btn>
           </v-col>
         </v-row>
         <v-row class="mb-2">
           <v-col v-if="mdata" cols="2">
-            <v-select :items="languages" item-value="id" item-title="title" variant="solo-filled"
-              label="Язык"></v-select>
+            <v-autocomplete
+              v-model="internalValue.languageId"
+              :items="languages"
+              clearable
+              item-title="title"
+              item-value="id"
+              label="Язык"
+              variant="solo-filled"
+              @input="updateValue"
+            ></v-autocomplete>
           </v-col>
           <v-col v-if="mdata || inventory" cols="2">
-            <v-autocomplete :items="authors" @update:search="getAuthors" item-title="name" variant="solo-filled"
-              label="Автор"></v-autocomplete>
+            <v-autocomplete
+              v-model="internalValue.authorId"
+              :items="authors"
+              clearable
+              item-title="name"
+              item-value="id"
+              label="Автор"
+              variant="solo-filled"
+              @input="updateValue"
+              @update:search="getAuthors"
+            ></v-autocomplete>
           </v-col>
           <v-col v-if="mdata || inventory" cols="2">
-            <v-autocomplete :items="publishers" @update:search="getPublishers" item-title="title" variant="solo-filled"
-              label="Издатель"></v-autocomplete>
+            <v-autocomplete
+              v-model="internalValue.publisherId"
+              :items="publishers"
+              clearable
+              item-title="title"
+              item-value="id"
+              label="Издатель"
+              variant="solo-filled"
+              @input="updateValue"
+              @update:search="getPublishers"
+            ></v-autocomplete>
           </v-col>
           <v-col v-if="mdata" cols="2">
-            <v-text-field type="number" variant="solo-filled" label="Год издания"></v-text-field>
+            <v-text-field
+              v-model="internalValue.year"
+              clearable
+              label="Год издания"
+              type="number"
+              variant="solo-filled"
+              @input="updateValue"
+            ></v-text-field>
           </v-col>
           <v-col v-if="(!mdata && !inventory) || users" cols="2">
-            <v-select variant="solo-filled" label="Класс"></v-select>
+            <v-select
+              v-model="internalValue.class"
+              :items="[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]"
+              clearable
+              label="Класс"
+              variant="solo-filled"
+            >
+              <template v-slot:item="{ props, item }">
+                <v-list-item :subtitle="item.raw.letter" v-bind="props"></v-list-item>
+              </template>
+            </v-select>
           </v-col>
           <v-col v-if="users" cols="3">
-            <v-select variant="solo-filled" label="Классный руководитель"></v-select>
+            <v-autocomplete
+              v-model="internalValue.teacher"
+              :items="teachers"
+              clearable
+              item-title="user_data.lastname"
+              item-value="id"
+              label="Классный руководитель"
+              variant="solo-filled"
+              @update:search="getTeachers"
+            >
+              <template v-slot:item="{ props, item }">
+                <v-list-item :subtitle="item.raw.user_data.firstname" v-bind="props"></v-list-item>
+              </template>
+            </v-autocomplete>
           </v-col>
           <v-col v-else-if="mdata">
-            <v-switch color="primary" label="Электронная книга"></v-switch>
+            <v-switch
+              v-model="internalValue.epub"
+              color="primary"
+              label="Электронная книга"
+              @input="updateValue"
+            ></v-switch>
           </v-col>
           <v-col v-if="inventory" cols="2">
-            <v-switch color="primary" label="Списанные"></v-switch>
+            <v-switch
+              v-model="internalValue.inventoryStatus"
+              color="primary"
+              label="Списанные"
+            ></v-switch>
           </v-col>
           <v-col v-if="inventory" cols="3">
-            <v-switch color="primary" label="Только книги фонда"></v-switch>
+            <v-switch
+              v-model="internalValue.fundBooks"
+              color="primary"
+              label="Только книги фонда"
+            ></v-switch>
           </v-col>
           <v-col v-if="users" cols="2">
-            <v-switch color="primary" label="Не активные"></v-switch>
+            <v-switch
+              v-model="internalValue.status"
+              color="primary"
+              label="Не активные"
+              @input="updateValue"
+            ></v-switch>
           </v-col>
           <v-col v-if="users" cols="3">
-            <v-switch color="primary" label="Должники"></v-switch>
+            <v-switch
+              v-model="internalValue.promiser"
+              color="primary"
+              label="Должники"
+              @input="updateValue"
+            ></v-switch>
           </v-col>
         </v-row>
         <v-divider v-if="!oneLine"></v-divider>
         <v-row v-if="!oneLine" class="py-3">
           <v-col class="d-flex">
             <div v-for="item in props.bottomItems" :key="item.label" class="mr-8">
-              <div><strong>{{ item.value }}</strong></div>
+              <div>
+                <strong>{{ item.value }}</strong>
+              </div>
               <div>
                 <span class="text-subtitle-2 text-medium-emphasis">{{ item.label }}</span>
               </div>
             </div>
           </v-col>
+          <slot name="actions"></slot>
         </v-row>
       </div>
     </v-card-text>

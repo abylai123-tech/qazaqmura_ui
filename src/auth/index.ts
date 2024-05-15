@@ -1,12 +1,13 @@
 import { onMounted, type Ref, ref } from 'vue'
 import axios from 'axios'
+import { useAPI } from '@/api'
 
 interface User {
   id: number
   email: string
   login: string
   status: boolean
-  roles: []
+  roles: any[]
   user_data: {
     firstname: string
     lastname: string
@@ -80,14 +81,21 @@ function checkExpiration() {
   return !!(token.value && new Date(token.value.expiration) > today)
 }
 
+const api = useAPI()
+
 export function useAuth() {
   onMounted(() => {
     const storedToken = localStorage.getItem('token')
     const storedUser = localStorage.getItem('user')
+    const storedData = localStorage.getItem('userData')
 
     if (storedToken && storedUser) {
       token.value = JSON.parse(storedToken)
       user.value = JSON.parse(storedUser)
+    }
+
+    if (storedData) {
+      userData.value = JSON.parse(storedData)
     }
 
     if (!checkExpiration()) {
@@ -97,7 +105,7 @@ export function useAuth() {
 
   async function login(form: { login: string; password: string; device: string }) {
     try {
-      const response = await axios.post('https://test.api.qazaqmura.kz/v1/login', form)
+      const response = await api.postData('/v1/login', form)
       token.value = { token: response.data.token, expiration: response.data.token_expired }
       user.value = {
         id: response.data.id,
@@ -108,16 +116,16 @@ export function useAuth() {
         roles: response.data.roles
       }
 
-      const config = { headers: { Authorization: `Bearer ${token.value.token}` } }
-      const data = await axios.get<Data>(
-        `https://test.api.qazaqmura.kz/v1/user/${user.value.id}`,
-        config
-      )
-      userData.value = data.data
+      if (!user.value.roles.some((item) => item.id === 8)) {
+        const config = { headers: { Authorization: `Bearer ${token.value.token}` } }
+
+        const data = await axios.get<Data>(`/v1/user/${user.value.id}`, config)
+        userData.value = data.data
+        localStorage.setItem('userData', JSON.stringify(userData.value))
+      }
 
       localStorage.setItem('token', JSON.stringify(token.value))
       localStorage.setItem('user', JSON.stringify(user.value))
-      localStorage.setItem('userData', JSON.stringify(userData.value))
 
       return true
     } catch (error) {

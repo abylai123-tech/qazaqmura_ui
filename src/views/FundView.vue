@@ -10,6 +10,8 @@ import fund from '@/assets/fund.pdf'
 import noCover from '@/assets/no-book-cover.svg'
 import nonfiction from '@/assets/admission_nonfiction.pdf'
 import fiction from '@/assets/admission_fiction.pdf'
+import HelpButton from '@/components/HelpButton.vue'
+import fileDownload from 'js-file-download'
 
 const api = useAPI()
 
@@ -101,12 +103,35 @@ const selectedItem: Ref<Book> = ref({
   book_admission_id: 0
 })
 
+interface Filter {
+  search: string
+  languageId: number | null
+  authorId: number | null
+  publisherId: number | null
+  year: number | null
+  epub: boolean
+}
+
+const filters: Ref<Filter> = ref({
+  search: '',
+  languageId: null,
+  authorId: null,
+  publisherId: null,
+  year: null,
+  epub: false
+})
+
 async function getBooks() {
   loading.value = true
   try {
-    const response = await api.fetchData<{ data: Book[]; meta: { last_page: number } }>(
-      `https://test.api.qazaqmura.kz/v2/book/school?page=${page.value}`
-    )
+    let request = `/v2/book/school?page=${page.value}`
+    if (filters.value.search.length > 0) request += `&book=${filters.value.search}`
+    if (filters.value.publisherId) request += `&publisher_id=${filters.value.publisherId}`
+    if (filters.value.authorId) request += `&author_id=${filters.value.authorId}`
+    if (filters.value.languageId) request += `&language_id=${filters.value.languageId}`
+    if (filters.value.year) request += `&year=${filters.value.year}`
+    if (filters.value.epub) request += `&epub=1`
+    const response = await api.fetchData<{ data: Book[]; meta: { last_page: number } }>(request)
 
     if (response.data) {
       items.value = response.data.data
@@ -125,33 +150,42 @@ const filterBlock = {
   ]
 }
 
-function downloadPDF(title: string) {
+async function downloadPDF(title: string, id?: number) {
   const link = document.createElement('a')
   if (title === 'bookForm') {
-    link.href = bookForm
+    const response = await api.postData(`/v1/book/school/book-form/pdf/${id}`, null, true)
+    if (response.data) fileDownload(response.data, 'Книжный формуляр.pdf')
   } else if (title === 'publisher') {
-    link.href = publisher
+    const response = await api.postData(`/v1/book/school/publisher/pdf`, null, true)
+    if (response.data) fileDownload(response.data, 'Отчет по издателям.pdf')
   } else if (title === 'admission') {
-    link.href = admission
+    const response = await api.postData('/v1/book/school/admission/pdf', null, true)
+    if (response.data) fileDownload(response.data, 'admission.pdf')
   } else if (title === 'fund') {
-    link.href = fund
+    const response = await api.postData('/v1/book/school/book/pdf', null, true)
+    if (response.data) fileDownload(response.data, 'school_fund.pdf')
   } else if (title === 'nonfiction') {
-    link.href = nonfiction
+    const response = await api.postData('/v1/book/school/book/pdf?type_id=1', null, true)
+    if (response.data) fileDownload(response.data, 'Список учебников.pdf')
   } else if (title === 'fiction') {
-    link.href = fiction
+    const response = await api.postData('/v1/book/school/book/pdf?type_id=17', null, true)
+    if (response.data) fileDownload(response.data, 'Список основного фонда.pdf')
   } else {
-    link.href = catalogCard
+    const response = await api.postData(`/v1/book/school/catalog-card/pdf/${id}`, null, true)
+    if (response.data) fileDownload(response.data, 'Каталожная карточка.pdf')
   }
-  link.download = 'document.pdf'
-  link.click()
-  document.body.removeChild(link)
+  // link.download = 'document.pdf'
+  // link.click()
+  // document.body.removeChild(link)
 }
 
 async function submitClear(isActive: Ref<boolean>, bookId: number | null) {
   try {
-    await api.deleteData(`https://test.api.qazaqmura.kz/v1/book/school/inventory/${bookId}`)
+    const response = await api.deleteData(`/v1/book/school/inventory/${bookId}`)
     isActive.value = false
     await getBooks()
+    snackbar.value = true
+    snackbarText.value = response.data.message
   } catch (error) {
     console.error('Error:', error)
   }
@@ -159,8 +193,10 @@ async function submitClear(isActive: Ref<boolean>, bookId: number | null) {
 
 async function submitDeletion(isActive: Ref<boolean>, bookId: number) {
   try {
-    await api.deleteData(`https://test.api.qazaqmura.kz/v1/book/school/${bookId}`)
+    const response = await api.deleteData(`/v1/book/school/${bookId}`)
     isActive.value = false
+    snackbar.value = true
+    snackbarText.value = response.data.message
     await getBooks()
   } catch (error) {
     console.error('Error:', error)
@@ -169,7 +205,7 @@ async function submitDeletion(isActive: Ref<boolean>, bookId: number) {
 
 async function getAdmissions(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/book/admission`
+    let request = `/v1/book/admission`
     if (search) {
       request += `?search=${search}`
     }
@@ -182,7 +218,7 @@ async function getAdmissions(search = null) {
 
 async function getContractors(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/contractor`
+    let request = `/v1/contractor`
     if (search) {
       request += `?search=${search}`
     }
@@ -195,7 +231,7 @@ async function getContractors(search = null) {
 
 async function getStates(search = null) {
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/book/state`
+    let request = `/v1/book/state`
     if (search) {
       request += `?search=${search}`
     }
@@ -206,10 +242,40 @@ async function getStates(search = null) {
   }
 }
 
+const admissionBlock: Ref<{ label: string; value: string }> = ref([])
+
+async function getAdmissionBlock() {
+  try {
+    const response = await api.fetchData<{
+      amount: string
+      price: string
+      type: string
+    }>('/v1/book/school/admission')
+    if (response.data) {
+      admissionBlock.value = [
+        { label: 'Название книги', value: response.data.type },
+        { label: 'Количество книг', value: response.data.amount },
+        { label: 'Сумма поступления книг', value: response.data.price }
+      ]
+    }
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+const snackbar = ref(false)
+const snackbarText = ref('')
+
+const getTotal = (price: number, amount: number) => {
+  if (!price || !amount) return ''
+  else return price * amount + ' ₸'
+}
+
 getBooks()
 getAdmissions()
 getContractors()
 getStates()
+getAdmissionBlock()
 
 watch(page, () => {
   getBooks()
@@ -218,6 +284,7 @@ watch(page, () => {
 
 <template>
   <v-container fluid>
+    <v-snackbar v-model="snackbar" :timeout="1000">{{ snackbarText }}</v-snackbar>
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
@@ -250,26 +317,28 @@ watch(page, () => {
               >Список поступлений
             </v-list-item>
             <v-list-item value="fund" @click="downloadPDF('fund')">Список фонда</v-list-item>
-            <v-list-item value="nonfiction" @click="downloadPDF('nonfiction')"
-              >Список худ литературы
+            <v-list-item value="nonfiction" @click="downloadPDF('fiction')"
+              >Список основного фонда
             </v-list-item>
-            <v-list-item value="fiction" @click="downloadPDF('fiction')"
+            <v-list-item value="fiction" @click="downloadPDF('nonfiction')"
               >Список учебников
             </v-list-item>
           </v-list>
         </v-menu>
-        <v-btn prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
+        <HelpButton />
       </template>
     </v-app-bar>
 
     <v-row class="mx-2 my-3">
       <v-col>
         <FilterBlock
-          :bottom-items="filterBlock.bottomItems"
+          v-model="filters"
+          :bottom-items="admissionBlock"
           :inventory="false"
           :mdata="true"
           :one-line="false"
           :users="false"
+          @search="getBooks"
         >
         </FilterBlock>
       </v-col>
@@ -283,33 +352,42 @@ watch(page, () => {
               <v-col cols="2">
                 <v-img :src="noCover" fluid></v-img>
               </v-col>
-              <v-col cols="2">
-                <div class="mb-2">
-                  <span class="text-h5 font-weight-bold">{{
-                    item.book ? item.book.title : ''
-                  }}</span>
-                </div>
-
-                <v-chip
-                  v-for="author in item.book_author_main"
-                  :key="author.id"
-                  color="primary"
-                  variant="outlined"
-                  >{{ author.name }}
-                </v-chip>
-              </v-col>
-              <v-col cols="5">
+              <v-col cols="6">
                 <v-card class="w-100" variant="tonal">
                   <v-card-text>
                     <v-container fluid>
+                      <v-row class="d-flex flex-column">
+                        <div class="mb-2">
+                          <v-chip
+                            v-for="bookType in item.type"
+                            :key="bookType"
+                            color="primary"
+                            variant="flat"
+                          >
+                            {{ bookType }}
+                          </v-chip>
+                        </div>
+                        <div class="mb-2">
+                          <span class="text-h5 font-weight-bold">{{ item.book }}</span>
+                        </div>
+                        <div class="d-flex flex-row">
+                          <v-chip
+                            v-for="author in item.author_main"
+                            :key="author.id"
+                            color="primary"
+                            variant="outlined"
+                            >{{ author }}
+                          </v-chip>
+                        </div>
+                      </v-row>
                       <v-row>
                         <v-col cols="4">
                           <div><strong>Год издания:</strong></div>
-                          <div>{{ item.book ? item.book.year : '' }}</div>
+                          <div>{{ item.year }}</div>
                         </v-col>
                         <v-col cols="4">
                           <div><strong>Язык:</strong></div>
-                          <div>{{ item.book_language ? item.book_language.join(', ') : '' }}</div>
+                          <div>{{ item.language ? item.language.join(', ') : '' }}</div>
                         </v-col>
                         <v-col cols="4"></v-col>
                       </v-row>
@@ -333,26 +411,26 @@ watch(page, () => {
                           <div><strong>Количество:</strong></div>
                           <div>{{ item.amount }}</div>
                         </v-col>
-                        <v-col cols="4">
+                        <v-col v-if="item.price" cols="4">
                           <div><strong>Цена:</strong></div>
-                          <div>{{ item.book ? item.book.amount : '' }} ₸</div>
-                        </v-col>
-                        <v-col cols="4">
-                          <div><strong>Цена за все:</strong></div>
                           <div>{{ item.price }} ₸</div>
+                        </v-col>
+                        <v-col v-if="item.price && item.amount" cols="4">
+                          <div><strong>Цена за все:</strong></div>
+                          <div>{{ getTotal(item.price, item.amount) }}</div>
                         </v-col>
                       </v-row>
                     </v-container>
                   </v-card-text>
                 </v-card>
               </v-col>
-              <v-col>
+              <v-col cols="4">
                 <v-btn
                   block
                   class="mb-2"
                   color="primary"
                   variant="flat"
-                  @click="downloadPDF('bookForm')"
+                  @click="downloadPDF('bookForm', item.book_school_id)"
                   >Книжный формуляр
                 </v-btn>
                 <v-btn
@@ -360,10 +438,10 @@ watch(page, () => {
                   class="mb-2"
                   color="primary"
                   variant="flat"
-                  @click="downloadPDF('catalogCard')"
+                  @click="downloadPDF('catalogCard', item.book_school_id)"
                   >Каталожная карточка
                 </v-btn>
-                <v-dialog max-width="650">
+                <v-dialog max-width="68vw">
                   <template v-slot:activator="{ props }">
                     <v-btn
                       block
@@ -385,7 +463,7 @@ watch(page, () => {
                               <v-img
                                 :src="
                                   item.book && item.book.book_cover
-                                    ? `https://test.api.qazaqmura.kz/storage/covers/${item.book.book_cover.storage}`
+                                    ? `/storage/covers/${item.book.book_cover.value}`
                                     : noCover
                                 "
                                 class="rounded"
@@ -394,15 +472,15 @@ watch(page, () => {
                             </v-col>
                             <v-col cols="6">
                               <div class="text-h6 font-weight-bold">
-                                {{ item.book ? item.book.title : '' }}
+                                {{ item.book ? item.book : '' }}
                               </div>
-                              <div v-if="item.book" class="mt-3">
+                              <div v-if="item.author_main" class="mt-3">
                                 <v-chip
-                                  v-for="author in item.book.book_author_main"
-                                  :key="author.id"
+                                  v-for="author in item.author_main"
+                                  :key="author"
                                   color="primary"
                                   variant="outlined"
-                                  >{{ author.name }}
+                                  >{{ author }}
                                 </v-chip>
                               </div>
                               <v-row class="mt-2">
@@ -521,7 +599,9 @@ watch(page, () => {
                           class="ml-auto"
                           color="primary"
                           variant="flat"
-                          @click="submitClear(isActive, item.book ? item.book.id : null)"
+                          @click="
+                            submitClear(isActive, item.book_school_id ? item.book_school_id : null)
+                          "
                           >Да, сбросить
                         </v-btn>
                         <v-btn class="ml-3 mr-auto" variant="tonal" @click="isActive.value = false"
@@ -546,7 +626,9 @@ watch(page, () => {
                           class="ml-auto"
                           color="primary"
                           variant="flat"
-                          @click="submitDeletion(isActive, item.book ? item.book.id : 0)"
+                          @click="
+                            submitDeletion(isActive, item.book_school_id ? item.book_school_id : 0)
+                          "
                           >Да, удалить
                         </v-btn>
                         <v-btn class="ml-3 mr-auto" variant="tonal" @click="isActive.value = false"
@@ -567,7 +649,7 @@ watch(page, () => {
       <v-pagination
         v-model="page"
         :length="length"
-        :total-visible="4"
+        :total-visible="6"
         active-color="primary"
         class="ml-auto mr-2"
         size="small"

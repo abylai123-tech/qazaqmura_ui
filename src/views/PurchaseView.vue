@@ -1,14 +1,15 @@
-<script setup lang="ts">
-import { useAPI } from '@/api';
-import { ref, type Ref } from 'vue';
+<script lang="ts" setup>
+import { useAPI } from '@/api'
+import { ref, type Ref } from 'vue'
+import HelpButton from '@/components/HelpButton.vue'
 
 interface Item {
-  id: number,
-  title: string,
-  fullname: string,
-  date: string,
-  amount: number,
-  type: { id: number, title: string },
+  id: number
+  title: string
+  fullname: string
+  date: string
+  amount: number
+  type: { id: number; title: string }
 }
 
 const api = useAPI()
@@ -17,6 +18,7 @@ const page: Ref<number> = ref(1)
 const length: Ref<number> = ref(1)
 const loading: Ref<boolean> = ref(false)
 const items: Ref<Item[]> = ref([])
+const books: Ref<any[]> = ref([])
 
 const headers = [
   { key: 'id', title: 'ID' },
@@ -26,10 +28,15 @@ const headers = [
   { key: 'actions', title: 'Действия' }
 ]
 
+const drawer: Ref<boolean> = ref(false)
+
 async function getItems() {
   loading.value = true
   try {
-    const response = await api.fetchData<{ meta: { last_page: number }, data: { items: Item[] } }>(`https://test.api.qazaqmura.kz/v1/purchase/book/query?page=${page.value}`)
+    const response = await api.fetchData<{
+      meta: { last_page: number }
+      data: { items: Item[] }
+    }>(`/v1/purchase/book/query?page=${page.value}`)
     if (response.data) {
       length.value = response.data.meta.last_page
       items.value = response.data.data.items
@@ -40,49 +47,207 @@ async function getItems() {
   }
 }
 
+async function getBooks() {
+  try {
+    const response = await api.fetchData<{
+      meta: { last_page: number }
+      data: { items: any[] }
+    }>(`/v1/purchase/book?page=1`)
+    if (response.data) {
+      books.value = response.data.data.items
+    }
+  } catch (error) {
+    console.error('Error:', error)
+  }
+}
+
+async function orderBooks(id: number, amount: number) {
+  try {
+    const body = {
+      purchase_book_id: id,
+      amount: amount
+    }
+    await api.postData('/v1/purchase/book/query', body)
+    await getItems()
+    drawer.value = false
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
 getItems()
+getBooks()
 </script>
 
 <template>
   <v-container fluid>
+    <v-navigation-drawer v-model="drawer" location="right" temporary width="700">
+      <v-list>
+        <v-list-item>
+          <div class="font-weight-bold">Заказ книги</div>
+        </v-list-item>
+        <v-divider></v-divider>
+        <v-list-item v-for="book in books" :key="book.id">
+          <v-card :title="book.title" class="border">
+            <v-card-text>
+              <v-row>
+                <v-col cols="5">
+                  <div class="d-flex flex-column">
+                    <div>
+                      <v-chip
+                        v-for="author in book.authors_main"
+                        :key="author.id"
+                        class="mr-2"
+                        color="primary"
+                        size="small"
+                        variant="outlined"
+                        >{{ author.name }}
+                      </v-chip>
+                      <v-chip
+                        v-for="genre in book.genres"
+                        :key="genre.id"
+                        class="mr-2"
+                        color="primary"
+                        size="small"
+                        variant="outlined"
+                        >{{ genre.title }}
+                      </v-chip>
+                    </div>
+                    <table class="w-100 pt-2">
+                      <tr>
+                        <td>
+                          <div class="font-weight-bold">Язык</div>
+                          <div>{{ book.language.title }}</div>
+                        </td>
+                        <td>
+                          <div class="font-weight-bold">Год издания</div>
+                          <div>{{ book.year }}</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="pt-2">
+                          <div class="font-weight-bold">Издатель</div>
+                          <div>{{ book.publisher.title }}</div>
+                        </td>
+                        <td class="pt-2">
+                          <div class="font-weight-bold">Тип</div>
+                          <div>{{ book.type.title }}</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </v-col>
+                <v-col cols="7">
+                  <span>{{ book.description }}</span>
+                </v-col>
+              </v-row>
+              <v-row>
+                <v-col cols="12">
+                  <v-text-field
+                    v-model="book.amount"
+                    hide-details
+                    label="Кол-во"
+                    type="number"
+                    variant="outlined"
+                  >
+                    <template v-slot:append-inner>
+                      <v-btn
+                        color="primary"
+                        variant="outlined"
+                        @click="orderBooks(book.id, book.amount)"
+                        >Заказать
+                      </v-btn>
+                    </template>
+                  </v-text-field>
+                </v-col>
+              </v-row>
+            </v-card-text>
+          </v-card>
+        </v-list-item>
+      </v-list>
+    </v-navigation-drawer>
+
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold">Заказ книг</span>
-          <span class="text-subtitle-2 text-medium-emphasis">Удобный и эффективный способ для заказа необходимых
-            книг</span>
+          <span class="text-subtitle-2 text-medium-emphasis"
+            >Удобный и эффективный способ для заказа необходимых книг</span
+          >
         </div>
       </template>
 
       <template v-slot:append>
-        <v-btn variant="tonal" class="mr-3" prepend-icon="mdi-video-outline">Помощь</v-btn>
-        <v-btn variant="flat" color="primary" to="m-data/add" prepend-icon="mdi-plus">Добавить</v-btn>
+        <help-button></help-button>
+        <v-btn
+          class="ml-3"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="flat"
+          @click="drawer = true"
+          >Добавить
+        </v-btn>
       </template>
     </v-app-bar>
 
     <v-data-table :headers="headers" :items="items" :loading="loading">
+      <template v-slot:[`item.book`]="{ item }">
+        <div class="mt-3">{{ item.title }}</div>
+        <div>
+          <small class="text-medium-emphasis font-weight-bold">Год издания: 2018</small>
+        </div>
+        <div class="mb-1">
+          <v-chip
+            v-for="author in item.authors_main"
+            :key="author.id"
+            color="primary"
+            size="x-small"
+            variant="outlined"
+          >
+            {{ author.name }}
+          </v-chip>
+        </div>
+        <div class="mb-3">
+          <v-chip color="green" size="x-small" variant="flat">
+            Издатель: Oxford University Press
+          </v-chip>
+        </div>
+      </template>
+
       <template v-slot:[`item.ordered`]="{ item }">
-        <div class="pt-3">
-          <v-chip variant="outlined" color="primary">{{ item.amount }} экз.</v-chip>
+        <div>
+          <v-chip color="primary" size="small" variant="outlined">{{ item.amount }} экз.</v-chip>
+          <div class="font-weight-bold my-1">{{ item.fullname }}</div>
+          <div>Дата подачи: {{ item.date }}</div>
         </div>
-        <div class="py-1">
-          <strong>{{ item.fullname }}</strong>
+      </template>
+
+      <template v-slot:[`item.status`]>
+        <div>
+          <v-chip color="green" size="small" variant="flat">Принято в обработку</v-chip>
         </div>
-        <div class="pb-3">
-          <span>Дата подачи: {{ item.date }}</span>
+        <div class="mt-2">
+          <v-chip color="grey" size="small" variant="flat">Заявка: УО</v-chip>
         </div>
       </template>
 
       <template v-slot:[`item.actions`]>
-        <v-btn variant="flat" icon="mdi-pencil"></v-btn>
+        <v-btn icon="mdi-pencil" variant="flat"></v-btn>
       </template>
 
       <template v-slot:bottom></template>
     </v-data-table>
 
     <v-row class="mt-4">
-      <v-pagination class="ml-auto mr-2" :length="length" :total-visible="4" v-model="page" size="small" variant="flat"
-        active-color="primary"></v-pagination>
+      <v-pagination
+        v-model="page"
+        :length="length"
+        :total-visible="6"
+        active-color="primary"
+        class="ml-auto mr-2"
+        size="small"
+        variant="flat"
+      ></v-pagination>
     </v-row>
   </v-container>
 </template>

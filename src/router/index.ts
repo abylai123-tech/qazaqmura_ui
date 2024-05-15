@@ -14,6 +14,16 @@ import PurchaseViewVue from '@/views/PurchaseView.vue'
 import MDataAddViewVue from '@/views/MDataAddView.vue'
 import UserPageVue from '@/views/UserPage.vue'
 import ContractorAddView from '@/views/ContractorAddView.vue'
+import InventoryWriteOffView from '@/views/InventoryWriteOffView.vue'
+import ContestPage from '@/views/ContestPage.vue'
+import EntityView from '@/views/EntityView.vue'
+import OrganizationsListView from '@/views/OrganizationsListView.vue'
+import OrganizationApplies from '@/views/OrganizationApplies.vue'
+import OrganizationRequests from '@/views/OrganizationRequests.vue'
+import OrganizationPage from '@/views/OrganizationPage.vue'
+import MDataEditView from '@/views/MDataEditView.vue'
+import InventoryDeclineView from '@/views/InventoryDeclineView.vue'
+import ApplyView from '@/views/ApplyView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -40,6 +50,12 @@ const router = createRouter({
       path: '/m-data/add',
       name: 'm-data-add',
       component: MDataAddViewVue,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/m-data/edit/:id',
+      name: 'm-data-edit',
+      component: MDataEditView,
       meta: { requiresAuth: true }
     },
     {
@@ -79,9 +95,27 @@ const router = createRouter({
       meta: { requiresAuth: false }
     },
     {
+      path: '/apply',
+      name: 'applyView',
+      component: ApplyView,
+      meta: { requiresAuth: false }
+    },
+    {
       path: '/inventory',
       name: 'inventory',
       component: InventoryViewVue,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/inventory/write-off',
+      name: 'inventoryWriteOff',
+      component: InventoryWriteOffView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/inventory/decline',
+      name: 'inventoryDecline',
+      component: InventoryDeclineView,
       meta: { requiresAuth: true }
     },
     {
@@ -100,6 +134,156 @@ const router = createRouter({
       path: '/contractor/add',
       name: 'contractorAddPage',
       component: ContractorAddView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/contest',
+      name: 'contest',
+      component: ContestPage,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/publisher',
+      name: 'publisher',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/language',
+      name: 'language',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/bookState',
+      name: 'bookState',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/bbk',
+      name: 'bbk',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/udk',
+      name: 'udk',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/author',
+      name: 'author',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/categories',
+      name: 'categories',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/bookAdmission',
+      name: 'bookAdmission',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/genre',
+      name: 'genre',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/ageCharacteristic',
+      name: 'ageCharacteristic',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/binding',
+      name: 'binding',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/contentType',
+      name: 'contentType',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/copyrightSign',
+      name: 'copyrightSign',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/organizations',
+      name: 'organizationList',
+      component: OrganizationsListView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/organizations/:id',
+      name: 'organizationPage',
+      component: OrganizationPage,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/organizationTypes',
+      name: 'organizationTypes',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/organizationApplies',
+      name: 'organizationApplies',
+      component: OrganizationApplies,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/organizationRequests',
+      name: 'organizationRequests',
+      component: OrganizationRequests,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/userRoles',
+      name: 'userRoles',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/country',
+      name: 'country',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/educationLevel',
+      name: 'educationLevel',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/bookType',
+      name: 'bookType',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/tag',
+      name: 'tag',
+      component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/material',
+      name: 'material',
+      component: EntityView,
       meta: { requiresAuth: true }
     }
   ]

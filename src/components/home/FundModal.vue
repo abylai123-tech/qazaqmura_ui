@@ -1,36 +1,36 @@
-<script setup lang="ts">
-import { ref, type Ref } from 'vue';
-import { useAPI } from '@/api';
+<script lang="ts" setup>
+import { ref, type Ref } from 'vue'
+import { useAPI } from '@/api'
 
-const api = useAPI();
+const api = useAPI()
 
 interface BookState {
-  title: string,
-  amount: string,
-  books: number,
-};
+  title: string
+  amount: string
+  books: number
+}
 
 const fundHeaders = [
   { key: 'title', title: 'Название' },
-  { key: 'amount', title: 'Наименование книг' },
-  { key: 'books', title: 'Экземпляры книг' },
-  { key: 'actions', title: '' },
+  { key: 'books', title: 'Наименование книг' },
+  { key: 'amount', title: 'Экземпляры книг' },
+  { key: 'actions', title: '' }
 ]
 
 const fund: Ref<BookState[] | null> = ref(null)
 
-const fundLoading: Ref<boolean> = ref(false);
+const fundLoading: Ref<boolean> = ref(false)
 
 async function getBookState(): Promise<void> {
-  fundLoading.value = true;
+  fundLoading.value = true
   try {
-    const response = await api.fetchData<BookState[]>('https://test.api.qazaqmura.kz/v1/dashboard/book/state');
-    fund.value = response.data;
-    fundLoading.value = false;
+    const response = await api.fetchData<BookState[]>('/v1/dashboard/book/state')
+    fund.value = response.data
+    fundLoading.value = false
   } catch (error: any) {
-    console.error('Error:', error.message);
+    console.error('Error:', error.message)
   }
-};
+}
 
 getBookState()
 </script>
@@ -38,7 +38,7 @@ getBookState()
 <template>
   <v-dialog max-width="640">
     <template v-slot:activator="{ props: activatorProps }">
-      <v-btn v-bind="activatorProps" variant="flat" color="primary">Подробнее</v-btn>
+      <v-btn color="primary" v-bind="activatorProps" variant="flat">Подробнее</v-btn>
     </template>
 
     <template v-slot:default="{ isActive }">
@@ -46,13 +46,12 @@ getBookState()
         <v-card-title>
           <div class="d-flex justify-space-between">
             <strong class="my-auto">Состояние книг по фонду</strong>
-            <v-btn variant="text" icon="mdi-close" @click="isActive.value = false"></v-btn>
+            <v-btn icon="mdi-close" variant="text" @click="isActive.value = false"></v-btn>
           </div>
         </v-card-title>
 
         <v-card-text>
-          <v-data-table :headers="fundHeaders" :items="fund ? fund : []">
-          </v-data-table>
+          <v-data-table :headers="fundHeaders" :items="fund ? fund : []"></v-data-table>
         </v-card-text>
       </v-card>
     </template>

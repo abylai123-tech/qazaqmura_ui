@@ -7,10 +7,10 @@ const api = useAPI()
 
 const headers = [
   { title: 'Название книги', key: 'title' },
-  { title: 'Автор', key: 'author' },
   { title: 'Типы книг', key: 'bookType' },
-  { title: 'Год издания' },
-  { title: 'Цифры', key: 'count' }
+  { title: 'Школы' },
+  { title: 'Экз' },
+  { title: 'Дата' }
 ]
 
 interface Subscription {
@@ -35,7 +35,7 @@ const loading: Ref<boolean> = ref(false)
 async function getItems() {
   loading.value = true
   try {
-    let request = '/v1/book/apply/history'
+    let request = '/v1/dashboard/subscription-modal'
     if (subscriptionStatus.value) request += `?status=${subscriptionStatus.value}`
     if (subscriptionStatus.value && bookType.value) request += `&type_id=${bookType.value}`
     else if (!subscriptionStatus.value && bookType.value) request += `?type_id=${bookType.value}`

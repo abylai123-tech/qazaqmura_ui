@@ -20,9 +20,7 @@ const items: Ref<Age[]> = ref([])
 
 async function getAges() {
   try {
-    const response = await api.fetchData<Age[]>(
-      'https://test.api.qazaqmura.kz/v1/dashboard/user/age/full'
-    )
+    const response = await api.fetchData<Age[]>('/v1/dashboard/user/age/full')
     if (response.data) {
       items.value = response.data
     }

@@ -1,6 +1,9 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
 import { ref, type Ref, watch } from 'vue'
+import HelpButton from '@/components/HelpButton.vue'
+import { useAuth } from '@/auth'
+import fileDownload from 'js-file-download'
 
 interface Contractor {
   id: number
@@ -32,11 +35,12 @@ const items: Ref<Contractor[]> = ref([])
 const search: Ref<string | null> = ref(null)
 const drawer: Ref<boolean> = ref(false)
 const api = useAPI()
+const auth = useAuth()
 
 async function getContractors() {
   loading.value = true
   try {
-    let request = `https://test.api.qazaqmura.kz/v1/contractor?page=${page.value}`
+    let request = `/v1/contractor?page=${page.value}`
     if (search.value) {
       request += `&search=${search.value}`
     }
@@ -62,17 +66,19 @@ async function createContractor() {
   if (newItem.value.company_ID.length > 0) requestObject.company_ID = newItem.value.company_ID
 
   try {
-    const response = await api.postData(
-      'https://test.api.qazaqmura.kz/v1/contractor',
-      requestObject
-    )
-    console.log(response)
+    await api.postData('/v1/contractor', requestObject)
+
     await getContractors()
     drawer.value = false
     newItem.value = { title: '', company_ID: '', address: '' }
   } catch (e) {
     console.error('Error:', e)
   }
+}
+
+const downloadList = async () => {
+  const response = await api.postData(`/v1/book/school/contractor/pdf`, null, true)
+  if (response.data) fileDownload(response.data, 'Список контрагентов.pdf')
 }
 
 getContractors()
@@ -129,8 +135,14 @@ watch(search, () => {
       </template>
 
       <template v-slot:append>
-        <v-btn class="mr-3" prepend-icon="mdi-video-outline" variant="tonal">Помощь</v-btn>
-        <v-btn color="primary" prepend-icon="mdi-plus" variant="flat" @click="drawer = true"
+        <v-btn class="mr-3" color="primary" variant="flat" @click="downloadList">Скачать</v-btn>
+        <help-button></help-button>
+        <v-btn
+          class="ml-3"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="flat"
+          @click="drawer = true"
           >Добавить
         </v-btn>
       </template>
@@ -184,8 +196,11 @@ watch(search, () => {
         <v-chip v-else color="secondary" variant="flat">Нет</v-chip>
       </template>
 
-      <template v-slot:[`item.actions`]="{}">
-        <div class="d-flex justify-center">
+      <template v-slot:[`item.actions`]="{ item }">
+        <div
+          v-if="!item.system || auth.user.value.roles.some((obj) => obj.id === 1)"
+          class="d-flex justify-center"
+        >
           <v-btn icon="mdi-pencil" variant="text"></v-btn>
           <v-btn color="error" icon="mdi-trash-can-outline" variant="text"></v-btn>
         </div>
@@ -197,7 +212,7 @@ watch(search, () => {
       <v-pagination
         v-model="page"
         :length="length"
-        :total-visible="4"
+        :total-visible="6"
         active-color="primary"
         class="ml-auto mr-2"
         size="small"
