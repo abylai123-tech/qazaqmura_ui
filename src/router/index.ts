@@ -24,6 +24,7 @@ import OrganizationPage from '@/views/OrganizationPage.vue'
 import MDataEditView from '@/views/MDataEditView.vue'
 import InventoryDeclineView from '@/views/InventoryDeclineView.vue'
 import ApplyView from '@/views/ApplyView.vue'
+import RegionsView from '@/views/RegionsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -284,6 +285,12 @@ const router = createRouter({
       path: '/material',
       name: 'material',
       component: EntityView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/regions',
+      name: 'regions',
+      component: RegionsView,
       meta: { requiresAuth: true }
     }
   ]

@@ -43,7 +43,7 @@ getAdmissions()
       <v-card>
         <v-card-title>
           <div class="d-flex justify-space-between">
-            <strong class="my-auto">Школьный фонд</strong>
+            <strong class="my-auto">Фонд библиотеки</strong>
             <v-btn icon="mdi-close" variant="text" @click="isActive.value = false"></v-btn>
           </div>
         </v-card-title>

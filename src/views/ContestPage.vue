@@ -1,6 +1,6 @@
-<script lang="ts" setup>
+<script setup>
 import router from '@/router'
-import { type Ref, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useAPI } from '@/api'
 import instruction from '@/assets/инструкция по загрузки материалов по.pdf'
 import konkurs_ru from '@/assets/konkurs_ru.pdf'
@@ -8,31 +8,28 @@ import konkurs_kz from '@/assets/konkurs_kz.pdf'
 
 const api = useAPI()
 
-interface Region {
-  id: number
-  parent_id: number | null
-  number: string
-  title: string
-}
-
-const parentRegions: Ref<Region[]> = ref([])
-const childrenRegions: Ref<Region[]> = ref([])
-const thirdRegions: Ref<Region[]> = ref([])
-const parentRegion: Ref<Region | null> = ref(null)
-const childRegion: Ref<Region | null> = ref(null)
-const thirdRegion: Ref<Region | null> = ref(null)
-const regionId: Ref<number | null> = ref(null)
-const regionTitle: Ref<string> = ref('')
+const parentRegions = ref([])
+const childrenRegions = ref([])
+const thirdRegions = ref([])
+const parentRegion = ref(null)
+const childRegion = ref(null)
+const thirdRegion = ref(null)
+const regionId = ref(null)
+const regionTitle = ref('')
+const name = ref('')
+const school = ref('')
+const driveLink = ref('')
+const videoLink = ref('')
 
 const goBack = () => {
   router.back()
 }
 
-const getRegions = async (parentId: number | null = null) => {
+const getRegions = async (parentId = null) => {
   try {
     let request = '/v1/region'
     if (parentId) request += `?parent_id=${parentId}`
-    const response = await api.fetchData<{ data: { items: Region[] } }>(request)
+    const response = await api.fetchData(request)
     if (response.data) {
       if (parentRegion.value && childRegion.value) thirdRegions.value = response.data.data.items
       else if (parentRegion.value) childrenRegions.value = response.data.data.items
@@ -43,7 +40,7 @@ const getRegions = async (parentId: number | null = null) => {
   }
 }
 
-const chooseRegion = (isActive: Ref<boolean>) => {
+const chooseRegion = (isActive) => {
   if (parentRegion.value && childRegion.value && thirdRegion.value) {
     regionId.value = thirdRegion.value.id
     regionTitle.value = `${parentRegion.value.title} / ${childRegion.value.title} / ${thirdRegion.value.title}`
@@ -84,10 +81,28 @@ const downloadInstruction = () => {
   document.body.removeChild(link)
 }
 
+const alert = ref(false)
+const alertText = ref('')
+const alertError = ref(false)
+
+const sendContest = async () => {
+  const body = {
+    content: `ФИО: ${name.value} \nШкола: ${school.value}\nРегион: ${regionTitle.value}\nСсылка на Google Диск: ${driveLink.value}\nСсылка на видел:${videoLink.value}`
+  }
+  const response = await api.postData('/v1/mail/send', body)
+  console.log(response)
+}
+
 getRegions()
 </script>
 
 <template>
+  <v-snackbar
+    v-model="alert"
+    :color="alertError ? 'red' : 'blue'"
+    :text="alertText"
+    :timeout="5000"
+  ></v-snackbar>
   <v-container fluid>
     <v-app-bar>
       <template v-slot:title>
@@ -144,11 +159,13 @@ getRegions()
           <v-card-text>
             <v-form>
               <v-text-field
+                v-model="name"
                 label="ФИО"
                 placeholder="Напишите ФИО"
                 variant="outlined"
               ></v-text-field>
               <v-text-field
+                v-model="school"
                 label="Школа"
                 placeholder="Напишите название"
                 variant="outlined"
@@ -220,11 +237,13 @@ getRegions()
               </v-dialog>
 
               <v-text-field
+                v-model="driveLink"
                 label="Ссылка на Google Диск"
                 placeholder="Ссылка"
                 variant="outlined"
               ></v-text-field>
               <v-text-field
+                v-model="videoLink"
                 label="Ссылка на видео"
                 placeholder="Ссылка"
                 variant="outlined"
@@ -237,7 +256,7 @@ getRegions()
     </v-row>
     <v-row>
       <v-col cols="2" offset="8">
-        <v-btn block color="green" variant="flat">Отправить</v-btn>
+        <v-btn block color="green" variant="flat" @click="sendContest">Отправить</v-btn>
       </v-col>
     </v-row>
   </v-container>

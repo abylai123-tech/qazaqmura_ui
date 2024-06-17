@@ -45,9 +45,9 @@ const changeRequestStatus = async (status: number) => {
       })
       drawer.value = false
       if (status === 1) {
-        const path = response.data.path
-        link.href = BASE_URL + path
-        link.download = 'Заявка'
+        const link = document.createElement('a')
+        link.href = `${import.meta.env.VITE_APP_API}/storage${response.data.path}`
+        link.download = 'Заявка.pdf'
         link.target = '_blank'
 
         document.body.appendChild(link)
@@ -67,10 +67,10 @@ const getFile = async (id: number) => {
   if (id != null) {
     try {
       const response = await api.postData(`/v1/user/sign-up/pdf/${id}`, null)
-      const path = response.data.path.replace(/ /g, '%20')
+      const path = response.data.path
       const link = document.createElement('a')
-      link.setAttribute('href', '' + path)
-      link.setAttribute('download', 'Заявка')
+      link.setAttribute('href', import.meta.env.VITE_APP_API + '/storage' + path)
+      link.setAttribute('download', 'Заявка.pdf')
       link.setAttribute('target', '_blank')
       document.body.appendChild(link)
       link.click()

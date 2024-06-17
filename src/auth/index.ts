@@ -1,5 +1,4 @@
 import { onMounted, type Ref, ref } from 'vue'
-import axios from 'axios'
 import { useAPI } from '@/api'
 
 interface User {
@@ -105,27 +104,30 @@ export function useAuth() {
 
   async function login(form: { login: string; password: string; device: string }) {
     try {
-      const response = await api.postData('/v1/login', form)
-      token.value = { token: response.data.token, expiration: response.data.token_expired }
-      user.value = {
-        id: response.data.id,
-        email: response.data.email,
-        login: response.data.login,
-        status: response.data.status,
-        user_data: response.data.user_data,
-        roles: response.data.roles
-      }
-
-      if (!user.value.roles.some((item) => item.id === 8)) {
-        const config = { headers: { Authorization: `Bearer ${token.value.token}` } }
-
-        const data = await axios.get<Data>(`/v1/user/${user.value.id}`, config)
-        userData.value = data.data
-        localStorage.setItem('userData', JSON.stringify(userData.value))
+      const response = await api.postData<
+        { login: string; password: string; device: string },
+        User
+      >('/v1/login', form)
+      if (response.data) {
+        token.value = { token: response.data.token, expiration: response.data.token_expired }
+        user.value = {
+          id: response.data.id,
+          email: response.data.email,
+          login: response.data.login,
+          status: response.data.status,
+          user_data: response.data.user_data,
+          roles: response.data.roles
+        }
       }
 
       localStorage.setItem('token', JSON.stringify(token.value))
       localStorage.setItem('user', JSON.stringify(user.value))
+
+      if (!user.value.roles.some((item) => item.id === 8)) {
+        const data = await api.fetchData<Data>(`/v1/user/${user.value.id}`)
+        userData.value = data.data
+        localStorage.setItem('userData', JSON.stringify(userData.value))
+      }
 
       return true
     } catch (error) {

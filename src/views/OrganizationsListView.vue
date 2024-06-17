@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, watch } from 'vue'
+import { type Ref, ref, watch } from 'vue'
 import { useAPI } from '@/api'
 
 const api = useAPI()
@@ -15,22 +15,160 @@ const headers = [
   { title: '', sortable: false, key: 'actions' }
 ]
 
-const page = ref(1)
+interface OrganizationType {
+  id: number
+  label: string
+}
 
+const page = ref(1)
+const organizationDrawer = ref(false)
 const organizations = ref([])
 const length = ref(0)
-
+const search = ref('')
+const organizationTypes = ref<OrganizationType[]>([])
+const subscriptions = [
+  { id: 0, title: 'Тестовый' },
+  { id: 1, title: 'Договор' }
+]
+const subscriptionTypes = [
+  { id: 1, title: '1 месяц' },
+  { id: 2, title: '2 месяца' },
+  { id: 3, title: '3 месяца' },
+  { id: 4, title: '4 месяца' },
+  { id: 5, title: '5 месяца' },
+  { id: 6, title: '6 месяца' },
+  { id: 7, title: '7 месяцев' },
+  { id: 8, title: '8 месяцев' },
+  { id: 9, title: '9 месяцев' },
+  { id: 10, title: '10 месяцев' },
+  { id: 11, title: '11 месяцев' },
+  { id: 12, title: '12 месяцев' }
+]
 const getOrganizations = async () => {
-  const response = await api.fetchData(`/v1/school?page=${page.value}`)
+  let request = `/v1/school?page=${page.value}`
+  if (search.value.length > 0) {
+    request += `&search=${search.value}`
+  }
+  const response = await api.fetchData(request)
   if (response.data) {
     organizations.value = response.data.data.items
     length.value = response.data.meta.last_page
   }
 }
 
+const getOrganizationTypes = async () => {
+  const response = await api.fetchData<{ data: { items: OrganizationType[] } }>('/v1/organization')
+  if (response.data) {
+    organizationTypes.value = response.data.data.items
+  }
+}
+
+interface Region {
+  id: number
+  parent_id: number | null
+  number: string
+  title: string
+}
+
+const parentRegions: Ref<Region[]> = ref([])
+const childrenRegions: Ref<Region[]> = ref([])
+const thirdRegions: Ref<Region[]> = ref([])
+const parentRegion: Ref<Region | null> = ref(null)
+const childRegion: Ref<Region | null> = ref(null)
+const thirdRegion: Ref<Region | null> = ref(null)
+const regionId: Ref<number | null> = ref(null)
+const regionTitle: Ref<string> = ref('')
+
+const requestBody = ref({
+  name: '',
+  bin: '',
+  address: '',
+  zip_code: '',
+  region_id: null,
+  organization_id: null,
+  subscription: {
+    period: null,
+    type: null,
+    activated_at: null
+  }
+})
+
+const getRegions = async (parentId: number | null = null) => {
+  try {
+    let request = '/v1/region/open'
+    if (parentId) request += `?parent_id=${parentId}`
+    const response = await api.fetchData<{ data: { items: Region[] } }>(request)
+    if (response.data) {
+      if (parentRegion.value && childRegion.value) thirdRegions.value = response.data.data.items
+      else if (parentRegion.value) childrenRegions.value = response.data.data.items
+      else parentRegions.value = response.data.data.items
+    }
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+const chooseRegion = (isActive: Ref<boolean>) => {
+  if (parentRegion.value && childRegion.value && thirdRegion.value) {
+    requestBody.value.region_id = thirdRegion.value.id
+    regionTitle.value = `${parentRegion.value.title} / ${childRegion.value.title} / ${thirdRegion.value.title}`
+  } else if (parentRegion.value && childRegion.value) {
+    requestBody.value.region_id = childRegion.value.id
+    regionTitle.value = `${parentRegion.value.title} / ${childRegion.value.title}`
+  } else if (parentRegion.value) {
+    requestBody.value.region_id = parentRegion.value.id
+    regionTitle.value = `${parentRegion.value.title}`
+  }
+  isActive.value = false
+}
+
+function formatDate(dateToFormat: string) {
+  const parts = dateToFormat.split('-')
+  const year = parts[0]
+  const month = parts[1]
+  const day = parts[2]
+
+  return `${day}.${month}.${year}`
+}
+
+const createSchool = async () => {
+  requestBody.value.subscription.activated_at = formatDate(
+    requestBody.value.subscription.activated_at
+  )
+  await api.postData('/v1/school', requestBody.value)
+  requestBody.value = {
+    name: '',
+    bin: '',
+    address: '',
+    zip_code: '',
+    region_id: null,
+    organization_id: null,
+    subscription: {
+      period: null,
+      type: null,
+      activated_at: null
+    }
+  }
+  organizationDrawer.value = false
+}
+
+watch(parentRegion, async (value) => {
+  if (value) await getRegions(value.id)
+})
+
+watch(childRegion, async (value) => {
+  if (value) await getRegions(value.id)
+})
+
+getRegions()
 getOrganizations()
+getOrganizationTypes()
 
 watch(page, () => {
+  getOrganizations()
+})
+
+watch(search, () => {
   getOrganizations()
 })
 </script>
@@ -51,9 +189,131 @@ watch(page, () => {
         <v-btn variant="tonal">Регион</v-btn>
         <v-btn class="ml-3" variant="tonal">Тип</v-btn>
         <v-btn class="ml-3" variant="tonal">Классный руководитель</v-btn>
-        <v-btn class="ml-3" color="primary" prepend-icon="mdi-plus" variant="flat">Добавить</v-btn>
+        <v-btn
+          class="ml-3"
+          color="primary"
+          prepend-icon="mdi-plus"
+          variant="flat"
+          @click="organizationDrawer = true"
+          >Добавить
+        </v-btn>
       </template>
     </v-app-bar>
+
+    <v-navigation-drawer v-model="organizationDrawer" location="right" temporary width="700">
+      <v-list-item>
+        <span class="font-weight-bold">Добавить организацию</span>
+      </v-list-item>
+      <v-divider></v-divider>
+      <v-list-item class="my-2">
+        <span class="font-weight-bold">Основное</span>
+      </v-list-item>
+
+      <v-list-item>
+        <v-text-field
+          v-model="requestBody.name"
+          class="mt-1"
+          label="Название"
+          variant="outlined"
+        ></v-text-field>
+        <v-text-field v-model="requestBody.bin" label="БИН" variant="outlined"></v-text-field>
+        <v-textarea v-model="requestBody.address" label="Адрес" variant="outlined"></v-textarea>
+        <v-select
+          v-model="requestBody.organization_id"
+          :items="organizationTypes"
+          item-title="label"
+          item-value="id"
+          label="Тип организации"
+          variant="outlined"
+        ></v-select>
+        <v-text-field
+          v-model="requestBody.zip_code"
+          label="Почтовый индекс"
+          variant="outlined"
+        ></v-text-field>
+        <v-dialog width="700">
+          <template v-slot:activator="{ props }">
+            <v-text-field
+              v-model="regionTitle"
+              label="Город и регион"
+              placeholder="Выберите"
+              v-bind="props"
+              variant="outlined"
+            ></v-text-field>
+          </template>
+
+          <template v-slot:default="{ isActive }">
+            <v-card title="Выберите регион">
+              <v-card-text>
+                <v-select
+                  v-model="parentRegion"
+                  :items="parentRegions"
+                  item-value="id"
+                  label="Регион"
+                  placeholder="Выберите регион"
+                  return-object
+                  variant="outlined"
+                ></v-select>
+                <v-select
+                  v-if="childrenRegions.length > 0"
+                  v-model="childRegion"
+                  :items="childrenRegions"
+                  item-value="id"
+                  label="Регион"
+                  placeholder="Выберите регион"
+                  return-object
+                  variant="outlined"
+                ></v-select>
+                <v-select
+                  v-if="thirdRegions.length > 0"
+                  v-model="thirdRegion"
+                  :items="thirdRegions"
+                  item-value="id"
+                  label="Регион"
+                  placeholder="Выберите регион"
+                  return-object
+                  variant="outlined"
+                ></v-select>
+              </v-card-text>
+              <v-card-actions>
+                <div class="d-flex w-100 justify-space-between px-3 pb-3">
+                  <v-btn color="primary" variant="flat" @click="chooseRegion(isActive)"
+                    >Выбрать
+                  </v-btn>
+                  <v-btn variant="tonal" @click="isActive.value = false">Отмена</v-btn>
+                </div>
+              </v-card-actions>
+            </v-card>
+          </template>
+        </v-dialog>
+        <v-select
+          v-model="requestBody.subscription.period"
+          :items="subscriptionTypes"
+          item-value="id"
+          label="Подписка"
+          variant="outlined"
+        ></v-select>
+        <v-select
+          v-model="requestBody.subscription.type"
+          :items="subscriptions"
+          item-value="id"
+          label="Тип подписки"
+          variant="outlined"
+        ></v-select>
+        <v-text-field
+          v-model="requestBody.subscription.activated_at"
+          label="Дата подключения"
+          type="date"
+          variant="outlined"
+        ></v-text-field>
+      </v-list-item>
+
+      <v-list-item class="mt-2 mb-6 text-center">
+        <v-btn class="mr-10" variant="tonal" @click="organizationDrawer = false">Закрыть</v-btn>
+        <v-btn color="primary" variant="flat" @click="createSchool">Добавить</v-btn>
+      </v-list-item>
+    </v-navigation-drawer>
+
     <v-row>
       <v-col>
         <v-data-table :headers="headers" :items="organizations" :items-per-page="15">
@@ -61,6 +321,7 @@ watch(page, () => {
             <v-row>
               <v-col cols="4">
                 <v-text-field
+                  v-model="search"
                   class="rounded my-2 ml-2"
                   density="compact"
                   label="Поиск по БИН / Название"

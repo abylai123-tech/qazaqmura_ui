@@ -486,6 +486,7 @@ const guideItems = [
           append-icon="mdi-chevron-right"
           prepend-icon="mdi-bank"
           title="Регионы"
+          to="/regions"
         ></v-list-item>
         <v-list-group :value="28">
           <template v-slot:activator="{ props }">

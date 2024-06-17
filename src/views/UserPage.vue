@@ -320,6 +320,20 @@ const makeReturn = async () => {
   }
 }
 
+const downloadCard = async () => {
+  if (userInfo.value) {
+    const response = await api.postData(`/v1/user/sign-up/pdf/${userInfo.value.id}`)
+    if (response.data) {
+      const link = document.createElement('a')
+      link.href = `${import.meta.env.VITE_APP_API}/storage${response.data.path}`
+      link.target = '_blank'
+      link.download = 'Карточка доступа.pdf'
+      link.click()
+      document.body.removeChild(link)
+    }
+  }
+}
+
 getUser()
 getRoles()
 getRelatives()
@@ -681,7 +695,12 @@ getBookStates()
                       </div>
                     </v-col>
                     <v-col cols="6">
-                      <v-btn append-icon="mdi-chevron-right" color="primary" variant="text">
+                      <v-btn
+                        append-icon="mdi-chevron-right"
+                        color="primary"
+                        variant="text"
+                        @click="downloadCard"
+                      >
                         Скачать карточку доступа
                       </v-btn>
                     </v-col>

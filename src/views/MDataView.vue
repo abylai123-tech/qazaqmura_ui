@@ -490,6 +490,10 @@ const deleteItem = async (id: number, isActive: Ref<boolean>) => {
   isActive.value = false
 }
 
+const getImageURL = (url: string) => {
+  return import.meta.env.VITE_APP_API + '/storage/covers/' + url
+}
+
 getBooks()
 getAdmissions()
 getContractors()
@@ -969,7 +973,7 @@ watch(page, () => {
             <v-row>
               <v-col cols="2">
                 <v-img
-                  :src="item.book_cover ? `/storage/covers/${item.book_cover.value}` : nocover"
+                  :src="item.book_cover ? getImageURL(item.book_cover.value) : nocover"
                   class="rounded"
                   fluid
                 ></v-img>

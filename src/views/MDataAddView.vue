@@ -1,9 +1,10 @@
 <script lang="ts" setup>
-import { ref, type Ref } from 'vue'
+import { computed, ref, type Ref } from 'vue'
 import { useAPI } from '@/api'
 import HelpButton from '@/components/HelpButton.vue'
 import { useAuth } from '@/auth'
 import BkDialog from '@/components/bkDialog.vue'
+import { useRouter } from 'vue-router'
 
 const api = useAPI()
 
@@ -493,14 +494,22 @@ function setNewItem(
   newItem.value.active = true
 }
 
+const router = useRouter()
+
 async function sendBookData() {
   const body = removeNullOrEmptyFields(form.value)
   body.author_id_main = [body.author_id_main]
   if (body.materials) body.materials = [body.materials]
+  if (bbk.value) {
+    body.bbk_id = bbk.value[bbk.value.length - 1].id
+  }
+  if (udk.value) {
+    body.udk_id = udk.value[udk.value.length - 1].id
+  }
   try {
     const response = await api.postData<Form, { id: number }>('/v1/book', body)
+    const id = response.data.id
     if (response.data && showFundData.value) {
-      const id = response.data.id
       const admissionForm = { ...admission.value }
       admissionForm.book_id = id
       admissionForm.admission_at = formatDate(admission.value.admission_at)
@@ -508,10 +517,51 @@ async function sendBookData() {
         books: [admissionForm]
       })
     }
+    if (file.value) {
+      const coverUpload = new FormData()
+      coverUpload.append('cover', file.value)
+      coverUpload.append('book_id', id)
+      await api.postData('/v1/book/cover', coverUpload)
+    }
+    if (epub.value) {
+      const epubUpload = new FormData()
+      epubUpload.append('epub', epubFile.value)
+      epubUpload.append('book_id', id)
+      await api.postData('/v1/book/epub', epubUpload)
+    }
+    await router.push('/m-data')
   } catch (error: any) {
     console.error('Error:', error.message)
   }
 }
+
+const cover = ref<HTMLInputElement | null>(null)
+const epub = ref<HTMLInputElement | null>(null)
+const file = ref<File | null>(null)
+const epubFile = ref<File | null>(null)
+
+const handleUpload = () => {
+  cover.value?.click()
+}
+
+const handleEpub = () => {
+  epub.value?.click()
+}
+
+const handleEpubUpload = (event) => {
+  epubFile.value = event.target.files[0]
+}
+
+const handleFile = (event) => {
+  file.value = event.target.files[0]
+}
+
+const coverPreview = computed(() => {
+  if (file.value) {
+    return URL.createObjectURL(file.value)
+  }
+  return null
+})
 
 getAuthors()
 getPublishers()
@@ -1088,18 +1138,34 @@ getContentTypes()
 
               <v-row>
                 <v-col>
-                  <div class="d-flex">
+                  <div class="d-flex justify-space-between">
                     <div class="d-flex flex-column">
                       <span class="mb-2">Обложка</span>
-                      <v-btn color="primary" variant="outlined">Выбрать файл</v-btn>
+                      <v-img v-if="coverPreview" :src="coverPreview"></v-img>
+                      <v-btn color="primary" variant="outlined" @click="handleUpload"
+                        >Выбрать файл
+                      </v-btn>
+                      <input
+                        ref="cover"
+                        accept="image/png, image/jpg, image/jpeg"
+                        style="display: none"
+                        type="file"
+                        @input="handleFile"
+                      />
                       <small>до 5 MB в соотношении 70×100, формата png, jpg, jpeg</small>
                     </div>
-                    <div
-                      v-if="!auth.user.value && auth.user.value.roles.some((obj) => obj.id === 3)"
-                      class="d-flex flex-column ml-4"
-                    >
+                    <div class="d-flex flex-column ml-4">
                       <span class="mb-2">EPUB</span>
-                      <v-btn color="primary" variant="outlined">Выбрать файл</v-btn>
+                      <v-btn color="primary" variant="outlined" @click="handleEpub"
+                        >Выбрать файл
+                      </v-btn>
+                      <input
+                        ref="epub"
+                        accept=".epub"
+                        style="display: none"
+                        type="file"
+                        @input="handleEpubUpload"
+                      />
                     </div>
                   </div>
                 </v-col>

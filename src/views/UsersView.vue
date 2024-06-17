@@ -295,6 +295,8 @@ function formatDate(dateToFormat: string) {
   return `${day}.${month}.${year}`
 }
 
+const auth = useAuth()
+
 const createUser = async () => {
   try {
     const birthday = formatDate(requestBody.value.birthday)
@@ -313,11 +315,10 @@ const createUser = async () => {
 
     if (addContactPerson.value) request.relation = requestBody.value.relation
     if (regionId.value) request['region_id'] = regionId.value
+    if (organization.value) request['school_id'] = organization.value.id
 
     const response = await api.postData('/v1/user', request)
     if (response.data && addStructure.value) {
-      const auth = useAuth()
-
       classroom.value.pupil_id = response.data.id
       classroom.value.user_id = auth.user.value.id
 
@@ -350,6 +351,7 @@ const createUser = async () => {
         region_id: 0
       }
     }
+    createDrawer.value = false
   } catch (e) {
     console.error('Error:', e)
   }
@@ -403,6 +405,10 @@ const getClassroom = async (id: number) => {
   }
 }
 
+const role = computed(() => {
+  return auth.user.value?.roles
+})
+
 const downloadList = async (id?: number) => {
   let url = '/v1/user/user/pdf'
   if (id) url += `?role_id=${id}`
@@ -435,6 +441,25 @@ interface Region {
   parent_id: number | null
   number: string
   title: string
+}
+
+interface Organization {
+  id: number
+  label: string
+}
+
+const organization = ref<Organization | null>(null)
+const organizations = ref<Organization[]>([])
+
+const getOrganizations = async (search?: string) => {
+  let request = '/v1/school'
+  if (search) {
+    request += `?search=${search}`
+  }
+  const response = await api.fetchData<{ data: { items: Organization[] } }>(request)
+  if (response.data) {
+    organizations.value = response.data.data.items
+  }
 }
 
 const parentRegions: Ref<Region[]> = ref([])
@@ -470,6 +495,7 @@ watch(childRegion, async (value) => {
 
 getSchools()
 getRegions()
+getOrganizations()
 </script>
 
 <template>
@@ -539,6 +565,23 @@ getRegions()
             label="Роль"
             return-object
             variant="outlined"
+          ></v-autocomplete>
+          <v-autocomplete
+            v-if="
+              requestBody.role &&
+              requestBody.role.id === 3 &&
+              role &&
+              role.some((item) => {
+                return item.id === 1
+              })
+            "
+            v-model="organization"
+            :items="organizations"
+            item-title="name"
+            label="Организация"
+            return-object
+            variant="outlined"
+            @update:search="getOrganizations"
           ></v-autocomplete>
           <v-dialog v-if="requestBody.role && requestBody.role.id === 8" width="65vw">
             <template v-slot:activator="{ props }">

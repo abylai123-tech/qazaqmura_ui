@@ -470,12 +470,16 @@ const getRegions = async () => {
 const schools: Ref<any[]> = ref([])
 const schoolPage = ref(1)
 const schoolLength = ref(1)
-const schoolSearch = ref('')
-const getSchools = async (search: string | null = null) => {
+const schoolSearch = ref(null)
+const schoolSearchName = ref(null)
+const getSchools = async (search: string | null = null, name: string | null = null) => {
   try {
     let request = `/v1/school?page=${schoolPage.value}`
     if (search) {
       request += `&search=${search}`
+    }
+    if (name) {
+      request += `&name=${name}`
     }
     if (selectedThirdRegion.value) request += `&region_id=${selectedThirdRegion.value.id}`
     else if (selectedChildRegion.value) request += `&region_id=${selectedChildRegion.value.id}`
@@ -493,19 +497,15 @@ const getSchools = async (search: string | null = null) => {
 }
 
 watch(schoolPage, () => {
-  if (schoolSearch.value.length > 0) {
-    getSchools(schoolSearch.value)
-  } else {
-    getSchools()
-  }
+  getSchools(schoolSearch.value, schoolSearchName.value)
 })
 
 watch(schoolSearch, (value) => {
-  if (value.length > 0) {
-    getSchools(value)
-  } else {
-    getSchools()
-  }
+  getSchools(value, schoolSearchName.value)
+})
+
+watch(schoolSearchName, (value) => {
+  getSchools(schoolSearch.value, value)
 })
 
 const regionDetailsLoaded: Ref<boolean> = ref(false)
@@ -1956,6 +1956,14 @@ getInventory()
                       <v-text-field
                         v-model="schoolSearch"
                         label="Поиск по БИН"
+                        prepend-inner-icon="mdi-magnify"
+                        variant="outlined"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col>
+                      <v-text-field
+                        v-model="schoolSearchName"
+                        label="Поиск по названию"
                         prepend-inner-icon="mdi-magnify"
                         variant="outlined"
                       ></v-text-field>
