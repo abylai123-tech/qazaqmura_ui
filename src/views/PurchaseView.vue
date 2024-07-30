@@ -2,7 +2,8 @@
 import { useAPI } from '@/api'
 import { ref, type Ref } from 'vue'
 import HelpButton from '@/components/HelpButton.vue'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Item {
   id: number
   title: string
@@ -22,10 +23,10 @@ const books: Ref<any[]> = ref([])
 
 const headers = [
   { key: 'id', title: 'ID' },
-  { key: 'book', title: 'Книга' },
-  { key: 'ordered', title: 'Заказ' },
-  { key: 'status', title: 'Статус' },
-  { key: 'actions', title: 'Действия' }
+  { key: 'book', title: t('book') },
+  { key: 'ordered', title: t('order') },
+  { key: 'status', title: t('status') },
+  { key: 'actions', title: t('actions') }
 ]
 
 const drawer: Ref<boolean> = ref(false)
@@ -116,21 +117,21 @@ getBooks()
                     <table class="w-100 pt-2">
                       <tr>
                         <td>
-                          <div class="font-weight-bold">Язык</div>
+                          <div class="font-weight-bold">{{t('language')}}</div>
                           <div>{{ book.language.title }}</div>
                         </td>
                         <td>
-                          <div class="font-weight-bold">Год издания</div>
+                          <div class="font-weight-bold">{{t('year_of_publication')}}</div>
                           <div>{{ book.year }}</div>
                         </td>
                       </tr>
                       <tr>
                         <td class="pt-2">
-                          <div class="font-weight-bold">Издатель</div>
+                          <div class="font-weight-bold">{{t('publisher')}}</div>
                           <div>{{ book.publisher.title }}</div>
                         </td>
                         <td class="pt-2">
-                          <div class="font-weight-bold">Тип</div>
+                          <div class="font-weight-bold">{{t('type')}}</div>
                           <div>{{ book.type.title }}</div>
                         </td>
                       </tr>
@@ -170,9 +171,9 @@ getBooks()
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">Заказ книг</span>
+          <span class="text-h6 font-weight-bold">{{t('book_order')}}</span>
           <span class="text-subtitle-2 text-medium-emphasis"
-            >Удобный и эффективный способ для заказа необходимых книг</span
+            >{{t('convenient_and_effective_way_to_order_books')}}</span
           >
         </div>
       </template>
@@ -185,7 +186,7 @@ getBooks()
           prepend-icon="mdi-plus"
           variant="flat"
           @click="drawer = true"
-          >Добавить
+          >{{t('add')}}
         </v-btn>
       </template>
     </v-app-bar>
@@ -194,7 +195,7 @@ getBooks()
       <template v-slot:[`item.book`]="{ item }">
         <div class="mt-3">{{ item.title }}</div>
         <div>
-          <small class="text-medium-emphasis font-weight-bold">Год издания: 2018</small>
+          <small class="text-medium-emphasis font-weight-bold">{{t('year_of_publication')}}: 2018</small>
         </div>
         <div class="mb-1">
           <v-chip
@@ -209,7 +210,7 @@ getBooks()
         </div>
         <div class="mb-3">
           <v-chip color="green" size="x-small" variant="flat">
-            Издатель: Oxford University Press
+            {{t('publisher')}}: Oxford University Press
           </v-chip>
         </div>
       </template>

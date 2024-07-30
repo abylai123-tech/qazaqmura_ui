@@ -3,7 +3,8 @@ import logo from '@/assets/logo.svg'
 import { type Ref, ref, watch } from 'vue'
 import { useAPI } from '@/api'
 import complete from '@/assets/complete.svg'
-
+import { useI18n } from 'vue-i18n'
+const { t, locale } = useI18n()
 const step = ref(1)
 const api = useAPI()
 const organization = ref({
@@ -106,7 +107,7 @@ const getTitle = (key: string) => {
     case 'email':
       return 'Электронная почта'
     case 'ID':
-      return 'ИИН'
+      return t('iin')
     default:
       return ''
   }
@@ -393,7 +394,7 @@ getRegions()
                   ></v-text-field>
                   <v-text-field
                     v-model="responsiblePerson.phone"
-                    label="Номер телефона"
+                    :label="t('phone_number')"
                     placeholder="Напишите номер"
                     variant="outlined"
                     @input="formatPhoneNumber('responsiblePerson')"
@@ -431,13 +432,12 @@ getRegions()
                   ></v-text-field>
                   <v-text-field
                     v-model="library.ID"
-                    label="ИИН"
-                    placeholder="Напишите ИИН"
+                    :label="t('iin')"
                     variant="outlined"
                   ></v-text-field>
                   <v-text-field
                     v-model="library.phone"
-                    label="Номер телефона"
+                    :label="t('phone_number')"
                     placeholder="Напишите номер"
                     variant="outlined"
                     @input="formatPhoneNumber('library')"
@@ -502,7 +502,7 @@ getRegions()
                     >Следующий
                   </v-btn>
                   <v-btn v-else-if="step === 4" class="ml-auto" color="primary" @click="sendApply"
-                    >Отправить
+                    >{{t('send')}}
                   </v-btn>
                   <v-btn v-else class="mx-auto" color="primary" @click="goToMain"
                     >На главную

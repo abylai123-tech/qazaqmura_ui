@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { ref, type Ref } from 'vue'
 import { useAPI } from '@/api'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 
 interface BookState {
@@ -11,9 +12,9 @@ interface BookState {
 }
 
 const fundHeaders = [
-  { key: 'title', title: 'Название' },
-  { key: 'books', title: 'Наименование книг' },
-  { key: 'amount', title: 'Экземпляры книг' },
+  { key: 'title', title: t('name') },
+  { key: 'books', title: t('book_titles') },
+  { key: 'amount', title: t('book_copies') },
   { key: 'actions', title: '' }
 ]
 
@@ -38,7 +39,7 @@ getBookState()
 <template>
   <v-dialog max-width="640">
     <template v-slot:activator="{ props: activatorProps }">
-      <v-btn color="primary" v-bind="activatorProps" variant="flat">Подробнее</v-btn>
+      <v-btn color="primary" v-bind="activatorProps" variant="flat">{{ t('details') }}</v-btn>
     </template>
 
     <template v-slot:default="{ isActive }">

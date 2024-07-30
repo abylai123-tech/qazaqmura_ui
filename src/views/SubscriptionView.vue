@@ -1,22 +1,24 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const headers = [
   { title: 'ID', key: 'id' },
   { title: 'ФИО', key: 'name' },
   { title: 'Посещение', key: 'data' },
   { title: 'Читательский зал', key: 'role' },
-  { title: 'Статус', key: 'status' },
+  { title: t('status'), key: 'status' },
   { title: '', key: 'actions', sortable: false }
 ]
 
 const items = [
-  { id: 1, name: 'Фамилия Имя', data: '', role: '-', status: 'Активен' },
-  { id: 2, name: 'Фамилия Имя', data: '', role: '-', status: 'Активен' },
-  { id: 3, name: 'Фамилия Имя', data: '', role: '-', status: 'Активен' },
-  { id: 4, name: 'Фамилия Имя', data: '', role: '-', status: 'Активен' },
-  { id: 5, name: 'Фамилия Имя', data: '', role: '-', status: 'Активен' },
-  { id: 6, name: 'Фамилия Имя', data: '', role: '-', status: 'Активен' },
-  { id: 7, name: 'Фамилия Имя', data: '', role: '-', status: 'Активен' },
-  { id: 8, name: 'Фамилия Имя', data: '', role: '-', status: 'Активен' }
+  { id: 1, name: 'Фамилия Имя', data: '', role: '-', status: t('active') },
+  { id: 2, name: 'Фамилия Имя', data: '', role: '-', status: t('active') },
+  { id: 3, name: 'Фамилия Имя', data: '', role: '-', status: t('active') },
+  { id: 4, name: 'Фамилия Имя', data: '', role: '-', status: t('active') },
+  { id: 5, name: 'Фамилия Имя', data: '', role: '-', status: t('active') },
+  { id: 6, name: 'Фамилия Имя', data: '', role: '-', status: t('active') },
+  { id: 7, name: 'Фамилия Имя', data: '', role: '-', status: t('active') },
+  { id: 8, name: 'Фамилия Имя', data: '', role: '-', status: t('active') }
 ]
 </script>
 
@@ -25,17 +27,16 @@ const items = [
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">Абонемент MURA</span>
-          <span class="text-subtitle-2 text-medium-emphasis">Онлайн читательский билет класса, запись и регистрация
-            читателей, выдача</span>
+          <span class="text-h6 font-weight-bold">{{t('subscription')}} MURA</span>
+          <span class="text-subtitle-2 text-medium-emphasis">{{t('online_library_card_registration')}}</span>
         </div>
       </template>
 
       <template v-slot:append>
         <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">Класс</v-btn>
-        <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">Тип</v-btn>
-        <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">Классный руководитель</v-btn>
-        <v-btn variant="flat" color="primary" prepend-icon="mdi-plus">Добавить</v-btn>
+        <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">{{t('type')}}</v-btn>
+        <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">{{t('class_teacher')}}</v-btn>
+        <v-btn variant="flat" color="primary" prepend-icon="mdi-plus">{{t('add')}}</v-btn>
       </template>
     </v-app-bar>
 
@@ -51,13 +52,13 @@ const items = [
       </template>
 
       <template v-slot:[`item.status`]="{ item }">
-        <v-chip v-if="item.status" color="green" variant="flat">Активен</v-chip>
+        <v-chip v-if="item.status" color="green" variant="flat">t('active')</v-chip>
         <v-chip v-else color="error" variant="flat">Не активен</v-chip>
       </template>
 
       <template v-slot:[`item.actions`]="{ }">
         <div class="d-flex justify-center">
-          <v-btn variant="outlined" append-icon="mdi-arrow-right">Перейти</v-btn>
+          <v-btn variant="outlined" append-icon="mdi-arrow-right">{{t('go_to')}}</v-btn>
         </div>
       </template>
 

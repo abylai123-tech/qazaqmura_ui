@@ -5,7 +5,8 @@ import { useRoute } from 'vue-router'
 import HelpButton from '@/components/HelpButton.vue'
 import returned from '@/assets/return.svg'
 import fileDownload from 'js-file-download'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 const route = useRoute()
 
@@ -53,9 +54,9 @@ const changePassword = async (isActive: Ref<boolean>) => {
 
 const headers = [
   { key: 'id', title: 'ID' },
-  { key: 'name', title: 'Книга' },
-  { key: 'activity', title: 'Активность' },
-  { key: 'actions', title: 'Действия' }
+  { key: 'name', title: t('book') },
+  { key: 'activity', title: t('activity') },
+  { key: 'actions', title: t('actions') }
 ]
 
 const items = [
@@ -347,7 +348,7 @@ getBookStates()
   <v-container fluid>
     <v-navigation-drawer v-model="requestDrawer" location="right" temporary width="600">
       <v-list-item>
-        <span class="font-weight-bold">Выдача книги</span>
+        <span class="font-weight-bold">{{t('issue_of_book')}}</span>
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item>
@@ -356,7 +357,7 @@ getBookStates()
           :items="inventory"
           class="mt-4"
           item-title="book.title"
-          label="Книга"
+          :label="t('book')"
           return-object
           variant="outlined"
         ></v-autocomplete>
@@ -377,7 +378,7 @@ getBookStates()
         <v-text-field
           v-model="returnDate"
           class="mt-4"
-          label="Дата возврата"
+          :label="t('return_date')"
           type="date"
           variant="outlined"
         ></v-text-field>
@@ -389,7 +390,7 @@ getBookStates()
           color="primary"
           variant="text"
           @click="showAdditionalData = !showAdditionalData"
-          >Расширенные данные
+          >{{t('extended_data')}}
         </v-btn>
       </v-list-item>
       <v-list-item v-if="showAdditionalData">
@@ -420,7 +421,7 @@ getBookStates()
         ></v-text-field>
       </v-list-item>
       <v-list-item class="mt-3">
-        <v-btn class="mr-3" variant="tonal" @click="requestDrawer = false">Закрыть</v-btn>
+        <v-btn class="mr-3" variant="tonal" @click="requestDrawer = false">{{t('close')}}</v-btn>
         <v-btn color="primary" variant="flat" @click="createRequest">Выдача</v-btn>
       </v-list-item>
     </v-navigation-drawer>
@@ -438,7 +439,7 @@ getBookStates()
               :items="bookStates"
               class="mt-4"
               item-value="id"
-              label="Состояние книги"
+              :label="t('book_condition')"
               variant="outlined"
             ></v-select>
           </v-col>
@@ -463,7 +464,7 @@ getBookStates()
       <v-list-item>
         <v-text-field
           class="mt-4"
-          label="Дата возврата"
+          :label="t('return_date')"
           type="date"
           variant="outlined"
         ></v-text-field>
@@ -487,7 +488,7 @@ getBookStates()
         ></v-textarea>
       </v-list-item>
       <v-list-item>
-        <v-btn variant="tonal" @click="returnDrawer = false">Закрыть</v-btn>
+        <v-btn variant="tonal" @click="returnDrawer = false">{{t('close')}}</v-btn>
         <v-btn class="ml-2" color="primary" variant="flat" @click="makeReturn">Возврат</v-btn>
       </v-list-item>
     </v-navigation-drawer>
@@ -498,14 +499,14 @@ getBookStates()
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item class="my-2">
-        <span class="font-weight-bold">Основное</span>
+        <span class="font-weight-bold">{{t('basic')}}</span>
       </v-list-item>
 
       <v-list-item>
         <v-form v-if="userInfo" class="mt-4">
           <v-text-field
             v-model="userInfo.user_data.document_ID"
-            label="ИИН (необязательно)"
+            :label="t('iin')"
             variant="outlined"
           ></v-text-field>
           <v-text-field
@@ -529,7 +530,7 @@ getBookStates()
             :items="roles"
             item-title="label"
             item-value="id"
-            label="Роль"
+            :label="t('role')"
             return-object
             variant="outlined"
           ></v-autocomplete>
@@ -540,7 +541,7 @@ getBookStates()
         <v-btn
           :append-icon="showAdditionalData2 ? 'mdi-minus' : 'mdi-plus'"
           color="primary"
-          text="Расширенные данные"
+          :text="t('extended_data')"
           variant="text"
           @click="showAdditionalData2 = !showAdditionalData2"
         ></v-btn>
@@ -550,13 +551,13 @@ getBookStates()
         <div class="d-flex mt-4 align-center">
           <v-text-field
             v-model="userInfo.user_data.birthday"
-            label="Дата рождения"
+            :label="t('date_of_birth')"
             type="date"
             variant="outlined"
           ></v-text-field>
           <v-radio-group v-model="userInfo.user_data.sex" class="ml-4" color="primary" inline>
-            <v-radio :value="1" label="Мужчина"></v-radio>
-            <v-radio :value="2" label="Женщина"></v-radio>
+            <v-radio :value="1" :label="t('male')"></v-radio>
+            <v-radio :value="2" :label="t('female')"></v-radio>
           </v-radio-group>
         </div>
         <div class="d-flex mt-4 align-center">
@@ -564,7 +565,7 @@ getBookStates()
           <v-text-field
             v-model="userInfo.user_data.phone"
             class="ml-4"
-            label="Номер телефона"
+            :label="t('phone_number')"
             variant="outlined"
             @input="formatPhoneNumber"
           ></v-text-field>
@@ -574,7 +575,7 @@ getBookStates()
           color="primary"
           label="Добавить контактное лицо"
         ></v-switch>
-        <v-switch v-model="addStructure" color="primary" label="Структура"></v-switch>
+        <v-switch v-model="addStructure" color="primary" :label="t('structure')"></v-switch>
       </v-list-item>
 
       <v-list-item v-if="addContactPerson">
@@ -582,7 +583,7 @@ getBookStates()
         <v-text-field label="Имя" variant="outlined"></v-text-field>
         <v-text-field label="Фамилия" variant="outlined"></v-text-field>
         <div class="d-flex">
-          <v-text-field label="Номер телефона" type="tel" variant="outlined"></v-text-field>
+          <v-text-field :label="t('phone_number')" type="tel" variant="outlined"></v-text-field>
           <v-autocomplete
             :items="userRelative"
             class="ml-4"
@@ -595,7 +596,7 @@ getBookStates()
       </v-list-item>
 
       <v-list-item v-if="addStructure">
-        <div class="font-weight-bold">Структура</div>
+        <div class="font-weight-bold">{{t('structure')}}</div>
         <div class="d-flex">
           <v-text-field label="Цифра класса" variant="outlined"></v-text-field>
           <v-text-field class="ml-4" label="Буква класса" variant="outlined"></v-text-field>
@@ -603,8 +604,8 @@ getBookStates()
       </v-list-item>
 
       <v-list-item class="mt-2 mb-6 text-center">
-        <v-btn class="mr-10" variant="tonal" @click="editDrawer = false">Закрыть</v-btn>
-        <v-btn color="primary" variant="flat" @click="sendUpdate">Добавить</v-btn>
+        <v-btn class="mr-10" variant="tonal" @click="editDrawer = false">{{t('close')}}</v-btn>
+        <v-btn color="primary" variant="flat" @click="sendUpdate">{{t('add')}}</v-btn>
       </v-list-item>
     </v-navigation-drawer>
     <v-app-bar>
@@ -614,7 +615,7 @@ getBookStates()
       <v-spacer></v-spacer>
       <v-btn class="mr-3" variant="tonal" @click="downloadFile">Скачать формуляр</v-btn>
       <v-btn class="mr-3" color="primary" variant="flat" @click="requestDrawer = true"
-        >Выдать книгу
+        >{{t('issue_book')}}
       </v-btn>
       <help-button></help-button>
     </v-app-bar>
@@ -631,7 +632,7 @@ getBookStates()
                     {{ userInfo?.user_data.fathername }}
                   </div>
                   <div>
-                    <strong>ИИН:</strong>
+                    <strong>{{t('iin')}}:</strong>
                     {{ showDocument ? userInfo?.user_data.document_ID : documentHidden }}
                     <v-icon
                       :icon="showDocument ? 'mdi-eye-off-outline' : 'mdi-eye-outline'"
@@ -639,40 +640,40 @@ getBookStates()
                     ></v-icon>
                   </div>
                   <div>
-                    <v-chip color="green" variant="flat">Активен</v-chip>
+                    <v-chip color="green" variant="flat">{{t('active')}}</v-chip>
                   </div>
-                  <div class="mt-4">Выдано: 1</div>
-                  <div>Возвращено: 1</div>
+                  <div class="mt-4">{{t('issued')}}: 1</div>
+                  <div>{{t('returned')}}: 1</div>
                 </v-col>
                 <v-divider vertical></v-divider>
                 <v-col cols="9">
                   <div>
-                    Учреждение:
+                    {{t('institution')}}:
                     <strong>{{ userInfo?.school?.name }}</strong>
                   </div>
                   <v-divider class="my-2"></v-divider>
                   <v-row>
                     <v-col cols="3">
                       <div>
-                        Дата рождения:<br />
+                        {{t('date_of_birth')}}:<br />
                         <strong>{{ userInfo?.user_data.birthday }}</strong>
                       </div>
                     </v-col>
                     <v-col cols="3">
                       <div>
-                        Почта:<br />
+                        {{t('mail')}}:<br />
                         <strong>{{ userInfo?.email }}</strong>
                       </div>
                     </v-col>
                     <v-col cols="3">
                       <div>
-                        Номер телефона:<br />
+                        {{t('phone_number')}}:<br />
                         <strong>{{ userInfo?.user_data.phone }}</strong>
                       </div>
                     </v-col>
                     <v-col cols="3">
                       <div>
-                        Пол:<br />
+                        {{t('gender')}}:<br />
                         <strong v-if="userInfo?.user_data.sex && userInfo?.user_data.sex === 1"
                           >Мужской</strong
                         >
@@ -684,7 +685,7 @@ getBookStates()
                   <v-row>
                     <v-col cols="3">
                       <div>
-                        Роль:<br />
+                        {{t('role')}}:<br />
                         <strong>{{ userInfo?.roles.map((obj) => obj.label).join(', ') }}</strong>
                       </div>
                     </v-col>
@@ -701,7 +702,7 @@ getBookStates()
                         variant="text"
                         @click="downloadCard"
                       >
-                        Скачать карточку доступа
+                        {{t('download_access_card')}}
                       </v-btn>
                     </v-col>
                   </v-row>
@@ -711,7 +712,7 @@ getBookStates()
                       <v-dialog max-width="500">
                         <template v-slot:activator="{ props }">
                           <v-btn append-icon="mdi-arrow-right" v-bind="props" variant="outlined"
-                            >Изменить пароль
+                            >{{t('change_password')}}
                           </v-btn>
                         </template>
 
@@ -719,7 +720,7 @@ getBookStates()
                           <v-card>
                             <v-card-title>
                               <div class="d-flex justify-space-between">
-                                <span class="font-weight-bold">Изменить пароль</span>
+                                <span class="font-weight-bold">{{t('change_password')}}</span>
                                 <v-btn
                                   icon="mdi-close"
                                   variant="text"
@@ -733,7 +734,7 @@ getBookStates()
                                 v-model="passwordForm.old_password"
                                 :append-inner-icon="show1 ? 'mdi-eye' : 'mdi-eye-off'"
                                 :type="show1 ? 'text' : 'password'"
-                                label="Старый пароль"
+                                :label="t('old_password')"
                                 variant="outlined"
                                 @click:append-inner="show1 = !show1"
                               ></v-text-field>
@@ -741,7 +742,7 @@ getBookStates()
                                 v-model="passwordForm.new_password"
                                 :append-inner-icon="show2 ? 'mdi-eye' : 'mdi-eye-off'"
                                 :type="show2 ? 'text' : 'password'"
-                                label="Новый пароль"
+                                :label="t('new_password')"
                                 variant="outlined"
                                 @click:append-inner="show2 = !show2"
                               ></v-text-field>
@@ -749,19 +750,19 @@ getBookStates()
                                 v-model="passwordForm.new_password_confirmation"
                                 :append-inner-icon="show3 ? 'mdi-eye' : 'mdi-eye-off'"
                                 :type="show3 ? 'text' : 'password'"
-                                label="Подтвердить пароль"
+                                :label="t('confirm_password')"
                                 variant="outlined"
                                 @click:append-inner="show3 = !show3"
                               ></v-text-field>
                             </v-card-text>
 
                             <v-card-actions class="pl-6 pb-4">
-                              <v-btn variant="tonal" @click="isActive.value = false">Закрыть</v-btn>
+                              <v-btn variant="tonal" @click="isActive.value = false">{{t('close')}}</v-btn>
                               <v-btn
                                 color="primary"
                                 variant="flat"
                                 @click="changePassword(isActive)"
-                                >Изменить
+                                >{{t('edit')}}
                               </v-btn>
                             </v-card-actions>
                           </v-card>
@@ -773,7 +774,7 @@ getBookStates()
                         append-icon="mdi-arrow-right"
                         variant="outlined"
                         @click="editDrawer = true"
-                        >Изменить данные
+                        >{{t('edit_data')}}
                       </v-btn>
                     </v-col>
                     <v-col cols="4">
@@ -784,14 +785,14 @@ getBookStates()
                             append-icon="mdi-arrow-right"
                             v-bind="props"
                             variant="outlined"
-                            >Отключить пользователя
+                            >{{t('disable_user')}}
                           </v-btn>
                           <v-btn
                             v-if="userInfo && !userInfo.status"
                             append-icon="mdi-arrow-right"
                             v-bind="props"
                             variant="outlined"
-                            >Активировать пользователя
+                            >{{t('activate_user')}}
                           </v-btn>
                         </template>
 
@@ -812,10 +813,10 @@ getBookStates()
                               <v-row>
                                 <v-col class="text-center" cols="12">
                                   <span v-if="userInfo && userInfo.status" class="font-weight-bold"
-                                    >Отключить пользователя</span
+                                    >{{t('disable_user')}}</span
                                   >
                                   <span v-if="userInfo && !userInfo.status" class="font-weight-bold"
-                                    >Активировать пользователя</span
+                                    >{{t('activate_user')}}</span
                                   >
                                 </v-col>
                               </v-row>
@@ -868,7 +869,7 @@ getBookStates()
         <v-data-table :headers="headers" :items="subscription">
           <template v-slot:[`item.name`]="{ item }">
             <div class="mt-2">{{ item.book.title }}</div>
-            <div class="text-medium-emphasis mt-2">Год издания: {{ item.book.year }}</div>
+            <div class="text-medium-emphasis mt-2">{{t('year_of_publication')}}: {{ item.book.year }}</div>
             <div class="my-2">
               <v-chip
                 v-for="author in item.book.book_author_main"
@@ -885,18 +886,18 @@ getBookStates()
                 color="green"
                 variant="flat"
               >
-                Издатель: {{ publisher.title }}
+                {{t('publisher')}}: {{ publisher.title }}
               </v-chip>
             </div>
           </template>
           <template v-slot:[`item.activity`]="{ item }">
             <div class="mb-2">
               <v-chip color="primary" variant="outlined"
-                >{{ item.status === 'return' ? 'Возвращено' : 'На выдаче' }}
+                >{{ item.status === 'return' ? t('returned') : 'На выдаче' }}
               </v-chip>
             </div>
-            <div>Дата выдачи: {{ item.created_at }}</div>
-            <div>Дата возврата: {{ item.return_date }}</div>
+            <div>{{t('issue_date')}}: {{ item.created_at }}</div>
+            <div>{{t('return_date')}}: {{ item.return_date }}</div>
             <div v-if="item.status == 'return'">Дата возврата в фонд: {{ item.returned_at }}</div>
           </template>
           <template v-slot:[`item.actions`]="{ item }">
@@ -939,10 +940,10 @@ getBookStates()
 
                     <v-card-actions class="pb-4">
                       <v-btn class="ml-4 mr-2" variant="tonal" @click="isActive.value = false"
-                        >Закрыть
+                        >{{t('close')}}
                       </v-btn>
                       <v-btn color="primary" variant="flat" @click="changeDate(item.id)"
-                        >Изменить
+                        >{{t('edit')}}
                       </v-btn>
                     </v-card-actions>
                   </v-card>

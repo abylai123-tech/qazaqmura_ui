@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, type Ref } from 'vue';
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Class {
   name: string,
   mark: number,
@@ -10,7 +11,7 @@ interface Class {
 const classesHeaders = [
   { key: 'name', title: 'Класс' },
   { key: 'mark', title: 'Маркировка' },
-  { key: 'amount', title: 'Количество' }
+  { key: 'amount', title: t('quantity') }
 ]
 
 const classes: Ref<Class[]> = ref([
@@ -27,19 +28,20 @@ const classes: Ref<Class[]> = ref([
   { name: '11 класс', mark: 5, amount: 100 },
   { name: '12 класс', mark: 5, amount: 150 },
 ])
+
 </script>
 
 <template>
   <v-dialog max-width="640">
     <template v-slot:activator="{ props: activatorProps }">
-      <v-btn v-bind="activatorProps" variant="flat" color="primary">Подробнее</v-btn>
+      <v-btn v-bind="activatorProps" variant="flat" color="primary">{{ t('details') }}</v-btn>
     </template>
 
     <template v-slot:default="{ isActive }">
       <v-card>
         <v-card-title>
           <div class="d-flex justify-space-between">
-            <strong class="my-auto">Классы по количеству читателей</strong>
+            <strong class="my-auto">{{ t('classes_by_number_of_readers') }}</strong>
             <v-btn variant="text" icon="mdi-close" @click="isActive.value = false"></v-btn>
           </div>
         </v-card-title>

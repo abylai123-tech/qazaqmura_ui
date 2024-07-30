@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
 import { onMounted, ref, type Ref, watch } from 'vue'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 
 interface Props {
@@ -44,7 +45,7 @@ interface Author {
 const languages: Ref<Item[]> = ref([])
 const authors: Ref<Author[]> = ref([])
 const publishers: Ref<Item[]> = ref([])
-const selectedBookType: Ref<{ id: number; title: string }> = ref({ id: 0, title: 'Тип книги' })
+const selectedBookType: Ref<{ id: number; title: string }> = ref({ id: 0, title: t('book_type') })
 
 const props = defineProps<Props>()
 
@@ -128,14 +129,14 @@ const resetFilters = () => {
     fundBooks: null,
     book_type_id: null
   }
-  selectedType.value = { id: 0, label: 'Тип пользователя', name: '' }
-  selectedBookType.value = { id: 0, title: 'Тип книги' }
+  selectedType.value = { id: 0, label: t('user_type'), name: '' }
+  selectedBookType.value = { id: 0, title: t('book_type') }
   updateValue()
   emit('search')
 }
 
 const teachers: Ref<{ id: number; user_data: { firstname: string; lastname: string } }[]> = ref([])
-const selectedType: Ref<{ id: number; label: string }> = ref({ id: 0, label: 'Тип пользователя' })
+const selectedType: Ref<{ id: number; label: string }> = ref({ id: 0, label: t('user_type') })
 
 async function getTeachers(search = null) {
   let request = '/v1/user?teacher=1&page=1'
@@ -226,7 +227,7 @@ if (props.inventory) {
               v-model="internalValue.search"
               density="compact"
               hide-details
-              placeholder="Поиск по названию"
+              :placeholder="t('search_by_title')"
               prepend-inner-icon="mdi-magnify"
               rounded
               variant="outlined"
@@ -271,8 +272,8 @@ if (props.inventory) {
             </v-text-field>
           </v-col>
           <v-col class="d-flex justify-space-around">
-            <v-btn color="primary" variant="flat" @click="startSearch">Искать</v-btn>
-            <v-btn variant="tonal" @click="resetFilters">Сбросить</v-btn>
+            <v-btn color="primary" variant="flat" @click="startSearch">{{t('search')}}</v-btn>
+            <v-btn variant="tonal" @click="resetFilters">{{t('reset')}}</v-btn>
           </v-col>
         </v-row>
         <v-row class="mb-2">
@@ -283,7 +284,7 @@ if (props.inventory) {
               clearable
               item-title="title"
               item-value="id"
-              label="Язык"
+              :label="t('language')"
               variant="solo-filled"
               @input="updateValue"
             ></v-autocomplete>
@@ -295,7 +296,7 @@ if (props.inventory) {
               clearable
               item-title="name"
               item-value="id"
-              label="Автор"
+              :label="t('author')"
               variant="solo-filled"
               @input="updateValue"
               @update:search="getAuthors"
@@ -308,7 +309,7 @@ if (props.inventory) {
               clearable
               item-title="title"
               item-value="id"
-              label="Издатель"
+              :label="t('publisher')"
               variant="solo-filled"
               @input="updateValue"
               @update:search="getPublishers"
@@ -318,7 +319,7 @@ if (props.inventory) {
             <v-text-field
               v-model="internalValue.year"
               clearable
-              label="Год издания"
+              :label="t('year_of_publication')"
               type="number"
               variant="solo-filled"
               @input="updateValue"
@@ -344,7 +345,7 @@ if (props.inventory) {
               clearable
               item-title="user_data.lastname"
               item-value="id"
-              label="Классный руководитель"
+              :label="t('class_teacher')"
               variant="solo-filled"
               @update:search="getTeachers"
             >
@@ -357,7 +358,7 @@ if (props.inventory) {
             <v-switch
               v-model="internalValue.epub"
               color="primary"
-              label="Электронная книга"
+              :label="t('ebook')"
               @input="updateValue"
             ></v-switch>
           </v-col>
@@ -365,21 +366,21 @@ if (props.inventory) {
             <v-switch
               v-model="internalValue.inventoryStatus"
               color="primary"
-              label="Списанные"
+              :label="t('written_off')"
             ></v-switch>
           </v-col>
           <v-col v-if="inventory" cols="3">
             <v-switch
               v-model="internalValue.fundBooks"
               color="primary"
-              label="Только книги фонда"
+              :label="t('only_fund_books')"
             ></v-switch>
           </v-col>
           <v-col v-if="users" cols="2">
             <v-switch
               v-model="internalValue.status"
               color="primary"
-              label="Не активные"
+              :label="t('inactive')"
               @input="updateValue"
             ></v-switch>
           </v-col>
@@ -387,7 +388,7 @@ if (props.inventory) {
             <v-switch
               v-model="internalValue.promiser"
               color="primary"
-              label="Должники"
+              :label="t('debtors')"
               @input="updateValue"
             ></v-switch>
           </v-col>

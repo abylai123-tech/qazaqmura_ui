@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const headers = [
   { title: 'ID', key: 'id' },
-  { title: 'Название', key: 'name' },
-  { title: 'Год издания', key: 'year' },
-  { title: 'Контрагент', key: 'contractor' },
-  { title: 'Дата поступления', key: 'date' },
-  { title: 'Цена', key: 'price' },
+  { title: t('name'), key: 'name' },
+  { title: t('year_of_publication'), key: 'year' },
+  { title: t('counterparty'), key: 'contractor' },
+  { title: t('reception_date'), key: 'date' },
+  { title: t('price'), key: 'price' },
   { title: 'Кол-во', key: 'amount' },
   { title: '', key: 'actions', sortable: false }
 ]
@@ -15,7 +17,7 @@ const items = [
     id: 1,
     name: 'Теккерей',
     year: '1997',
-    role: 'Название',
+    role: t('name'),
     date: '21.01.2023',
     price: '5999 KZT',
     amount: '11',
@@ -25,7 +27,7 @@ const items = [
     id: 2,
     name: 'Теккерей',
     year: '1997',
-    role: 'Название',
+    role: t('name'),
     date: '21.01.2023',
     price: '5999 KZT',
     amount: '11',
@@ -35,7 +37,7 @@ const items = [
     id: 3,
     name: 'Теккерей',
     year: '1997',
-    role: 'Название',
+    role: t('name'),
     date: '21.01.2023',
     price: '5999 KZT',
     amount: '11', status: false,
@@ -44,7 +46,7 @@ const items = [
     id: 4,
     name: 'Теккерей',
     year: '1997',
-    role: 'Название',
+    role: t('name'),
     date: '21.01.2023',
     price: '5999 KZT',
     amount: '11',
@@ -54,7 +56,7 @@ const items = [
     id: 5,
     name: 'Теккерей',
     year: '1997',
-    role: 'Название',
+    role: t('name'),
     date: '21.01.2023',
     price: '5999 KZT',
     amount: '11',
@@ -64,7 +66,7 @@ const items = [
     id: 6,
     name: 'Теккерей',
     year: '1997',
-    role: 'Название',
+    role: t('name'),
     date: '21.01.2023',
     price: '5999 KZT',
     amount: '11',
@@ -74,7 +76,7 @@ const items = [
     id: 7,
     name: 'Теккерей',
     year: '1997',
-    role: 'Название',
+    role: t('name'),
     date: '21.01.2023',
     price: '5999 KZT',
     amount: '11',
@@ -84,7 +86,7 @@ const items = [
     id: 8,
     name: 'Теккерей',
     year: '1997',
-    role: 'Название',
+    role: t('name'),
     date: '21.01.2023',
     price: '5999 KZT',
     amount: '11',
@@ -105,8 +107,8 @@ const items = [
 
       <template v-slot:append>
         <v-btn variant="tonal" class="mr-3">Отчет по издателям</v-btn>
-        <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">Генерация документов</v-btn>
-        <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">Скачать PDF</v-btn>
+        <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">{{t('document_generation')}}</v-btn>
+        <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">{{t('download_pdf')}}</v-btn>
         <v-btn variant="flat" color="primary">Выбрать дату</v-btn>
       </template>
     </v-app-bar>
@@ -123,7 +125,7 @@ const items = [
       </template>
 
       <template v-slot:[`item.status`]="{ item }">
-        <v-chip v-if="item.status" color="green" variant="flat">Активен</v-chip>
+        <v-chip v-if="item.status" color="green" variant="flat">{{t('active')}}</v-chip>
         <v-chip v-else color="error" variant="flat">Не активен</v-chip>
       </template>
 

@@ -3,7 +3,8 @@ import { ref, type Ref } from 'vue'
 import { useAPI } from '@/api'
 import HelpButton from '@/components/HelpButton.vue'
 import { useRoute } from 'vue-router'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 
 interface Form {
@@ -468,7 +469,7 @@ getItem()
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold">M-DATA</span>
           <span class="text-subtitle-2 text-medium-emphasis"
-            >База данных по РК (библиографических записей)</span
+            >{{t('database_by_rk')}}</span
           >
         </div>
       </template>
@@ -476,7 +477,7 @@ getItem()
       <template v-slot:append>
         <help-button class="mr-3" />
         <v-btn color="primary" prepend-icon="mdi-plus" to="/m-data/add" variant="flat"
-          >Добавить
+          >{{t('add')}}
         </v-btn>
       </template>
     </v-app-bar>
@@ -501,7 +502,7 @@ getItem()
                   <v-col>
                     <v-text-field
                       v-model="form.title"
-                      label="Название"
+                      :label="t('name')"
                       placeholder="Напишите название"
                       required
                       variant="outlined"
@@ -534,7 +535,7 @@ getItem()
                       v-model="item.language_id"
                       :items="languages"
                       item-value="id"
-                      label="Язык"
+                      :label="t('language')"
                       variant="outlined"
                     ></v-select>
                   </v-col>
@@ -584,7 +585,7 @@ getItem()
                   <v-col>
                     <v-text-field
                       v-model="form.year"
-                      label="Год издания"
+                      :label="t('year_of_publication')"
                       placeholder="Укажите"
                       prepend-inner-icon="mdi-magnify"
                       type="number"
@@ -624,7 +625,7 @@ getItem()
                       <div class="px-4 d-flex justify-space-between align-center">
                         <span>Данного автора нет в списке</span>
                         <v-btn color="primary" variant="flat" @click="setNewItem('author')"
-                          >Добавить
+                          >{{t('add')}}
                         </v-btn>
                       </div>
                     </template>
@@ -649,7 +650,7 @@ getItem()
                       <div class="px-4 d-flex justify-space-between align-center">
                         <span>Данного автора нет в списке</span>
                         <v-btn color="primary" variant="flat" @click="setNewItem('author')"
-                          >Добавить
+                          >{{t('add')}}
                         </v-btn>
                       </div>
                     </template>
@@ -732,7 +733,7 @@ getItem()
                     v-model="form.publisher_id"
                     :items="publishers"
                     item-value="id"
-                    label="Издатель"
+                    :label="t('publisher')"
                     placeholder="Укажите издателя"
                     prepend-inner-icon="mdi-magnify"
                     variant="outlined"
@@ -742,7 +743,7 @@ getItem()
                       <div class="px-4 d-flex justify-space-between align-center">
                         <span>Данного издателя нет в списке</span>
                         <v-btn color="primary" variant="flat" @click="setNewItem('publisher')"
-                          >Добавить
+                          >{{t('add')}}
                         </v-btn>
                       </div>
                     </template>
@@ -777,7 +778,7 @@ getItem()
                     v-model="form.type_id"
                     :items="types"
                     item-value="id"
-                    label="Тип"
+                    :label="t('type')"
                     placeholder="Поиск"
                     prepend-inner-icon="mdi-magnify"
                     variant="outlined"
@@ -791,7 +792,7 @@ getItem()
                     v-model="form.language_id"
                     :items="languages"
                     item-value="id"
-                    label="Язык"
+                    :label="t('language')"
                     multiple
                     placeholder="Поиск"
                     prepend-inner-icon="mdi-magnify"
@@ -841,7 +842,7 @@ getItem()
                       <div class="px-4 d-flex justify-space-between align-center">
                         <span>Данной рубрики нет в списке</span>
                         <v-btn color="primary" variant="flat" @click="setNewItem('subjectHeading')"
-                          >Добавить
+                          >{{t('add')}}
                         </v-btn>
                       </div>
                     </template>
@@ -938,7 +939,7 @@ getItem()
                       <div class="px-4 d-flex justify-space-between align-center">
                         <span>Данного жанра нет в списке</span>
                         <v-btn color="primary" variant="flat" @click="setNewItem('genre')"
-                          >Добавить
+                          >{{t('add')}}
                         </v-btn>
                       </div>
                     </template>
@@ -994,7 +995,7 @@ getItem()
                   <v-text-field
                     v-model="form.link.title"
                     label="Ссылка"
-                    placeholder="Название"
+                    :placeholder="t('name')"
                     variant="outlined"
                   ></v-text-field>
                 </v-col>
@@ -1049,7 +1050,7 @@ getItem()
               <v-text-field
                 v-if="newItem.itemType === 'contractor'"
                 v-model="newItem.address"
-                label="Адрес"
+                :label="t('address')"
                 variant="outlined"
               ></v-text-field>
             </v-form>
@@ -1059,7 +1060,7 @@ getItem()
             <v-btn variant="outlined" @click="isActive.value = false">Отмена</v-btn>
             <v-spacer></v-spacer>
             <v-btn color="primary" variant="flat" @click="addNewItem(newItem.itemType, isActive)"
-              >Добавить
+              >{{t('add')}}
             </v-btn>
           </v-card-actions>
         </v-card>

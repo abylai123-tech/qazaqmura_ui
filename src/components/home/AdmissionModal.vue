@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 
 async function getAdmissions() {
@@ -13,9 +14,9 @@ async function getAdmissions() {
 
 const headers = [
   { key: 'number', title: '№' },
-  { key: 'type', title: 'Тип книги' },
+  { key: 'type', title: t('book_type') },
   { key: 'name', title: 'Наименование' },
-  { key: 'exemplar', title: 'Экземпляр' }
+  { key: 'exemplar', title: t('copy') }
 ]
 
 const items = [
@@ -43,7 +44,7 @@ getAdmissions()
       <v-card>
         <v-card-title>
           <div class="d-flex justify-space-between">
-            <strong class="my-auto">Фонд библиотеки</strong>
+            <strong class="my-auto">{{t('library_fund')}}</strong>
             <v-btn icon="mdi-close" variant="text" @click="isActive.value = false"></v-btn>
           </div>
         </v-card-title>

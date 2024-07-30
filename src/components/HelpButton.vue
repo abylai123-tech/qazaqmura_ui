@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 import { computed } from 'vue'
 
 const aspectRatioHeight = computed(() => {
@@ -9,14 +11,14 @@ const aspectRatioHeight = computed(() => {
 <template>
   <v-dialog max-width="60vw">
     <template v-slot:activator="{ props }">
-      <v-btn prepend-icon="mdi-video-outline" v-bind="props" variant="tonal">Помощь</v-btn>
+      <v-btn prepend-icon="mdi-video-outline" v-bind="props" variant="tonal">{{t('help')}}</v-btn>
     </template>
 
     <template v-slot:default="{ isActive }">
       <v-card width="60vw">
         <v-card-title>
           <div class="d-flex justify-space-between">
-            <span>Помощь</span>
+            <span>{{t('help')}}</span>
             <v-btn icon="mdi-close" variant="flat" @click="isActive.value = false"></v-btn>
           </div>
         </v-card-title>

@@ -2,15 +2,16 @@
 import { useAPI } from '@/api'
 import type { Ref } from 'vue'
 import { ref, watch } from 'vue'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 
 const headers = [
-  { title: 'Название книги', key: 'title' },
-  { title: 'Автор', key: 'author' },
-  { title: 'Типы книг', key: 'bookType' },
-  { title: 'Год издания' },
-  { title: 'Цифры', key: 'count' }
+  { title: t('book_title'), key: 'title' },
+  { title: t('author'), key: 'author' },
+  { title: t('book_types'), key: 'bookType' },
+  { title: t('year_of_publication') },
+  { title: t('numbers'), key: 'count' }
 ]
 
 interface Subscription {
@@ -62,6 +63,8 @@ async function getTypes(search = null) {
   }
 }
 
+
+
 getItems()
 getTypes()
 
@@ -83,7 +86,7 @@ watch(bookType, () => {
           :items="bookTypes"
           clearable
           item-value="id"
-          label="Типы книг"
+          :label="t('book_types')"
           variant="outlined"
         ></v-autocomplete>
         <v-select
@@ -93,7 +96,7 @@ watch(bookType, () => {
             { title: 'Возврат', value: 2 }
           ]"
           clearable
-          label="Выдача и возврат"
+          :label="t('issue_return')"
           variant="outlined"
         >
         </v-select>

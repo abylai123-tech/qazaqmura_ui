@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { ref } from 'vue'
 import { useAPI } from '@/api'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Props {
   mode: 'bbk' | 'udk'
 }

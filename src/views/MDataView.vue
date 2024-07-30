@@ -4,7 +4,8 @@ import { ref, type Ref, watch } from 'vue'
 import nocover from '@/assets/no-book-cover.svg'
 import HelpButton from '@/components/HelpButton.vue'
 import { useAuth } from '@/auth'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 
 interface Book {
@@ -97,7 +98,7 @@ const languageId: Ref<number | null> = ref(null),
   languages: Ref<Publisher[]> = ref([]),
   authors: Ref<Author[]> = ref([]),
   publishers: Ref<Publisher[]> = ref([]),
-  selectedType: Ref<{ id: number; title: string }> = ref({ id: 0, title: 'Тип книги' }),
+  selectedType: Ref<{ id: number; title: string }> = ref({ id: 0, title: t('book_type') }),
   types: Ref<Publisher[]> = ref([]),
   genres: Ref<Publisher[]> = ref([]),
   ageCharacteristics: Ref<Author[]> = ref([]),
@@ -221,7 +222,7 @@ const downloadEPUB = (epub: { id: number; book_id: number; value: string }) => {
 
 function resetFilters() {
   search.value = null
-  selectedType.value = { id: 0, title: 'Тип книги' }
+  selectedType.value = { id: 0, title: t('book_type') }
   languageId.value = null
   authorId.value = null
   publisherId.value = null
@@ -494,6 +495,8 @@ const getImageURL = (url: string) => {
   return import.meta.env.VITE_APP_API + '/storage/covers/' + url
 }
 
+
+
 getBooks()
 getAdmissions()
 getContractors()
@@ -532,7 +535,7 @@ watch(page, () => {
             <v-text-field
               v-if="newItem.itemType === 'contractor'"
               v-model="newItem.address"
-              label="Адрес"
+              :label="t('address')"
               variant="outlined"
             ></v-text-field>
           </v-form>
@@ -542,7 +545,7 @@ watch(page, () => {
           <v-btn variant="outlined" @click="isActive.value = false">Отмена</v-btn>
           <v-spacer></v-spacer>
           <v-btn color="primary" variant="flat" @click="addNewItem(newItem.itemType, isActive)"
-            >Добавить
+            >{{t('add')}}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -555,7 +558,7 @@ watch(page, () => {
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold">M-DATA</span>
           <span class="text-subtitle-2 text-medium-emphasis"
-            >База данных по РК (библиографических записей)</span
+            >{{t('database_by_rk')}}</span
           >
         </div>
       </template>
@@ -573,25 +576,25 @@ watch(page, () => {
           v-model="local"
           class="my-auto mr-3"
           color="primary"
-          label="Показывать добавленные книги"
+          :label="t('show_added_books')"
         ></v-switch>
         <v-menu>
           <template v-slot:activator="{ props }">
             <v-btn append-icon="mdi-chevron-down" class="mr-6" v-bind="props" variant="tonal"
-              >Сортировка
+              >{{t('sorting')}}
             </v-btn>
           </template>
 
           <v-list>
-            <v-list-item @click="sorting = 'a-z'">Сортировать от А до Я</v-list-item>
-            <v-list-item @click="sorting = 'z-a'">Сортировать от Я до А</v-list-item>
-            <v-list-item @click="sorting = 'new'">Сортировать от старых к новым</v-list-item>
-            <v-list-item @click="sorting = 'old'">Сортировать от новых к старым</v-list-item>
+            <v-list-item @click="sorting = 'a-z'">{{t('sort_a_to_z')}}</v-list-item>
+            <v-list-item @click="sorting = 'z-a'">{{t('sort_z_to_a')}}</v-list-item>
+            <v-list-item @click="sorting = 'new'">{{t('sort_old_to_new')}}</v-list-item>
+            <v-list-item @click="sorting = 'old'">{{t('sort_new_to_old')}}</v-list-item>
           </v-list>
         </v-menu>
         <help-button />
         <v-btn class="ml-3" color="primary" prepend-icon="mdi-plus" to="m-data/add" variant="flat"
-          >Добавить
+          >{{t('add')}}
         </v-btn>
       </template>
     </v-app-bar>
@@ -653,7 +656,7 @@ watch(page, () => {
                         <v-container fluid>
                           <v-row>
                             <v-col>
-                              <div><strong>Издатель:</strong></div>
+                              <div><strong>{{t('publisher')}}:</strong></div>
                               <div>
                                 {{
                                   selectedItem.book_publisher
@@ -663,7 +666,7 @@ watch(page, () => {
                               </div>
                             </v-col>
                             <v-col>
-                              <div><strong>Год издания:</strong></div>
+                              <div><strong>{{t('year_of_publication')}}:</strong></div>
                               <div>{{ selectedItem.year }}</div>
                             </v-col>
                           </v-row>
@@ -679,7 +682,7 @@ watch(page, () => {
                               </div>
                             </v-col>
                             <v-col>
-                              <div><strong>Язык:</strong></div>
+                              <div><strong>{{t('language')}}:</strong></div>
                               <div>
                                 {{
                                   selectedItem.book_language
@@ -754,7 +757,7 @@ watch(page, () => {
                     v-model="search"
                     density="compact"
                     hide-details
-                    placeholder="Поиск по названию"
+                    :placeholder="t('search_by_title')"
                     prepend-inner-icon="mdi-magnify"
                     rounded
                     variant="outlined"
@@ -781,8 +784,8 @@ watch(page, () => {
                   </v-text-field>
                 </v-col>
                 <v-col class="d-flex justify-space-around">
-                  <v-btn color="primary" variant="flat" @click="getBooks">Искать</v-btn>
-                  <v-btn variant="tonal" @click="resetFilters">Сбросить</v-btn>
+                  <v-btn color="primary" variant="flat" @click="getBooks">{{t('search')}}</v-btn>
+                  <v-btn variant="tonal" @click="resetFilters">{{t('reset')}}</v-btn>
                 </v-col>
               </v-row>
               <v-row class="mb-2">
@@ -793,7 +796,7 @@ watch(page, () => {
                     clearable
                     item-title="title"
                     item-value="id"
-                    label="Язык"
+                    :label="t('language')"
                     variant="solo-filled"
                   ></v-autocomplete>
                 </v-col>
@@ -804,7 +807,7 @@ watch(page, () => {
                     clearable
                     item-title="name"
                     item-value="id"
-                    label="Автор"
+                    :label="t('author')"
                     variant="solo-filled"
                     @update:search="getAuthors"
                   >
@@ -812,7 +815,7 @@ watch(page, () => {
                       <div class="px-4 d-flex justify-space-between align-center">
                         <span>Данного автора нет в списке</span>
                         <v-btn color="primary" variant="flat" @click="setNewItem('author')"
-                          >Добавить
+                          >{{t('add')}}
                         </v-btn>
                       </div>
                     </template>
@@ -825,7 +828,7 @@ watch(page, () => {
                     clearable
                     item-title="title"
                     item-value="id"
-                    label="Издатель"
+                    :label="t('publisher')"
                     variant="solo-filled"
                     @update:search="getPublishers"
                   >
@@ -833,7 +836,7 @@ watch(page, () => {
                       <div class="px-4 d-flex justify-space-between align-center">
                         <span>Данного издателя нет в списке</span>
                         <v-btn color="primary" variant="flat" @click="setNewItem('publisher')"
-                          >Добавить
+                          >{{t('add')}}
                         </v-btn>
                       </div>
                     </template>
@@ -842,19 +845,19 @@ watch(page, () => {
                 <v-col cols="2">
                   <v-text-field
                     v-model="year"
-                    label="Год издания"
+                    :label="t('year_of_publication')"
                     type="number"
                     variant="solo-filled"
                   ></v-text-field>
                 </v-col>
 
                 <v-col>
-                  <v-switch v-model="epub" color="primary" label="Электронная книга"></v-switch>
+                  <v-switch v-model="epub" color="primary" :label="t('ebook')"></v-switch>
                 </v-col>
               </v-row>
               <v-row>
                 <v-expansion-panels>
-                  <v-expansion-panel title="Расширенный поиск">
+                  <v-expansion-panel :title="t('advanced_search')">
                     <v-expansion-panel-text>
                       <v-row>
                         <v-col cols="2">
@@ -869,7 +872,7 @@ watch(page, () => {
                               <div class="px-4 d-flex justify-space-between align-center">
                                 <span>Данного жанра нет в списке</span>
                                 <v-btn color="primary" variant="flat" @click="setNewItem('genre')"
-                                  >Добавить
+                                  >{{t('add')}}
                                 </v-btn>
                               </div>
                             </template>
@@ -1004,7 +1007,7 @@ watch(page, () => {
                       rounded="xl"
                       variant="flat"
                       @click="downloadEPUB(item.book_epub)"
-                      >Скачать
+                      >{{ t('download_pdf') }}
                     </v-btn>
                   </v-col>
                 </v-row>
@@ -1036,7 +1039,7 @@ watch(page, () => {
                         <v-container fluid>
                           <v-row>
                             <v-col>
-                              <div><strong>Издатель:</strong></div>
+                              <div><strong>{{t('publisher')}}:</strong></div>
                               <div>
                                 {{
                                   item.book_publisher
@@ -1046,7 +1049,7 @@ watch(page, () => {
                               </div>
                             </v-col>
                             <v-col>
-                              <div><strong>Год издания:</strong></div>
+                              <div><strong>{{t('year_of_publication')}}:</strong></div>
                               <div>{{ item.year }}</div>
                             </v-col>
                           </v-row>
@@ -1062,7 +1065,7 @@ watch(page, () => {
                               </div>
                             </v-col>
                             <v-col>
-                              <div><strong>Язык:</strong></div>
+                              <div><strong>{{t('language')}}:</strong></div>
                               <div>
                                 {{
                                   item.book_language
@@ -1104,7 +1107,7 @@ watch(page, () => {
                           size="small"
                           variant="flat"
                           @click="(drawer = true), (selectedItem = item)"
-                          >Подробная информация
+                          >{{t('detailed_information')}}
                         </v-btn>
                       </v-col>
                       <v-col cols="3">
@@ -1116,7 +1119,7 @@ watch(page, () => {
                               size="small"
                               v-bind="props"
                               variant="flat"
-                              >Действия
+                              >{{t('actions')}}
                             </v-btn>
                           </template>
 
@@ -1162,7 +1165,7 @@ watch(page, () => {
                                           </div>
                                           <v-row class="mt-2">
                                             <v-col>
-                                              <div><strong>Язык:</strong></div>
+                                              <div><strong>{{t('language')}}:</strong></div>
                                               <div>
                                                 {{
                                                   item.book_language
@@ -1174,13 +1177,13 @@ watch(page, () => {
                                               </div>
                                             </v-col>
                                             <v-col>
-                                              <div><strong>Год издания:</strong></div>
+                                              <div><strong>{{t('year_of_publication')}}:</strong></div>
                                               <div>{{ item.year }}</div>
                                             </v-col>
                                           </v-row>
                                           <v-row>
                                             <v-col>
-                                              <div><strong>Издатель:</strong></div>
+                                              <div><strong>{{t('publisher')}}:</strong></div>
                                               <div>
                                                 {{
                                                   item.book_publisher
@@ -1222,14 +1225,14 @@ watch(page, () => {
                                       class="ml-auto mr-3"
                                       variant="tonal"
                                       @click="isActive.value = false"
-                                      >Отменить
+                                      >{{t('cancel')}}
                                     </v-btn>
                                     <v-btn
                                       class="mr-auto"
                                       color="primary"
                                       variant="flat"
                                       @click="sendRequest(item.id, message, 2, isActive)"
-                                      >Отправить запрос
+                                      >{{t('send')}}
                                     </v-btn>
                                   </v-card-actions>
                                 </v-card>
@@ -1277,7 +1280,7 @@ watch(page, () => {
                                           </div>
                                           <v-row class="mt-2">
                                             <v-col>
-                                              <div><strong>Язык:</strong></div>
+                                              <div><strong>{{ t('language') }}:</strong></div>
                                               <div>
                                                 {{
                                                   item.book_language
@@ -1289,13 +1292,13 @@ watch(page, () => {
                                               </div>
                                             </v-col>
                                             <v-col>
-                                              <div><strong>Год издания:</strong></div>
+                                              <div><strong>{{t('year_of_publication')}}:</strong></div>
                                               <div>{{ item.year }}</div>
                                             </v-col>
                                           </v-row>
                                           <v-row>
                                             <v-col>
-                                              <div><strong>Издатель:</strong></div>
+                                              <div><strong>{{t('publisher')}}:</strong></div>
                                               <div>
                                                 {{
                                                   item.book_publisher
@@ -1337,14 +1340,14 @@ watch(page, () => {
                                       class="ml-auto mr-3"
                                       variant="tonal"
                                       @click="isActive.value = false"
-                                      >Отменить
+                                      >{{t('cancel')}}
                                     </v-btn>
                                     <v-btn
                                       class="mr-auto"
                                       color="primary"
                                       variant="flat"
                                       @click="sendRequest(item.id, message, 1, isActive)"
-                                      >Отправить запрос
+                                      >{{t('send')}}
                                     </v-btn>
                                   </v-card-actions>
                                 </v-card>
@@ -1362,13 +1365,13 @@ watch(page, () => {
                         >
                           <template v-slot:activator="{ props }">
                             <v-btn color="green" size="small" v-bind="props" variant="flat"
-                              >Добавить в фонд
+                              >{{t('add_to_fund')}}
                             </v-btn>
                           </template>
 
                           <template v-slot:default="{ isActive }">
                             <v-card>
-                              <v-card-title>Добавить в фонд</v-card-title>
+                              <v-card-title>{{t('add_to_fund')}}</v-card-title>
                               <v-card-text>
                                 <v-container fluid>
                                   <v-row>
@@ -1398,7 +1401,7 @@ watch(page, () => {
                                       </div>
                                       <v-row class="mt-2">
                                         <v-col>
-                                          <div><strong>Язык:</strong></div>
+                                          <div><strong>{{t('language')}}:</strong></div>
                                           <div>
                                             {{
                                               item.book_language
@@ -1410,13 +1413,13 @@ watch(page, () => {
                                           </div>
                                         </v-col>
                                         <v-col>
-                                          <div><strong>Год издания:</strong></div>
+                                          <div><strong>{{t('year_of_publication')}}:</strong></div>
                                           <div>{{ item.year }}</div>
                                         </v-col>
                                       </v-row>
                                       <v-row>
                                         <v-col>
-                                          <div><strong>Издатель:</strong></div>
+                                          <div><strong>{{t('publisher')}}:</strong></div>
                                           <div>
                                             {{
                                               item.book_publisher
@@ -1446,7 +1449,7 @@ watch(page, () => {
                                         v-model="admission.book_admission_id"
                                         :items="admissions"
                                         item-value="id"
-                                        label="Поступление"
+                                        :label="t('reception')"
                                         placeholder="Выберите"
                                         variant="outlined"
                                       ></v-autocomplete>
@@ -1454,7 +1457,7 @@ watch(page, () => {
                                     <v-col>
                                       <v-text-field
                                         v-model="admission.admission_at"
-                                        label="Дата поступления"
+                                        :label="t('reception_date')"
                                         placeholder="ДД.ММ.ГГ"
                                         type="date"
                                         variant="outlined"
@@ -1468,7 +1471,7 @@ watch(page, () => {
                                         v-model="admission.contractor_id"
                                         :items="contractors"
                                         item-value="id"
-                                        label="Контрагент"
+                                        :label="t('counterparty')"
                                         placeholder="Укажите"
                                         variant="outlined"
                                         @update:search="getContractors"
@@ -1482,7 +1485,7 @@ watch(page, () => {
                                               color="primary"
                                               variant="flat"
                                               @click="setNewItem('contractor')"
-                                              >Добавить
+                                              >{{t('add')}}
                                             </v-btn>
                                           </div>
                                         </template>
@@ -1494,7 +1497,7 @@ watch(page, () => {
                                     <v-col>
                                       <v-text-field
                                         v-model="admission.amount"
-                                        label="Количество"
+                                        :label="t('quantity')"
                                         placeholder="Выберите"
                                         type="number"
                                         variant="outlined"
@@ -1503,7 +1506,7 @@ watch(page, () => {
                                     <v-col>
                                       <v-text-field
                                         v-model="admission.price"
-                                        label="Цена"
+                                        :label="t('price')"
                                         placeholder="0,00"
                                         step="0.01"
                                         type="number"
@@ -1518,7 +1521,7 @@ watch(page, () => {
                                         v-model="admission.book_state_id"
                                         :items="states"
                                         item-value="id"
-                                        label="Состояние книги"
+                                        :label="t('book_condition')"
                                         placeholder="Выберите"
                                         variant="outlined"
                                       ></v-autocomplete>
@@ -1532,14 +1535,14 @@ watch(page, () => {
                                   class="ml-auto mr-3"
                                   variant="tonal"
                                   @click="isActive.value = false"
-                                  >Отменить
+                                  >{{t('cancel')}}
                                 </v-btn>
                                 <v-btn
                                   class="mr-auto"
                                   color="primary"
                                   variant="flat"
                                   @click="sendAdmission(admission, isActive, item.id)"
-                                  >Отправить
+                                  >{{t('send')}}
                                 </v-btn>
                               </v-card-actions>
                             </v-card>
@@ -1576,7 +1579,7 @@ watch(page, () => {
                                   color="primary"
                                   variant="flat"
                                   @click="deleteItem(item.id, isActive)"
-                                  >Да, удалить
+                                  >{{t('yes')}}
                                 </v-btn>
                                 <v-btn
                                   class="mr-auto"

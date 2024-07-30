@@ -3,7 +3,8 @@ import HelpButton from '@/components/HelpButton.vue'
 import { computed, ref, type Ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAPI } from '@/api'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const route = useRoute()
 const api = useAPI()
 const entities = ref([])
@@ -43,20 +44,20 @@ const getHeaders = (item) => {
         headers.push({ key: 'number', title: 'Номер' })
       }
       if (key === 'title') {
-        headers.push({ key: 'title', title: 'Название' })
+        headers.push({ key: 'title', title: t('name') })
       }
       if (key === 'name') {
-        headers.push({ key: 'name', title: 'ФИО' })
+        headers.push({ key: 'name', title: t('full_name') })
       }
       if (key === 'label') {
-        headers.push({ key: 'label', title: 'Название' })
+        headers.push({ key: 'label', title: t('name') })
       }
       if (key === 'description') {
         headers.push({ key: 'description', title: 'Описание' })
       }
     })
   }
-  headers.push({ key: 'actions', title: 'Действия' })
+  headers.push({ key: 'actions', title: t('actions') })
   return headers
 }
 
@@ -73,7 +74,7 @@ const entityTitle = computed(() => {
     case '/categories':
       return 'Классификация'
     case '/bookAdmission':
-      return 'Поступление'
+      return t('reception')
     case '/genre':
       return 'Жанры'
     case '/ageCharacteristic':
@@ -93,7 +94,7 @@ const entityTitle = computed(() => {
     case '/educationLevel':
       return 'Уровень образования'
     case '/bookType':
-      return 'Тип'
+      return t('type')
     case '/tag':
       return 'Ключевые слова'
     case '/material':
@@ -412,7 +413,7 @@ getCurrentPage()
               prepend-icon="mdi-plus"
               v-bind="props"
               variant="flat"
-              >Добавить
+              >{{t('add')}}
             </v-btn>
           </template>
 
@@ -421,7 +422,7 @@ getCurrentPage()
               <v-card-text>
                 <v-text-field
                   v-model="newItem.title"
-                  :label="entityTitle === 'Авторы' ? 'Имя' : 'Название'"
+                  :label="entityTitle === 'Авторы' ? 'Имя' : t('name')"
                 ></v-text-field>
                 <v-text-field
                   v-if="entityTitle === 'Виды содержания' || entityTitle === 'Авторский знак'"
@@ -440,7 +441,7 @@ getCurrentPage()
                   color="primary"
                   variant="flat"
                   @click="createEntity(isActive)"
-                  >Да, создать
+                  >{{t('yes')}}
                 </v-btn>
                 <v-btn class="mr-auto" variant="tonal" @click="isActive.value = false"
                   >Отмена
@@ -467,14 +468,14 @@ getCurrentPage()
                     <v-text-field
                       v-if="item.label"
                       v-model="item.label"
-                      label="Название"
+                      :label="t('name')"
                     ></v-text-field>
                     <v-text-field
                       v-if="item.title"
                       v-model="item.title"
-                      label="Название"
+                      :label="t('name')"
                     ></v-text-field>
-                    <v-text-field v-if="item.name" v-model="item.name" label="ФИО"></v-text-field>
+                    <v-text-field v-if="item.name" v-model="item.name" :label="t('full_name')"></v-text-field>
                   </v-card-text>
 
                   <v-card-actions>
@@ -483,7 +484,7 @@ getCurrentPage()
                       color="primary"
                       variant="flat"
                       @click="editEntity(item, isActive)"
-                      >Да, изменить
+                      >{{t('edit')}}
                     </v-btn>
                     <v-btn class="mr-auto" variant="tonal" @click="isActive.value = false"
                       >Отмена
@@ -517,7 +518,7 @@ getCurrentPage()
                       color="primary"
                       variant="flat"
                       @click="deleteEntity(item.id, isActive)"
-                      >Да, удалить
+                      >{{t('yes')}}
                     </v-btn>
                     <v-btn class="mr-auto" variant="tonal" @click="isActive.value = false"
                       >Отмена

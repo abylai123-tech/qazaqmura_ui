@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { ref, watch } from 'vue'
 import { useAPI } from '@/api'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 const page = ref(1)
 const items = ref([])
@@ -27,7 +28,7 @@ watch(page, () => {
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">Заявки</span>
+          <span class="text-h6 font-weight-bold">t('requests')</span>
         </div>
       </template>
     </v-app-bar>
@@ -37,7 +38,7 @@ watch(page, () => {
           :headers="[
             { key: 'id', title: 'ID' },
             { title: 'Заявка от:', key: 'initiator' },
-            { title: 'Почта', key: 'message' },
+            { title: t('mail'), key: 'message' },
             { title: 'Организация', key: 'organization' },
             { title: 'Дата создания', key: 'createdAt' }
           ]"

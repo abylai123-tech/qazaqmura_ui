@@ -5,7 +5,8 @@ import { useAPI } from '@/api'
 import instruction from '@/assets/инструкция по загрузки материалов по.pdf'
 import konkurs_ru from '@/assets/konkurs_ru.pdf'
 import konkurs_kz from '@/assets/konkurs_kz.pdf'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 
 const parentRegions = ref([])
@@ -85,13 +86,6 @@ const alert = ref(false)
 const alertText = ref('')
 const alertError = ref(false)
 
-const sendContest = async () => {
-  const body = {
-    content: `ФИО: ${name.value} \nШкола: ${school.value}\nРегион: ${regionTitle.value}\nСсылка на Google Диск: ${driveLink.value}\nСсылка на видел:${videoLink.value}`
-  }
-  const response = await api.postData('/v1/mail/send', body)
-  console.log(response)
-}
 
 getRegions()
 </script>
@@ -108,23 +102,23 @@ getRegions()
       <template v-slot:title>
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold"
-            >Лучший библиотекарь Республики Казахстан 2024 г.</span
+            >{{t('best_librarian_2024')}}</span
           >
           <span class="text-subtitle-2 text-medium-emphasis"
-            >Конкурс для библиотекарей школ и колледжей по Республике Казахстан</span
+            >{{t('competition_for_school_and_college_librarians')}}</span
           >
         </div>
       </template>
 
       <template v-slot:append>
-        <v-btn class="mr-3" prepend-icon="mdi-video-outline" variant="tonal">Как заполнять</v-btn>
+        <v-btn class="mr-3" prepend-icon="mdi-video-outline" variant="tonal">{{t('how_to_fill_out')}}</v-btn>
         <v-btn
           class="mr-3"
           color="primary"
           prepend-icon="mdi-plus"
           variant="flat"
           @click="downloadDocument"
-          >Скачать положение
+          >{{t('download_regulations')}}
         </v-btn>
         <v-btn
           class="mr-3"
@@ -132,7 +126,7 @@ getRegions()
           prepend-icon="mdi-plus"
           variant="flat"
           @click="downloadInstruction"
-          >Скачать инструкцию
+          >{{t('download_instructions')}}
         </v-btn>
       </template>
     </v-app-bar>
@@ -157,7 +151,7 @@ getRegions()
             >
           </v-card-text>
           <v-card-text>
-            <v-form>
+            <!-- <v-form>
               <v-text-field
                 v-model="name"
                 label="ФИО"
@@ -248,17 +242,18 @@ getRegions()
                 placeholder="Ссылка"
                 variant="outlined"
               ></v-text-field>
-              <!--              <v-text-field label="Номинация" placeholder="Выберите номинацию" variant="outlined"></v-text-field>-->
-            </v-form>
+                            <v-text-field label="Номинация" placeholder="Выберите номинацию" variant="outlined"></v-text-field>
+            </v-form> -->
+            <iframe class="w-100" src="https://forms.yandex.ru/u/669e287b5d2a06a47360f3c6/?iframe=1" frameborder="0" name="ya-form-669e287b5d2a06a47360f3c6" width="650"></iframe>
           </v-card-text>
         </v-card>
       </v-col>
     </v-row>
-    <v-row>
+    <!-- <v-row>
       <v-col cols="2" offset="8">
         <v-btn block color="green" variant="flat" @click="sendContest">Отправить</v-btn>
       </v-col>
-    </v-row>
+    </v-row> -->
   </v-container>
 </template>
 

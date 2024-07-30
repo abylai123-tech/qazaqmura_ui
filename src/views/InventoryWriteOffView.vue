@@ -3,7 +3,8 @@ import { useAPI } from '@/api'
 import { ref, type Ref, watch } from 'vue'
 import FilterBlock from '@/components/FilterBlock.vue'
 import HelpButton from '@/components/HelpButton.vue'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Inventory {
   amount: any
   id: number
@@ -21,10 +22,10 @@ interface Inventory {
 const bottomItems = ref([{ label: 'Выбрано из списанных', value: 0 }])
 
 const headers = [
-  { title: 'Инвент', key: 'inventory.number' },
-  { title: 'Книга', key: 'book' },
-  { title: 'Поступление', key: 'admission' },
-  { title: 'Статус', key: 'invent' },
+  { title: t('inventory'), key: 'inventory.number' },
+  { title: t('book'), key: 'book' },
+  { title: t('reception'), key: 'admission' },
+  { title: t('status'), key: 'invent' },
   { title: '', key: 'actions', sortable: false }
 ]
 
@@ -169,7 +170,7 @@ watch(selected, (value) => {
           :items="inventorySearch"
           class="pt-10"
           item-title="title"
-          label="Книга"
+          :label="t('book')"
           placeholder="Напишите название"
           return-object
           variant="outlined"
@@ -177,7 +178,7 @@ watch(selected, (value) => {
         ></v-autocomplete>
       </v-list-item>
       <div v-if="book">
-        <v-list-item><strong>Инвентарные номера</strong></v-list-item>
+        <v-list-item><strong>{{t('inventory_numbers')}}</strong></v-list-item>
         <v-list-item v-for="n in book.amount - book.book_inventory.length" :key="n">
           <v-text-field
             v-model="inventories[n - 1]"
@@ -188,9 +189,9 @@ watch(selected, (value) => {
           ></v-text-field>
         </v-list-item>
         <v-list-item>
-          <v-btn class="mr-3" variant="tonal" @click="closeInventory">Закрыть</v-btn>
+          <v-btn class="mr-3" variant="tonal" @click="closeInventory">{{t('close')}}</v-btn>
           <v-btn color="primary" variant="flat" @click="addToInventory(inventories)"
-            >Добавить
+            >{{t('add')}}
           </v-btn>
         </v-list-item>
       </div>
@@ -237,7 +238,7 @@ watch(selected, (value) => {
     >
       <template v-slot:[`item.book`]="{ item }">
         <div class="mt-3">{{ item.title }}</div>
-        <div class="text-subtitle-2 text-medium-emphasis">Год издания: {{ item.year }}</div>
+        <div class="text-subtitle-2 text-medium-emphasis">{{t('year_of_publication')}}: {{ item.year }}</div>
         <div class="mb-3">
           <v-chip
             v-for="author in item.author"
@@ -255,16 +256,16 @@ watch(selected, (value) => {
           <v-chip color="primary" size="x-small" variant="outlined">Новая</v-chip>
         </div>
         <div>Дата: {{ item.admission_at }}</div>
-        <div>Цена: {{ item.price }}</div>
+        <div>{{t('price')}}: {{ item.price }}</div>
       </template>
 
       <template v-slot:[`item.invent`]="{ item }">
         <div class="text-subtitle-2 text-medium-emphasis">
           <v-chip v-if="item.inventory.status === 1" size="x-small" variant="flat">
-            Статус: в фонде
+            {{t('status')}}: в фонде
           </v-chip>
           <v-chip v-if="item.inventory.status === 0" color="red" size="x-small" variant="flat">
-            Статус: списано
+            {{t('status')}}: списано
           </v-chip>
         </div>
       </template>

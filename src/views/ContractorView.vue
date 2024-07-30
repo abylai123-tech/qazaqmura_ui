@@ -4,7 +4,8 @@ import { ref, type Ref, watch } from 'vue'
 import HelpButton from '@/components/HelpButton.vue'
 import { useAuth } from '@/auth'
 import fileDownload from 'js-file-download'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Contractor {
   id: number
   system: boolean
@@ -21,10 +22,10 @@ const newItem: Ref<{ address: string; company_ID: string; title: string }> = ref
 
 const headers = [
   { title: 'ID', key: 'id' },
-  { title: 'Название и БИН', key: 'name' },
-  { title: 'Поступление', key: 'amount' },
-  { title: 'Адрес', key: 'address' },
-  { title: 'Системный', key: 'system' },
+  { title: t('name_and_bin'), key: 'name' },
+  { title: t('reception'), key: 'amount' },
+  { title: t('address'), key: 'address' },
+  { title: t('system'), key: 'system' },
   { title: '', key: 'actions', sortable: false }
 ]
 
@@ -95,23 +96,23 @@ watch(search, () => {
   <v-container fluid>
     <v-navigation-drawer v-model="drawer" location="right" temporary width="600">
       <v-list-item>
-        <span class="font-weight-bold">Добавить контрагент</span>
+        <span class="font-weight-bold">{{t('add_counterparty')}}</span>
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item class="my-2">
-        <span class="font-weight-bold">Основная</span>
+        <span class="font-weight-bold">{{t('main')}}</span>
       </v-list-item>
       <v-list-item>
         <v-form>
           <v-text-field v-model="newItem.title" label="Название" variant="outlined"></v-text-field>
           <v-text-field
             v-model="newItem.company_ID"
-            label="БИН (необязательно)"
+            :label="t('bin_optional')"
             variant="outlined"
           ></v-text-field>
           <v-text-field
             v-model="newItem.address"
-            label="Адрес (необязательно)"
+            :label="t('address_optional')"
             variant="outlined"
           ></v-text-field>
           <!--          <v-autocomplete label="Особенность (необязательно)" variant="outlined"></v-autocomplete>-->
@@ -119,15 +120,15 @@ watch(search, () => {
       </v-list-item>
 
       <v-list-item>
-        <v-btn class="mr-10" variant="tonal" @click="drawer = false">Закрыть</v-btn>
-        <v-btn color="primary" variant="flat" @click="createContractor">Добавить</v-btn>
+        <v-btn class="mr-10" variant="tonal" @click="drawer = false">{{t('close')}}</v-btn>
+        <v-btn color="primary" variant="flat" @click="createContractor">{{t('add')}}</v-btn>
       </v-list-item>
     </v-navigation-drawer>
 
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">Контрагент</span>
+          <span class="text-h6 font-weight-bold">{{t('counterparty')}}</span>
           <span class="text-subtitle-2 text-medium-emphasis"
             >Название организации откуда вы покупаете книги</span
           >
@@ -135,7 +136,7 @@ watch(search, () => {
       </template>
 
       <template v-slot:append>
-        <v-btn class="mr-3" color="primary" variant="flat" @click="downloadList">Скачать</v-btn>
+        <v-btn class="mr-3" color="primary" variant="flat" @click="downloadList">{{ t('download_pdf') }}</v-btn>
         <help-button></help-button>
         <v-btn
           class="ml-3"
@@ -143,7 +144,7 @@ watch(search, () => {
           prepend-icon="mdi-plus"
           variant="flat"
           @click="drawer = true"
-          >Добавить
+          >{{t('add')}}
         </v-btn>
       </template>
     </v-app-bar>
@@ -157,7 +158,7 @@ watch(search, () => {
             density="compact"
             flat
             hide-details
-            label="Поиск по Названию и БИН"
+            :label="t('search_by_name_and_bin')"
             prepend-inner-icon="mdi-magnify"
             single-line
             variant="outlined"
@@ -169,7 +170,7 @@ watch(search, () => {
             </div>
             <div class="d-flex flex-column">
               <strong>300</strong>
-              <span>Библиотеки</span>
+              <span>{{t('libraries')}}</span>
             </div>
           </div>
           <!-- <v-select value="Показывать по 10" :items="['Показывать по 10']" density="compact" flat single-line
@@ -187,12 +188,12 @@ watch(search, () => {
       <template v-slot:[`item.amount`]="{}">
         <div class="d-flex flex-column my-2">
           <v-chip class="mb-2" color="primary" variant="flat">Наименование: 5</v-chip>
-          <v-chip color="primary" variant="flat">Экземпляров: 36</v-chip>
+          <v-chip color="primary" variant="flat">{{t('copies')}}: 36</v-chip>
         </div>
       </template>
 
       <template v-slot:[`item.system`]="{ item }">
-        <v-chip v-if="item.system" color="primary" variant="flat">Да</v-chip>
+        <v-chip v-if="item.system" color="primary" variant="flat">{{t('yes')}}</v-chip>
         <v-chip v-else color="secondary" variant="flat">Нет</v-chip>
       </template>
 

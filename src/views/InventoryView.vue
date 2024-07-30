@@ -5,7 +5,8 @@ import FilterBlock from '@/components/FilterBlock.vue'
 import HelpButton from '@/components/HelpButton.vue'
 import { useAuth } from '@/auth'
 import fileDownload from 'js-file-download'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Inventory {
   amount: any
   id: number
@@ -21,16 +22,16 @@ interface Inventory {
 }
 
 const bottomItems = ref([
-  { label: 'Инвентаризованные книги', value: 0 },
-  { label: 'Списанные книги', value: 0 },
-  { label: 'Не инвентаризованные', value: 0 }
+  { label: t('inventoried_books'), value: 0 },
+  { label: t('written_off'), value: 0 },
+  { label: t('not_inventoried'), value: 0 }
 ])
 
 const headers = [
-  { title: 'Инвент', key: 'inventory.number' },
-  { title: 'Книга', key: 'book' },
-  { title: 'Поступление', key: 'admission' },
-  { title: 'Статус', key: 'invent' },
+  { title: t('inventory'), key: 'inventory.number' },
+  { title: t('book'), key: 'book' },
+  { title: t('reception'), key: 'admission' },
+  { title: t('status'), key: 'invent' },
   { title: '', key: 'actions', sortable: false }
 ]
 
@@ -87,10 +88,10 @@ function closeInventory() {
 async function downloadPDF(mode: 1 | 2) {
   if (mode === 1) {
     const response = await api.postData(`/v1/book/school/inventory/pdf`, null, true)
-    if (response.data) fileDownload(response.data, 'Список инвентаризации.pdf')
+    if (response.data) fileDownload(response.data, `${t('inventory_list')}.pdf`)
   } else {
     const response = await api.postData(`/v1/book/school/inventory/decommissioned/pdf`, null, true)
-    if (response.data) fileDownload(response.data, 'Список списанных книг.pdf')
+    if (response.data) fileDownload(response.data, `${t('list_of_written_off_books')}.pdf`)
   }
 }
 
@@ -141,9 +142,9 @@ const getInventoryCount = async (id: number) => {
   const response = await api.fetchData(`/v1/book/inventory/count?school_id=${id}`)
   if (response.data) {
     bottomItems.value = [
-      { label: 'Инвентаризованные книги', value: response.data.active },
-      { label: 'Списанные книги', value: response.data.deprecated },
-      { label: 'Не инвентаризованные', value: response.data.uninventoried }
+      { label: t('inventoried_books'), value: response.data.active },
+      { label: t('written_off'), value: response.data.deprecated },
+      { label: t('not_inventoried'), value: response.data.uninventoried }
     ]
   }
 }
@@ -275,17 +276,17 @@ watch(sort, () => {
         </div>
         <div class="d-flex w-50 mt-2">
           <div class="d-flex w-50 flex-column">
-            <strong>Язык</strong>
+            <strong>{{t('language')}}</strong>
             <span></span>
           </div>
           <div class="d-flex w-50 flex-column">
-            <strong>Год издания</strong>
+            <strong>{{t('year_of_publication')}}</strong>
             <span>{{ info ? info.book.year : '' }}</span>
           </div>
         </div>
         <div class="d-flex w-50 mt-2">
           <div class="d-flex w-50 flex-column">
-            <strong>Издатель</strong>
+            <strong>{{t('publisher')}}</strong>
             <div></div>
           </div>
           <div class="d-flex w-50 flex-column">
@@ -299,7 +300,7 @@ watch(sort, () => {
           :items="inventorySearch"
           class="pt-10"
           item-title="title"
-          label="Книга"
+          :label="t('book')"
           placeholder="Напишите название"
           return-object
           variant="outlined"
@@ -307,7 +308,7 @@ watch(sort, () => {
         ></v-autocomplete>
       </v-list-item>
       <div v-if="book">
-        <v-list-item><strong>Инвентарные номера</strong></v-list-item>
+        <v-list-item><strong>{{t('inventory_numbers')}}</strong></v-list-item>
         <v-list-item v-for="n in book.amount - book.book_inventory.length" :key="n">
           <v-text-field
             v-model="inventories[n - 1]"
@@ -319,9 +320,9 @@ watch(sort, () => {
           ></v-text-field>
         </v-list-item>
         <v-list-item>
-          <v-btn class="mr-3" variant="tonal" @click="closeInventory">Закрыть</v-btn>
+          <v-btn class="mr-3" variant="tonal" @click="closeInventory">{{t('close')}}</v-btn>
           <v-btn color="primary" variant="flat" @click="addToInventory(inventories)"
-            >Добавить
+            >{{t('add')}}
           </v-btn>
         </v-list-item>
       </div>
@@ -330,9 +331,9 @@ watch(sort, () => {
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">Инвентарный учет</span>
+          <span class="text-h6 font-weight-bold">{{t('inventory_management')}}</span>
           <span class="text-subtitle-2 text-medium-emphasis"
-            >Инвентаризация книг по мере поступления и списания онлайн</span
+            >{{t('online_inventory_of_books')}}</span
           >
         </div>
       </template>
@@ -341,7 +342,7 @@ watch(sort, () => {
         <v-menu>
           <template v-slot:activator="{ props }">
             <v-btn class="mr-3" prepend-icon="mdi-chevron-down" v-bind="props" variant="tonal"
-              >Сортировка
+              >{{t('sorting')}}
             </v-btn>
           </template>
 
@@ -363,27 +364,27 @@ watch(sort, () => {
               prepend-icon="mdi-chevron-down"
               v-bind="props"
               variant="flat"
-              >Скачать
+              >{{ t('download_pdf') }}
             </v-btn>
           </template>
 
           <v-list>
-            <v-list-item @click="downloadPDF(1)">Список инвентаризации</v-list-item>
-            <v-list-item @click="downloadPDF(2)">Список списанных книг</v-list-item>
+            <v-list-item @click="downloadPDF(1)">{{t('inventory_list')}}</v-list-item>
+            <v-list-item @click="downloadPDF(2)">{{t('list_of_written_off_books')}}</v-list-item>
           </v-list>
         </v-menu>
 
         <v-menu>
           <template v-slot:activator="{ props }">
             <v-btn class="mr-3" prepend-icon="mdi-chevron-down" v-bind="props" variant="tonal"
-              >Инвент
+              >{{t('inventory')}}
             </v-btn>
           </template>
 
           <v-list>
             <v-list-item @click="drawer = true"> Инвентаризация</v-list-item>
-            <v-list-item :to="{ name: 'inventoryWriteOff' }"> Списание</v-list-item>
-            <v-list-item :to="{ name: 'inventoryDecline' }"> Откат</v-list-item>
+            <v-list-item :to="{ name: 'inventoryWriteOff' }"> {{t('write_off')}}</v-list-item>
+            <v-list-item :to="{ name: 'inventoryDecline' }"> {{t('rollback')}}</v-list-item>
           </v-list>
         </v-menu>
 
@@ -420,7 +421,7 @@ watch(sort, () => {
     >
       <template v-slot:[`item.book`]="{ item }">
         <div class="mt-3">{{ item.title }}</div>
-        <div class="text-subtitle-2 text-medium-emphasis">Год издания: {{ item.year }}</div>
+        <div class="text-subtitle-2 text-medium-emphasis">{{t('year_of_publication')}}: {{ item.year }}</div>
         <div class="mb-3">
           <v-chip
             v-for="author in item.author"
@@ -440,7 +441,7 @@ watch(sort, () => {
             color="green"
             size="small"
             variant="flat"
-            >Издатель: <span>{{ pub }}</span></v-chip
+            >{{t('publisher')}}: <span>{{ pub }}</span></v-chip
           >
         </div>
       </template>
@@ -455,17 +456,17 @@ watch(sort, () => {
           <v-chip color="primary" size="x-small" variant="outlined">Новая</v-chip>
         </div>
         <div>Дата: {{ item.admission_at }}</div>
-        <div>Цена: {{ item.price }}</div>
+        <div>{{t('price')}}: {{ item.price }}</div>
       </template>
 
       <template v-slot:[`item.invent`]="{ item }">
         <div class="mt-3"></div>
         <div class="text-subtitle-2 text-medium-emphasis">
           <v-chip v-if="item.inventory.status === 1" size="x-small" variant="flat"
-            >Статус: в фонде
+            >{{t('status')}}: в фонде
           </v-chip>
           <v-chip v-else-if="item.inventory.status === 0" color="red" size="x-small" variant="flat"
-            >Статус: списано
+            >{{t('status')}}: списано
           </v-chip>
         </div>
       </template>

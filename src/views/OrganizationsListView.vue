@@ -1,17 +1,18 @@
 <script lang="ts" setup>
 import { type Ref, ref, watch } from 'vue'
 import { useAPI } from '@/api'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 
 const headers = [
   { title: 'ID', key: 'id' },
   {
-    title: 'Название',
+    title: t('name'),
     key: 'name'
   },
-  { title: 'Адрес', key: 'address' },
-  { title: 'Статус', key: 'status' },
+  { title: t('address'), key: 'address' },
+  { title: t('status'), key: 'status' },
   { title: '', sortable: false, key: 'actions' }
 ]
 
@@ -180,22 +181,22 @@ watch(search, () => {
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold">Организации</span>
           <span class="text-subtitle-2 text-medium-emphasis"
-            >Онлайн читательский билет класса, запись и регистрация читателей, выдача
+            >{{t('online_library_card_registration')}}
           </span>
         </div>
       </template>
 
       <template v-slot:append>
         <v-btn variant="tonal">Регион</v-btn>
-        <v-btn class="ml-3" variant="tonal">Тип</v-btn>
-        <v-btn class="ml-3" variant="tonal">Классный руководитель</v-btn>
+        <v-btn class="ml-3" variant="tonal">{{t('type')}}</v-btn>
+        <v-btn class="ml-3" variant="tonal">{{t('class_teacher')}}</v-btn>
         <v-btn
           class="ml-3"
           color="primary"
           prepend-icon="mdi-plus"
           variant="flat"
           @click="organizationDrawer = true"
-          >Добавить
+          >{{t('add')}}
         </v-btn>
       </template>
     </v-app-bar>
@@ -206,18 +207,18 @@ watch(search, () => {
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item class="my-2">
-        <span class="font-weight-bold">Основное</span>
+        <span class="font-weight-bold">{{t('basic')}}</span>
       </v-list-item>
 
       <v-list-item>
         <v-text-field
           v-model="requestBody.name"
           class="mt-1"
-          label="Название"
+          :label="t('name')"
           variant="outlined"
         ></v-text-field>
         <v-text-field v-model="requestBody.bin" label="БИН" variant="outlined"></v-text-field>
-        <v-textarea v-model="requestBody.address" label="Адрес" variant="outlined"></v-textarea>
+        <v-textarea v-model="requestBody.address" :label="t('address')" variant="outlined"></v-textarea>
         <v-select
           v-model="requestBody.organization_id"
           :items="organizationTypes"
@@ -309,8 +310,8 @@ watch(search, () => {
       </v-list-item>
 
       <v-list-item class="mt-2 mb-6 text-center">
-        <v-btn class="mr-10" variant="tonal" @click="organizationDrawer = false">Закрыть</v-btn>
-        <v-btn color="primary" variant="flat" @click="createSchool">Добавить</v-btn>
+        <v-btn class="mr-10" variant="tonal" @click="organizationDrawer = false">{{t('close')}}</v-btn>
+        <v-btn color="primary" variant="flat" @click="createSchool">{{t('add')}}</v-btn>
       </v-list-item>
     </v-navigation-drawer>
 
@@ -324,7 +325,7 @@ watch(search, () => {
                   v-model="search"
                   class="rounded my-2 ml-2"
                   density="compact"
-                  label="Поиск по БИН / Название"
+                  :label="t('search_by_name_and_bin')"
                   prepend-inner-icon="mdi-magnify"
                   variant="outlined"
                 ></v-text-field>
@@ -334,7 +335,7 @@ watch(search, () => {
           <template v-slot:bottom></template>
 
           <template v-slot:[`item.address`]="{ item }">
-            <div class="text-medium-emphasis">Адрес: {{ item.description.address }}</div>
+            <div class="text-medium-emphasis">{{t('address')}}: {{ item.description.address }}</div>
             <div class="text-medium-emphasis">Индекс: {{ item.description.zip_code }}</div>
           </template>
 
@@ -343,7 +344,7 @@ watch(search, () => {
               <v-chip color="primary" variant="flat">M-Data: {{ item.book_count }}</v-chip>
             </div>
             <div class="mb-2">
-              <v-chip variant="flat">Фонд: {{ item.book_school_count }}</v-chip>
+              <v-chip variant="flat">{{t('fund')}}: {{ item.book_school_count }}</v-chip>
             </div>
           </template>
 
@@ -359,7 +360,7 @@ watch(search, () => {
                 size="small"
                 variant="flat"
               >
-                {{ item.activated ? 'Активен' : 'Не активен' }}
+                {{ item.activated ? t('active') : 'Не активен' }}
               </v-chip>
             </div>
           </template>
@@ -369,7 +370,7 @@ watch(search, () => {
               :to="`/organizations/${item.id}`"
               append-icon="mdi-arrow-right"
               variant="outlined"
-              >Перейти
+              >{{t('go_to')}}
             </v-btn>
             <v-btn class="ml-2" icon="mdi-download" variant="flat"></v-btn>
           </template>

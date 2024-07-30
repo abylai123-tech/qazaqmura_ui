@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
 import { ref, type Ref } from 'vue'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 
 interface Age {
@@ -29,20 +30,22 @@ async function getAges() {
   }
 }
 
+
+
 getAges()
 </script>
 
 <template>
   <v-dialog max-width="640">
     <template v-slot:activator="{ props: activatorProps }">
-      <v-btn color="primary" v-bind="activatorProps" variant="flat">Подробнее</v-btn>
+      <v-btn color="primary" v-bind="activatorProps" variant="flat">{{ t('details') }}</v-btn>
     </template>
 
     <template v-slot:default="{ isActive }">
       <v-card>
         <v-card-title>
           <div class="d-flex justify-space-between">
-            <strong class="my-auto">Читатели по возрасту</strong>
+            <strong class="my-auto">{{ t('readers_by_age') }}</strong>
             <v-btn icon="mdi-close" variant="text" @click="isActive.value = false"></v-btn>
           </div>
         </v-card-title>

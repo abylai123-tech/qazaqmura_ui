@@ -2,24 +2,26 @@
 import { RouterView, useRoute, useRouter } from 'vue-router'
 import logo from '@/assets/logo.svg'
 import avatar from '@/assets/image-ava.svg'
-import { computed, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useAuth } from '@/auth/index'
 import qrcode from '@/assets/qrcode.pdf'
-
+import { useI18n } from 'vue-i18n'
+const { t, locale } = useI18n()
 const menu = ref(false)
 const helpMenu = ref(false)
 const route = useRoute()
 const auth = useAuth()
 const router = useRouter()
 
-const navigation = [
+
+const navigation = computed(() => [
   {
-    title: 'Приборная доска',
+    title: t('dashboard'),
     value: 1,
     props: { prependIcon: 'mdi-view-dashboard', to: { name: 'home' } }
   },
   {
-    title: 'Абонемент',
+    title: t('subscription'),
     value: 2,
     props: {
       appendIcon: 'mdi-chevron-right',
@@ -37,7 +39,7 @@ const navigation = [
     }
   },
   {
-    title: 'Фонд',
+    title: t('fund'),
     value: 4,
     props: {
       prependIcon: 'mdi-book-multiple',
@@ -46,7 +48,7 @@ const navigation = [
     }
   },
   {
-    title: 'Контрагент',
+    title: t('counterparty'),
     value: 5,
     props: {
       prependIcon: 'mdi-office-building',
@@ -55,12 +57,12 @@ const navigation = [
     }
   },
   {
-    title: 'Инвентарный учет',
+    title: t('inventory_management'),
     value: 6,
     props: { prependIcon: 'mdi-abacus', appendIcon: 'mdi-chevron-right', to: { name: 'inventory' } }
   },
   {
-    title: 'Заяки на книги',
+    title: t('book_requests'),
     value: 7,
     props: {
       prependIcon: 'mdi-library-shelves',
@@ -69,7 +71,7 @@ const navigation = [
     }
   },
   {
-    title: 'Заказ книг',
+    title: t('book_order'),
     value: 8,
     props: {
       prependIcon: 'mdi-invoice-list',
@@ -86,11 +88,11 @@ const navigation = [
       to: { name: 'contest' }
     }
   }
-]
+])
 
-const publisherNavigation = [
+const publisherNavigation = computed(() => [
   {
-    title: 'Приборная доска',
+    title: t('dashboard'),
     value: 1,
     props: { prependIcon: 'mdi-view-dashboard', to: { name: 'home' } }
   },
@@ -104,7 +106,7 @@ const publisherNavigation = [
     }
   },
   {
-    title: 'Контрагент',
+    title: t('counterparty'),
     value: 5,
     props: {
       prependIcon: 'mdi-office-building',
@@ -112,16 +114,20 @@ const publisherNavigation = [
       to: { name: 'contractor' }
     }
   }
-]
+])
 
-const classroomNavigation = [
+const switchLocale = (newLocale: string) => {
+  locale.value = newLocale
+}
+
+const classroomNavigation = computed(() => [
   {
-    title: 'Приборная доска',
+    title: t('dashboard'),
     value: 1,
     props: { prependIcon: 'mdi-view-dashboard', to: { name: 'home' } }
   },
   {
-    title: 'Абонемент',
+    title: t('subscription'),
     value: 2,
     props: {
       appendIcon: 'mdi-chevron-right',
@@ -129,7 +135,7 @@ const classroomNavigation = [
       to: { name: 'users' }
     }
   }
-]
+])
 
 const showLayout = computed(() => {
   const noLayoutPages = ['/login', '/apply']
@@ -138,11 +144,11 @@ const showLayout = computed(() => {
 
 const navigationDrawerItems = computed(() => {
   if (auth.user.value && auth.user.value.roles.some((obj) => obj.id === 3)) {
-    return navigation
+    return navigation.value
   } else if (auth.user.value && auth.user.value.roles.some((obj) => obj.id === 4)) {
-    return classroomNavigation
+    return classroomNavigation.value
   } else if (auth.user.value && auth.user.value.roles.some((obj) => obj.id === 7)) {
-    return publisherNavigation
+    return publisherNavigation.value
   }
   return []
 })
@@ -200,21 +206,21 @@ const guideItems = [
       'база данных по РК (библиографических записей). База является коллективной и централизованной'
   },
   {
-    term: 'Фонд или Библиотечный фонд',
+    term: t('fund'),
     meaning:
       'фонд организации, упорядоченная совокупность книг, других произведений печати, рукописей, видеозаписей, звукозаписей и иных материалов, формируемая библиотекой. В состав фонда, как правило, входят непериодические, периодические и продолжающиеся издания, рукописи, аудиовизуальные материалы и электронные документы'
   },
   {
-    term: 'Поступление',
+    term: t('reception'),
     meaning:
       'поступление в фонд, пополнение фонда библиотеки в результате получения обязательного экземпляра, покупки, подписки, дарения, обмена или любого другого способа'
   },
   {
-    term: 'Контрагент',
+    term: t('counterparty'),
     meaning: 'поставщиками книг или организаций с которого была куплена книга'
   },
   {
-    term: 'Инвентарный учет',
+    term: t('inventory_management'),
     meaning: 'учет, c оценкой и учетом изменений в инвентаризационных активах\n'
   },
   {
@@ -222,17 +228,17 @@ const guideItems = [
     meaning: 'учет, c оценкой и учетом изменений в инвентаризационных активах\n'
   },
   {
-    term: 'Заявки на книги',
+    term: t('book_requests'),
     meaning:
       'форма библиотечного обслуживания, предусматривающая выдачу-возврат на-определенных-условиях для использования вне библиотеки. Так же контроль записей\n'
   },
   {
-    term: 'Приборная доска',
+    term: t('dashboard'),
     meaning:
       'инструмент для визуализации и анализа информации о фонде. Данные, выводимые на панель индикаторов, обычно представлены в виде ключевых показателей эффективности\n'
   },
   {
-    term: 'MURA Гид',
+    term: t('mura_guide'),
     meaning: 'интернет ресурс где расписан инструкция по системе QAZAQMURA'
   }
 ]
@@ -294,7 +300,7 @@ const guideItems = [
           <v-list lines="two">
             <v-list-item
               prepend-icon="mdi-help-circle-outline"
-              title="Помощь"
+              :title="t('help')"
               value="1"
               @click="goToHelp"
             ></v-list-item>
@@ -303,8 +309,8 @@ const guideItems = [
               <template v-slot:activator="{ props }">
                 <v-list-item
                   prepend-icon="mdi-play-box"
-                  subtitle="2 минутное видео"
-                  title="Знакомство с платформой"
+                  :subtitle="t('2_minute_video')"
+                  :title="t('getting_to_know_the_platform')"
                   v-bind="props"
                   value="2"
                 ></v-list-item>
@@ -318,23 +324,23 @@ const guideItems = [
             <v-divider></v-divider>
             <v-list-item
               prepend-icon="mdi-tab-search"
-              subtitle="База данных"
-              title="MURA Гид"
+              :subtitle="t('database')"
+              :title="t('mura_guide')"
               value="3"
               @click="goToGuide"
             ></v-list-item>
             <v-divider></v-divider>
             <v-list-item
               prepend-icon="mdi-application-edit"
-              subtitle="Форма обратной связи и контакты"
-              title="Заявки"
+              :subtitle="t('feedback_form_and_contacts')"
+              :title="t('requests')"
               value="4"
             ></v-list-item>
             <v-divider></v-divider>
             <v-list-item
               prepend-icon="mdi-newspaper-variant-multiple"
-              subtitle="Список изменений"
-              title="Обновление"
+              :subtitle="t('change_log')"
+              :title="t('update')"
               value="5"
             ></v-list-item>
             <v-divider></v-divider>
@@ -342,14 +348,14 @@ const guideItems = [
               <template v-slot:activator="{ props }">
                 <v-list-item
                   prepend-icon="mdi-text-box-check"
-                  title="Глоссарий"
+                  :title="t('glossary')"
                   v-bind="props"
                   value="6"
                 ></v-list-item>
               </template>
 
               <template v-slot:default>
-                <v-card title="Глоссарий">
+                <v-card :title="t('glossary')">
                   <v-card-text>
                     <v-data-table
                       :headers="[
@@ -366,6 +372,10 @@ const guideItems = [
             </v-dialog>
           </v-list>
         </v-menu>
+
+        <v-btn @click="switchLocale('kk')" variant="text" :color="locale === 'kk' ? 'black': 'grey'">Каз</v-btn>
+        <v-divider vertical inset></v-divider>
+        <v-btn @click="switchLocale('ru')" variant="text" :color="locale === 'ru' ? 'black': 'grey'">Рус</v-btn>
       </template>
     </v-app-bar>
 
@@ -390,7 +400,7 @@ const guideItems = [
           :to="{ name: 'home' }"
           :value="1"
           prepend-icon="mdi-view-dashboard"
-          title="Приборная доска"
+          :title="t('dashboard')"
         ></v-list-item>
         <v-list-group :value="2">
           <template v-slot:activator="{ props }">
@@ -403,7 +413,7 @@ const guideItems = [
 
           <v-list-item :value="3" title="Организации" to="/organizations"></v-list-item>
           <v-list-item :value="4" title="Тип организации" to="/organizationTypes"></v-list-item>
-          <v-list-item :value="5" title="Заявки" to="/organizationApplies"></v-list-item>
+          <v-list-item :value="5" :title="t('requests')" to="/organizationApplies"></v-list-item>
           <v-list-item
             :value="6"
             title="Запросы на получение"
@@ -414,7 +424,7 @@ const guideItems = [
           <template v-slot:activator="{ props }">
             <v-list-item
               prepend-icon="mdi-card-account-details"
-              title="Пользователи"
+              :title="t('users')"
               v-bind="props"
             ></v-list-item>
           </template>
@@ -434,7 +444,7 @@ const guideItems = [
           :value="11"
           append-icon="mdi-chevron-right"
           prepend-icon="mdi-bank"
-          title="Контрагент"
+          :title="t('counterparty')"
         ></v-list-item>
         <v-list-group :value="12">
           <template v-slot:activator="{ props }">
@@ -456,7 +466,7 @@ const guideItems = [
           <v-list-item
             :to="{ name: 'bookAdmission' }"
             :value="21"
-            title="Поступление"
+            :title="t('reception')"
           ></v-list-item>
           <v-list-item :to="{ name: 'genre' }" :value="22" title="Жанры"></v-list-item>
           <v-list-item
@@ -477,7 +487,7 @@ const guideItems = [
           ></v-list-item>
           <v-list-item :to="{ name: 'country' }" title="Страна"></v-list-item>
           <v-list-item :to="{ name: 'educationLevel' }" title="Уровень образования"></v-list-item>
-          <v-list-item :to="{ name: 'bookType' }" title="Тип"></v-list-item>
+          <v-list-item :to="{ name: 'bookType' }" :title="t('type')"></v-list-item>
           <v-list-item :to="{ name: 'tag' }" title="Ключевые слова"></v-list-item>
           <v-list-item :to="{ name: 'material' }" title="Обозначение материала"></v-list-item>
         </v-list-group>
@@ -493,13 +503,13 @@ const guideItems = [
             <v-list-item
               :value="29"
               prepend-icon="mdi-library-shelves"
-              title="Библиотеки"
+              :title="t('libraries')"
               v-bind="props"
             ></v-list-item>
           </template>
 
-          <v-list-item :value="30" title="Инвентарный учет" to="/inventory"></v-list-item>
-          <v-list-item :value="32" title="Заявки на книги" to="/applies"></v-list-item>
+          <v-list-item :value="30" :title="t('inventory_management')" to="/inventory"></v-list-item>
+          <v-list-item :title="t('book_requests')" to="/applies"></v-list-item>
           <v-list-item :value="33" title="Запросы от библиотекарей"></v-list-item>
         </v-list-group>
         <v-list-item

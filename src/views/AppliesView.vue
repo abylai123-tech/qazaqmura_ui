@@ -2,7 +2,8 @@
 import { useAPI } from '@/api'
 import { ref, type Ref, watch } from 'vue'
 import HelpButton from '@/components/HelpButton.vue'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Book {
   id: number
   volume: string | null
@@ -54,9 +55,9 @@ interface User {
 }
 
 const headers = [
-  { title: 'Пользователи', key: 'name' },
-  { title: 'Название', key: 'book.title' },
-  { title: 'Дата выдачи', key: 'take_at' },
+  { title: t('users'), key: 'name' },
+  { title: t('name'), key: 'book.title' },
+  { title: t('issue_date'), key: 'take_at' },
   { title: '', key: 'actions', sortable: false }
 ]
 
@@ -104,9 +105,9 @@ watch(page, () => {
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">Заявки на книги</span>
+          <span class="text-h6 font-weight-bold">{{t('book_requests')}}</span>
           <span class="text-subtitle-2 text-medium-emphasis"
-            >Заявки на получения книг читателей через приложение
+            >{{t('requests_for_books_from_readers')}}
           </span>
         </div>
       </template>
@@ -119,7 +120,7 @@ watch(page, () => {
           prepend-icon="mdi-plus"
           variant="flat"
           @click="drawer = true"
-          >Добавить
+          >{{ t('add') }}
         </v-btn>
       </template>
     </v-app-bar>

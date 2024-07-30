@@ -22,7 +22,8 @@ import ministryReport from '@/assets/fund-performance.pdf'
 import fileDownload from 'js-file-download'
 import qazaqstan from '@/assets/flags/qazaqstan.svg'
 import world from '@/assets/flags/world.svg'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const auth = useAuth()
 const api = useAPI()
 
@@ -78,7 +79,7 @@ async function getBookState(): Promise<void> {
 }
 
 const classroomHeaders: { key: string; title: string }[] = [
-  { key: 'name', title: 'ФИО' },
+  { key: 'name', title: t('full_name') },
   { key: 'books', title: 'Книги' },
   {
     key: 'amount',
@@ -110,23 +111,31 @@ async function getPublishers(): Promise<void> {
   }
 }
 
-const readers = [
-  { classname: '1 класс', amount: 25 },
-  { classname: '2 класс', amount: 25 },
-  { classname: '3 класс', amount: 25 },
-  { classname: '4 класс', amount: 25 }
-]
+const readers = ref<{ classroom: number, marks: number, pupils: number }[]>([])
+
+const getReaders = async () => {
+  try {
+    const response = await api.fetchData<{classroom: number, marks: number, pupils: number}[]>('/v1/dashboard/classroom/pupils')
+    if (response.data)
+      readers.value = response.data
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+getReaders()
 
 const headers = [
-  { key: 'classname', title: 'Классы' },
-  { key: 'amount', title: 'Количество' }
+  { key: 'classroom', title: t('classes') },
+  { key: 'marks', title: 'Маркировка' },
+  { key: 'pupils', title: t('quantity') }
 ]
 
 const publisherTableHeaders = [
   { key: 'title', title: 'Регионы' },
   {
     key: 'amount',
-    title: 'Количество'
+    title: t('quantity')
   }
 ]
 
@@ -155,9 +164,9 @@ const countries = [
 ]
 
 const fundHeaders = [
-  { key: 'title', title: 'Название' },
-  { key: 'books', title: 'Наименование книг' },
-  { key: 'amount', title: 'Экземпляры книг' },
+  { key: 'title', title: t('name') },
+  { key: 'books', title: t('book_titles') },
+  { key: 'amount', title: t('book_copies') },
   { key: 'actions', title: '' }
 ]
 
@@ -177,9 +186,9 @@ const fund: Ref<BookState[] | null> = ref(null)
 const fundLoading: Ref<boolean> = ref(false)
 
 const publisherHeaders = [
-  { key: 'publisher', title: 'Название' },
-  { key: 'books', title: 'Наименование книг' },
-  { key: 'amount', title: 'Экземпляры книг' }
+  { key: 'publisher', title: t('name') },
+  { key: 'books', title: t('book_titles') },
+  { key: 'amount', title: t('book_copies') }
 ]
 
 const publishers: Ref<Publisher[] | null> = ref(null)
@@ -202,7 +211,7 @@ const agesChartData = computed(() => {
 
 const pieChartData = computed(() => {
   return {
-    labels: ['Экземпляров', 'Наименований'],
+    labels: [t('copies'), 'Наименований'],
     datasets: [
       {
         backgroundColor: ['#0095FF', '#00E096'],
@@ -220,17 +229,17 @@ const role = computed(() => {
 
 const librarianStatistics = ref([
   { subtitle: 'М-DATA', color: '#0161F2', title: 0, route: '/m-data' },
-  { subtitle: 'Школьный фонд', color: '#6900C7', title: 0, route: '/fund' },
-  { subtitle: 'Наименование книг', color: '#F86300', title: 0, name: 'admission' },
-  { subtitle: 'Сумма поступления', color: '#05AC69', title: 0 },
-  { subtitle: 'Списанных с фонда', color: '#E81600', title: 0, name: 'refund' }
+  { subtitle: t('school_fund'), color: '#6900C7', title: 0, route: '/fund' },
+  { subtitle: t('book_titles'), color: '#F86300', title: 0, name: 'admission' },
+  { subtitle: t('amount_received'), color: '#05AC69', title: 0 },
+  { subtitle: t('written_off_from_fund'), color: '#E81600', title: 0, name: 'refund' }
 ])
 
 const classroomStatistics = [
   { subtitle: 'Читатели', color: '#0161F2', title: 2000 },
-  { subtitle: 'Выдачи', color: '#6900C7', title: 300 },
-  { subtitle: 'Возвраты', color: '#F86300', title: 100 },
-  { subtitle: 'Заявки', color: '#05AC69', title: 12000000 }
+  { subtitle: t('issues'), color: '#6900C7', title: 300 },
+  { subtitle: t('returns'), color: '#F86300', title: 100 },
+  { subtitle: t('requests'), color: '#05AC69', title: 12000000 }
 ]
 
 const publisherStatistics = [
@@ -243,7 +252,7 @@ const ministryStatistics = ref([
   { subtitle: 'Количество школ в базе', color: '#0161F2', title: 0 },
   { subtitle: 'Количество записей в системе', color: '#6900C7', title: 0 },
   { subtitle: 'Количество библиотекарей в системе', color: '#F86300', title: 0 },
-  { subtitle: 'Сумма поступления', color: '#05AC69', title: 0 },
+  { subtitle: t('amount_received'), color: '#05AC69', title: 0 },
   { subtitle: 'Количество читателей', color: '#E81600', title: 0 },
   { subtitle: 'Электронные книги', color: '#E8C300', title: 0 }
 ])
@@ -271,7 +280,7 @@ async function downloadPDF(id) {
     null,
     true
   )
-  if (response.data) fileDownload(response.data, 'Состояние по фонду книг.pdf')
+  if (response.data) fileDownload(response.data, `${t('fund_status')}.pdf`)
 }
 
 function downloadMinistryReport() {
@@ -699,7 +708,7 @@ getInventory()
       ></v-snackbar>
       <v-navigation-drawer v-model="drawer" location="right" temporary width="600">
         <v-list-item>
-          <span class="font-weight-bold">Выдача книги</span>
+          <span class="font-weight-bold">{{t('issue_of_book')}}</span>
         </v-list-item>
         <v-divider></v-divider>
         <v-list-item>
@@ -708,7 +717,7 @@ getInventory()
             :items="inventory"
             class="mt-4"
             item-title="book.title"
-            label="Книга"
+            :label="t('book')"
             return-object
             variant="outlined"
           ></v-autocomplete>
@@ -729,7 +738,7 @@ getInventory()
           <v-text-field
             v-model="returnDate"
             class="mt-4"
-            label="Дата возврата"
+            :label="t('return_date')"
             type="date"
             variant="outlined"
           ></v-text-field>
@@ -741,7 +750,7 @@ getInventory()
             color="primary"
             variant="text"
             @click="showAdditionalData = !showAdditionalData"
-            >Расширенные данные
+            >{{t('extended_data')}}
           </v-btn>
         </v-list-item>
         <v-list-item v-if="showAdditionalData">
@@ -766,20 +775,20 @@ getInventory()
           <v-text-field
             v-model="requestAmount"
             class="mt-2"
-            label="Количество (необязательно)"
+            :label="t('quantity')"
             type="number"
             variant="outlined"
           ></v-text-field>
         </v-list-item>
         <v-list-item class="mt-3">
-          <v-btn class="mr-3" variant="tonal" @click="closeDrawer">Закрыть</v-btn>
+          <v-btn class="mr-3" variant="tonal" @click="closeDrawer">{{t('close')}}</v-btn>
           <v-btn color="primary" variant="flat" @click="createRequest">Выдача</v-btn>
         </v-list-item>
       </v-navigation-drawer>
 
       <v-row>
         <v-col>
-          <div class="text-h5 font-weight-bold">Приборная доска</div>
+          <div class="text-h5 font-weight-bold">{{ $t('dashboard') }}</div>
         </v-col>
       </v-row>
 
@@ -792,7 +801,7 @@ getInventory()
 
             <v-banner-text>
               <div class="text-h6">
-                Добро пожаловать, {{ auth.user.value ? auth.user.value.user_data.firstname : '' }}
+                {{ $t('welcome') }}, {{ auth.user.value ? auth.user.value.user_data.firstname : '' }}
               </div>
             </v-banner-text>
           </v-banner>
@@ -800,7 +809,7 @@ getInventory()
             <v-row>
               <v-col>
                 <div class="text-h6">
-                  Добро пожаловать, {{ auth.user.value ? auth.user.value.user_data.firstname : '' }}
+                  {{ $t('welcome') }}, {{ auth.user.value ? auth.user.value.user_data.firstname : '' }}
                 </div>
               </v-col>
               <v-col>
@@ -815,9 +824,9 @@ getInventory()
                         <v-data-table
                           :headers="[
                             { key: 'id', title: 'ID' },
-                            { key: 'school.title', title: 'Название' },
+                            { key: 'school.title', title: t('name') },
                             { key: 'school.bin', title: 'БИН' },
-                            { key: 'school.address', title: 'Адрес' },
+                            { key: 'school.address', title: t('address') },
                             { key: 'user', title: 'Запрос и наименования книг' }
                           ]"
                           :items="requests"
@@ -855,8 +864,8 @@ getInventory()
                             :headers="[
                               { key: 'id', title: 'ID' },
                               { key: 'book', title: 'Наименование (Описание/Язык)' },
-                              { key: 'info', title: 'Автор(ы)/Жанр' },
-                              { key: 'year', title: 'Год издания' },
+                              { key: 'info', title: `${t('author')}/Жанр` },
+                              { key: 'year', title: t('year_of_publication') },
                               { key: 'publisherType', title: 'Издательство/Тип' }
                             ]"
                             :items="purchases"
@@ -995,7 +1004,7 @@ getInventory()
                     </v-col>
                     <v-col cols="6">
                       <div class="d-flex flex-column">
-                        <div class="font-weight-bold">Экземпляров: {{ bookSchools.amount }}</div>
+                        <div class="font-weight-bold">{{t('copies')}}: {{ bookSchools.amount }}</div>
                         <v-progress-linear
                           :model-value="bookSchools.amount"
                           color="#0095FF"
@@ -1020,7 +1029,7 @@ getInventory()
                     :headers="[
                       {
                         key: 'title',
-                        title: 'Язык'
+                        title: t('language')
                       },
                       { key: 'value', title: 'Экз./наим.' }
                     ]"
@@ -1033,7 +1042,7 @@ getInventory()
                 <v-card-actions>
                   <v-dialog max-width="70vw">
                     <template v-slot:activator="{ props }">
-                      <v-btn color="primary" v-bind="props" variant="flat">Подробнее</v-btn>
+                      <v-btn color="primary" v-bind="props" variant="flat">{{ t('details') }}</v-btn>
                     </template>
 
                     <template v-slot:default>
@@ -1043,7 +1052,7 @@ getInventory()
                             :headers="[
                               {
                                 key: 'title',
-                                title: 'Язык'
+                                title: t('language')
                               },
                               { key: 'value', title: 'Экз./наим.' }
                             ]"
@@ -1068,9 +1077,9 @@ getInventory()
                     :headers="[
                       {
                         key: 'title',
-                        title: 'Тип книги'
+                        title: t('book_type')
                       },
-                      { key: 'value', title: 'Количество' }
+                      { key: 'value', title: t('quantity') }
                     ]"
                     :items="bookTypes"
                     items-per-page="3"
@@ -1081,7 +1090,7 @@ getInventory()
                 <v-card-actions color="primary" variant="flat">
                   <v-dialog max-width="70vw">
                     <template v-slot:activator="{ props }">
-                      <v-btn color="primary" v-bind="props" variant="flat">Подробнее</v-btn>
+                      <v-btn color="primary" v-bind="props" variant="flat">{{ t('details') }}</v-btn>
                     </template>
 
                     <template v-slot:default>
@@ -1091,9 +1100,9 @@ getInventory()
                             :headers="[
                               {
                                 key: 'title',
-                                title: 'Тип книги'
+                                title: t('book_type')
                               },
-                              { key: 'value', title: 'Количество' }
+                              { key: 'value', title: t('quantity') }
                             ]"
                             :items="bookTypes"
                             items-per-page="50"
@@ -1114,9 +1123,9 @@ getInventory()
                     :headers="[
                       {
                         key: 'title',
-                        title: 'Название'
+                        title: t('name')
                       },
-                      { key: 'value', title: 'Количество' }
+                      { key: 'value', title: t('quantity') }
                     ]"
                     :items="popularBooks"
                     items-per-page="3"
@@ -1127,7 +1136,7 @@ getInventory()
                 <v-card-actions>
                   <v-dialog max-width="70vw">
                     <template v-slot:activator="{ props }">
-                      <v-btn color="primary" v-bind="props" variant="flat">Подробнее</v-btn>
+                      <v-btn color="primary" v-bind="props" variant="flat">{{ t('details') }}</v-btn>
                     </template>
 
                     <template v-slot:default>
@@ -1137,9 +1146,9 @@ getInventory()
                             :headers="[
                               {
                                 key: 'title',
-                                title: 'Название'
+                                title: t('name')
                               },
-                              { key: 'value', title: 'Количество' }
+                              { key: 'value', title: t('quantity') }
                             ]"
                             :items="popularBooks"
                             items-per-page="50"
@@ -1179,7 +1188,7 @@ getInventory()
             <v-card-actions>
               <v-dialog max-width="70vw">
                 <template v-slot:activator="{ props }">
-                  <v-btn color="primary" v-bind="props" variant="flat">Подробнее</v-btn>
+                  <v-btn color="primary" v-bind="props" variant="flat">{{ t('details') }}</v-btn>
                 </template>
 
                 <template v-slot:default>
@@ -1213,9 +1222,9 @@ getInventory()
                 :headers="[
                   {
                     key: 'title',
-                    title: 'Название'
+                    title: t('name')
                   },
-                  { key: 'value', title: 'Количество' }
+                  { key: 'value', title: t('quantity') }
                 ]"
                 :items="ratings"
                 items-per-page="3"
@@ -1226,7 +1235,7 @@ getInventory()
             <v-card-actions>
               <v-dialog max-width="70vw">
                 <template v-slot:activator="{ props }">
-                  <v-btn color="primary" v-bind="props" variant="flat">Подробнее</v-btn>
+                  <v-btn color="primary" v-bind="props" variant="flat">{{ t('details') }}</v-btn>
                 </template>
 
                 <template v-slot:default>
@@ -1236,9 +1245,9 @@ getInventory()
                         :headers="[
                           {
                             key: 'title',
-                            title: 'Название'
+                            title: t('name')
                           },
-                          { key: 'value', title: 'Количество' }
+                          { key: 'value', title: t('quantity') }
                         ]"
                         :items="ratings"
                         items-per-page="50"
@@ -1260,8 +1269,8 @@ getInventory()
         </v-col>
         <v-col v-if="role === 3" cols="6">
           <v-card>
-            <v-card-title>Статистика по выдачам и возвратам книг</v-card-title>
-            <v-card-subtitle>Легко отслеживай статистику</v-card-subtitle>
+            <v-card-title>{{ t('issue_return_statistics') }}</v-card-title>
+            <v-card-subtitle>{{ t('easy_to_track_statistics') }}</v-card-subtitle>
 
             <v-card-text>
               <v-container fluid>
@@ -1306,7 +1315,7 @@ getInventory()
         </v-col>
         <v-col v-if="role === 3" cols="3">
           <v-card>
-            <v-card-title>Выдача и возврат</v-card-title>
+            <v-card-title>{{ t('issue_return') }}</v-card-title>
             <v-card-subtitle>Быстрый поиск по ИИН</v-card-subtitle>
 
             <v-card-text>
@@ -1344,8 +1353,8 @@ getInventory()
               </v-autocomplete>
               <v-data-table
                 :headers="[
-                  { title: 'ФИО', key: 'name' },
-                  { title: 'Количество', key: 'amount' }
+                  { title: t('full_name'), key: 'name' },
+                  { title: t('quantity'), key: 'amount' }
                 ]"
                 :items="subscriptions"
                 items-per-page="5"
@@ -1375,7 +1384,7 @@ getInventory()
               <v-data-table :headers="classroomHeaders" :items="classroomItems">
                 <template v-slot:[`item.actions`]="{}">
                   <v-btn append-icon="mdi-chevron-right" color="primary" variant="text"
-                    >Подробнее
+                    >{{ t('details') }}
                   </v-btn>
                 </template>
                 <template v-slot:bottom></template>
@@ -1383,7 +1392,7 @@ getInventory()
             </v-card-text>
 
             <v-card-actions>
-              <v-btn color="primary" variant="flat">Подробнее</v-btn>
+              <v-btn color="primary" variant="flat">{{ t('details') }}</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -1396,12 +1405,12 @@ getInventory()
             <v-card-text>
               <v-autocomplete label="Для кого" variant="outlined"></v-autocomplete>
               <v-autocomplete
-                label="Книга"
+                :label="t('book')"
                 prepend-inner-icon="mdi-magnify"
                 variant="outlined"
               ></v-autocomplete>
               <v-text-field
-                label="Дата выдачи"
+                :label="t('issue_date')"
                 prepend-inner-icon="mdi-magnify"
                 type="date"
                 variant="outlined"
@@ -1414,7 +1423,7 @@ getInventory()
         </v-col>
 
         <v-col v-if="role === 7" cols="4">
-          <v-card title="Списанные">
+          <v-card :title="t('written_off')">
             <v-card-text>
               <v-data-table :headers="publisherTableHeaders" :items="publisherTableItems">
                 <template v-slot:bottom></template>
@@ -1422,7 +1431,7 @@ getInventory()
             </v-card-text>
 
             <v-card-actions>
-              <v-btn color="primary" variant="flat">Подробнее</v-btn>
+              <v-btn color="primary" variant="flat">{{ t('details') }}</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -1434,9 +1443,9 @@ getInventory()
             <v-card-text>
               <v-data-table
                 :headers="[
-                  { key: 'title', title: 'Название' },
-                  { key: 'count', title: 'Наименование книг' },
-                  { key: 'amount', title: 'Экземпляры книг' },
+                  { key: 'title', title: t('name') },
+                  { key: 'count', title: t('book_titles') },
+                  { key: 'amount', title: t('book_copies') },
                   { key: 'actions' }
                 ]"
                 :items="[
@@ -1450,7 +1459,7 @@ getInventory()
               >
                 <template v-slot:[`item.actions`]>
                   <v-btn append-icon="mdi-chevron-right" color="primary" variant="text"
-                    >Подробнее
+                    >{{ t('details') }}
                   </v-btn>
                 </template>
                 <template v-slot:bottom></template>
@@ -1458,7 +1467,7 @@ getInventory()
             </v-card-text>
 
             <v-card-actions>
-              <v-btn color="primary" variant="flat" @click="downloadPublisher">Подробнее</v-btn>
+              <v-btn color="primary" variant="flat" @click="downloadPublisher">{{ t('details') }}</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -1468,7 +1477,7 @@ getInventory()
             <v-card-text>
               <v-data-table
                 :headers="[
-                  { key: 'title', title: 'Название' },
+                  { key: 'title', title: t('name') },
                   { key: 'requests', title: 'На выдаче' },
                   { key: 'returns', title: 'Читательный зал' }
                 ]"
@@ -1486,7 +1495,7 @@ getInventory()
             </v-card-text>
 
             <v-card-actions>
-              <v-btn color="primary" variant="flat">Подробнее</v-btn>
+              <v-btn color="primary" variant="flat">{{ t('details') }}</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -1494,13 +1503,13 @@ getInventory()
 
       <v-row v-if="role === 7">
         <v-col>
-          <v-card title="Выдача и возврат">
+          <v-card :title="t('issue_return')">
             <v-card-text>
               <PublisherTable></PublisherTable>
             </v-card-text>
 
             <v-card-actions>
-              <v-btn color="primary" variant="flat">Подробнее</v-btn>
+              <v-btn color="primary" variant="flat">{{ t('details') }}</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -1512,7 +1521,7 @@ getInventory()
         </v-col>
         <v-col>
           <v-card>
-            <v-card-title>Читатели по возрасту</v-card-title>
+            <v-card-title>{{ t('readers_by_age') }}</v-card-title>
 
             <v-card-text>
               <Pie :data="agesChartData" :options="options" />
@@ -1525,24 +1534,25 @@ getInventory()
         </v-col>
         <v-col cols="4">
           <v-card>
-            <v-card-title> Классы по количеству читателей</v-card-title>
+            <v-card-title> {{ t('classes_by_number_of_readers') }}</v-card-title>
 
             <v-card-text>
-              <v-data-table :headers="headers" :items="readers" hide-footer>
+              <v-data-table :headers="headers" :items="readers">
+                <template v-slot:[`item.classroom`]="{ item }">
+                  {{ item.classroom }} класс
+                </template>
                 <template v-slot:bottom></template>
               </v-data-table>
             </v-card-text>
 
-            <v-card-actions>
-              <ClassModalVue></ClassModalVue>
-            </v-card-actions>
+         
           </v-card>
         </v-col>
       </v-row>
       <v-row v-if="role === 3">
         <v-col>
           <v-card>
-            <v-card-title>Состояние по фонду книг</v-card-title>
+            <v-card-title>{{ t('fund_status') }}</v-card-title>
 
             <v-card-text>
               <v-data-table :headers="fundHeaders" :items="fund ? fund : []" :loading="fundLoading">
@@ -1550,7 +1560,7 @@ getInventory()
 
                 <template v-slot:[`item.actions`]="{ item }">
                   <v-btn color="primary" variant="text" @click="downloadPDF(item.id)">
-                    Подробнее
+                    {{ t('details') }}
                     <template v-slot:append>
                       <v-icon color="primary" icon="mdi-chevron-right"></v-icon>
                     </template>
@@ -1567,7 +1577,7 @@ getInventory()
 
         <v-col>
           <v-card>
-            <v-card-title>Издательства</v-card-title>
+            <v-card-title>{{ t('publishers') }}</v-card-title>
 
             <v-card-text>
               <v-data-table
@@ -1594,7 +1604,7 @@ getInventory()
               <HistoryTable></HistoryTable>
             </v-card-text>
             <v-card-actions>
-              <v-btn color="primary" variant="flat">Подробнее</v-btn>
+              <v-btn color="primary" variant="flat">{{ t('details') }}</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -1603,14 +1613,14 @@ getInventory()
       <v-row v-if="role === 3 || role === 7">
         <v-col>
           <v-card>
-            <v-card-title>Выдача и возврат</v-card-title>
+            <v-card-title>{{ t('issue_return') }}</v-card-title>
 
             <v-card-text>
               <SubscriptionTable></SubscriptionTable>
             </v-card-text>
 
             <v-card-actions>
-              <v-btn color="primary" variant="flat">Подробнее</v-btn>
+              <v-btn color="primary" variant="flat">{{ t('details') }}</v-btn>
             </v-card-actions>
           </v-card>
         </v-col>
@@ -1623,9 +1633,9 @@ getInventory()
               <v-data-table
                 :headers="[
                   { key: 'id', title: 'ID' },
-                  { key: 'name', title: 'Название' },
+                  { key: 'name', title: t('name') },
                   { key: 'description.bin', title: 'БИН' },
-                  { key: 'description.address', title: 'Адрес' },
+                  { key: 'description.address', title: t('address') },
                   { key: 'organization.label', title: 'Тип организации' },
                   { key: 'report', title: 'Отчет' },
                   { key: 'actions', title: '' }
@@ -1640,14 +1650,14 @@ getInventory()
                     variant="flat"
                     @click="downloadMinistryReport"
                   >
-                    Скачать
+                  {{ t('download_pdf') }}
                   </v-btn>
                 </template>
                 <template v-slot:[`item.actions`]>
                   <v-dialog max-width="90vw">
                     <template v-slot:activator="{ props }">
                       <v-btn prepend-icon="mdi-arrow-right" v-bind="props" variant="outlined"
-                        >Перейти
+                        >{{t('go_to')}}
                       </v-btn>
                     </template>
 
@@ -1671,9 +1681,9 @@ getInventory()
                                   <v-col cols="6">
                                     <v-card class="border">
                                       <v-card-title
-                                        >Статистика по выдачам и возвратам книг
+                                        >{{ t('issue_return_statistics') }}
                                       </v-card-title>
-                                      <v-card-subtitle>Легко отслеживай статистику</v-card-subtitle>
+                                      <v-card-subtitle>{{ t('easy_to_track_statistics') }}</v-card-subtitle>
 
                                       <v-card-text>
                                         <v-container fluid>
@@ -1724,7 +1734,7 @@ getInventory()
                                 <v-row>
                                   <v-col cols="3">
                                     <v-card class="border">
-                                      <v-card-title>Книги по странам</v-card-title>
+                                      <v-card-title>{{ t('books_by_country') }}</v-card-title>
                                       <v-card-text>
                                         <v-list>
                                           <v-list-item
@@ -1766,7 +1776,7 @@ getInventory()
                                   </v-col>
                                   <v-col>
                                     <v-card>
-                                      <v-card-title>Читатели по возрасту</v-card-title>
+                                      <v-card-title>{{ t('readers_by_age') }}</v-card-title>
 
                                       <v-card-text>
                                         <Pie :data="agesChartData" :options="options" />
@@ -1779,7 +1789,7 @@ getInventory()
                                   </v-col>
                                   <v-col cols="4">
                                     <v-card class="border">
-                                      <v-card-title> Классы по количеству читателей</v-card-title>
+                                      <v-card-title> {{ t('classes_by_number_of_readers') }}</v-card-title>
 
                                       <v-card-text>
                                         <v-data-table
@@ -1800,7 +1810,7 @@ getInventory()
                                 <v-row>
                                   <v-col>
                                     <v-card class="border">
-                                      <v-card-title>Состояние по фонду книг</v-card-title>
+                                      <v-card-title>{{ t('fund_status') }}</v-card-title>
 
                                       <v-card-text>
                                         <v-data-table
@@ -1816,7 +1826,7 @@ getInventory()
                                               variant="text"
                                               @click="downloadPDF()"
                                             >
-                                              Подробнее
+                                              {{ t('details') }}
                                               <template v-slot:append>
                                                 <v-icon
                                                   color="primary"
@@ -1836,7 +1846,7 @@ getInventory()
 
                                   <v-col>
                                     <v-card>
-                                      <v-card-title>Издательства</v-card-title>
+                                      <v-card-title>{{t('publishers')}}</v-card-title>
 
                                       <v-card-text>
                                         <v-data-table
@@ -1857,14 +1867,14 @@ getInventory()
                                 <v-row>
                                   <v-col>
                                     <v-card class="border">
-                                      <v-card-title>Выдача и возврат</v-card-title>
+                                      <v-card-title>{{ t('issue_return') }}</v-card-title>
 
                                       <v-card-text>
                                         <SubscriptionTable></SubscriptionTable>
                                       </v-card-text>
 
                                       <v-card-actions>
-                                        <v-btn color="primary" variant="flat">Подробнее</v-btn>
+                                        <v-btn color="primary" variant="flat">{{ t('details') }}</v-btn>
                                       </v-card-actions>
                                     </v-card>
                                   </v-col>
@@ -1882,7 +1892,7 @@ getInventory()
                                             <div class="d-flex flex-column">
                                               <strong>42</strong>
                                               <span class="text-medium-emphasis"
-                                                >Название книги</span
+                                                >{{t('book_title')}}</span
                                               >
                                             </div>
                                             <div class="d-flex flex-column">
@@ -1894,7 +1904,7 @@ getInventory()
                                             <div class="d-flex flex-column">
                                               <strong>300 000 000</strong>
                                               <span class="text-medium-emphasis"
-                                                >Сумма поступления книг</span
+                                                >{{ t('amount_received') }}</span
                                               >
                                             </div>
                                           </div>
@@ -1909,12 +1919,12 @@ getInventory()
                                     <v-card class="border">
                                       <v-data-table
                                         :headers="[
-                                          { key: 'title', title: 'Название' },
-                                          { key: 'author', title: 'Автор' },
-                                          { key: 'year', title: 'Год издания' },
-                                          { key: 'admissionDate', title: 'Дата поступления' },
-                                          { key: 'price', title: 'Цена' },
-                                          { key: 'amount', title: 'Количество' }
+                                          { key: 'title', title: t('name') },
+                                          { key: 'author', title: t('author') },
+                                          { key: 'year', title: t('year_of_publication') },
+                                          { key: 'admissionDate', title: t('reception_date') },
+                                          { key: 'price', title: t('price') },
+                                          { key: 'amount', title: t('quantity') }
                                         ]"
                                         :items="[
                                           {
@@ -1963,7 +1973,7 @@ getInventory()
                     <v-col>
                       <v-text-field
                         v-model="schoolSearchName"
-                        label="Поиск по названию"
+                        :label="t('search_by_title')"
                         prepend-inner-icon="mdi-magnify"
                         variant="outlined"
                       ></v-text-field>

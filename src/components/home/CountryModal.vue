@@ -3,7 +3,8 @@ import { ref, type Ref } from 'vue'
 import { useAPI } from '@/api'
 import qazaqstan from '@/assets/flags/qazaqstan.svg'
 import world from '@/assets/flags/world.svg'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Country {
   amount: number
   country: string
@@ -14,7 +15,7 @@ const api = useAPI()
 
 const countriesHeaders = [
   { key: 'country', title: 'Страна' },
-  { key: 'amount', title: 'Экземпляры книг' }
+  { key: 'amount', title: t('book_copies') }
 ]
 
 const countries: Ref<Country[] | null> = ref(null)
@@ -50,12 +51,14 @@ const countriesMini = ref([
   }
 ])
 
+
+
 getCountries()
 </script>
 
 <template>
   <v-card>
-    <v-card-title>Книги по странам</v-card-title>
+    <v-card-title>{{ t('books_by_country') }}</v-card-title>
     <v-card-text>
       <v-list>
         <v-list-item v-for="country in countriesMini" :key="country.id">
@@ -81,14 +84,14 @@ getCountries()
     <v-card-actions>
       <v-dialog max-width="640">
         <template v-slot:activator="{ props: activatorProps }">
-          <v-btn color="primary" v-bind="activatorProps" variant="flat">Подробнее</v-btn>
+          <v-btn color="primary" v-bind="activatorProps" variant="flat">{{ t('details') }}</v-btn>
         </template>
 
         <template v-slot:default="{ isActive }">
           <v-card>
             <v-card-title>
               <div class="d-flex justify-space-between">
-                <strong class="my-auto">Книги по странам</strong>
+                <strong class="my-auto">{{ t('books_by_country') }}</strong>
                 <v-btn icon="mdi-close" variant="text" @click="isActive.value = false"></v-btn>
               </div>
             </v-card-title>

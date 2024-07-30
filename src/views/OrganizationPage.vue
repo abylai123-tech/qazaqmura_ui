@@ -4,15 +4,16 @@ import { useRoute } from 'vue-router'
 import HelpButton from '@/components/HelpButton.vue'
 import { type Ref, ref, watch } from 'vue'
 import school from '@/assets/school.svg'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 const api = useAPI()
 const route = useRoute()
 
 const headers = [
   { key: 'id', title: 'ID' },
-  { key: 'name', title: 'ФИО' },
-  { key: 'activity', title: 'Данные' },
-  { key: 'actions', title: 'Статус' }
+  { key: 'name', title: t('full_name') },
+  { key: 'activity', title: t('data') },
+  { key: 'actions', title: t('status') }
 ]
 
 const items = [
@@ -214,18 +215,18 @@ getOrganization()
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item class="my-2">
-        <span class="font-weight-bold">Основное</span>
+        <span class="font-weight-bold">{{t('basic')}}</span>
       </v-list-item>
 
       <v-list-item>
         <v-text-field
           v-model="requestBody.name"
           class="mt-1"
-          label="Название"
+          :label="t('name')"
           variant="outlined"
         ></v-text-field>
         <v-text-field v-model="requestBody.bin" label="БИН" variant="outlined"></v-text-field>
-        <v-textarea v-model="requestBody.address" label="Адрес" variant="outlined"></v-textarea>
+        <v-textarea v-model="requestBody.address" :label="t('address')" variant="outlined"></v-textarea>
         <v-select
           v-model="requestBody.organization_id"
           :items="organizationTypes"
@@ -317,8 +318,8 @@ getOrganization()
       </v-list-item>
 
       <v-list-item class="mt-2 mb-6 text-center">
-        <v-btn class="mr-10" variant="tonal" @click="organizationDrawer = false">Закрыть</v-btn>
-        <v-btn color="primary" variant="flat" @click="sendEdit">Добавить</v-btn>
+        <v-btn class="mr-10" variant="tonal" @click="organizationDrawer = false">{{t('close')}}</v-btn>
+        <v-btn color="primary" variant="flat" @click="sendEdit">{{t('add')}}</v-btn>
       </v-list-item>
     </v-navigation-drawer>
 
@@ -341,7 +342,7 @@ getOrganization()
                     {{ organization.description.bin }}
                   </div>
                   <div>
-                    <v-chip color="green" variant="flat">Активен</v-chip>
+                    <v-chip color="green" variant="flat">{{t('active')}}</v-chip>
                   </div>
                 </v-col>
                 <v-divider vertical></v-divider>
@@ -360,13 +361,13 @@ getOrganization()
                     </v-col>
                     <v-col cols="3">
                       <div>
-                        Почта:<br />
+                        {{t('mail')}}:<br />
                         <strong></strong>
                       </div>
                     </v-col>
                     <v-col cols="3">
                       <div>
-                        Номер телефона:<br />
+                        {{t('phone_number')}}:<br />
                         <strong></strong>
                       </div>
                     </v-col>
@@ -398,7 +399,7 @@ getOrganization()
                   <v-divider class="my-2"></v-divider>
                   <v-row>
                     <v-col cols="12">
-                      Адрес:<br />
+                      {{t('address')}}:<br />
                       {{ organization.description.address }}
                     </v-col>
                   </v-row>
@@ -408,7 +409,7 @@ getOrganization()
                         append-icon="mdi-arrow-right"
                         variant="outlined"
                         @click="editOrganization"
-                        >Изменить данные
+                        >{{t('edit_data')}}
                       </v-btn>
                     </v-col>
                     <v-col cols="4">

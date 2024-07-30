@@ -1,7 +1,8 @@
 <script lang="ts" setup>
 import { ref, type Ref } from 'vue'
 import { useAPI } from '@/api'
-
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 interface Publisher {
   publisher_id: number
   publisher: string
@@ -12,9 +13,9 @@ interface Publisher {
 const api = useAPI()
 
 const publisherHeaders = [
-  { key: 'publisher', title: 'Название' },
-  { key: 'books', title: 'Наименование книг' },
-  { key: 'amount', title: 'Экземпляры книг' }
+  { key: 'publisher', title: t('name') },
+  { key: 'books', title: t('book_titles') },
+  { key: 'amount', title: t('book_copies') }
 ]
 
 const publishers: Ref<Publisher[] | null> = ref(null)
@@ -37,14 +38,14 @@ getPublishers()
 <template>
   <v-dialog max-width="640">
     <template v-slot:activator="{ props: activatorProps }">
-      <v-btn color="primary" v-bind="activatorProps" variant="flat">Подробнее</v-btn>
+      <v-btn color="primary" v-bind="activatorProps" variant="flat">{{ t('details') }}</v-btn>
     </template>
 
     <template v-slot:default="{ isActive }">
       <v-card>
         <v-card-title>
           <div class="d-flex justify-space-between">
-            <strong class="my-auto">Издательства</strong>
+            <strong class="my-auto">{{ t('publishers') }}</strong>
             <v-btn icon="mdi-close" variant="text" @click="isActive.value = false"></v-btn>
           </div>
         </v-card-title>

@@ -5,6 +5,8 @@ import FilterBlock from '@/components/FilterBlock.vue'
 import HelpButton from '@/components/HelpButton.vue'
 import { useAuth } from '@/auth'
 import fileDownload from 'js-file-download'
+import { useI18n } from 'vue-i18n'
+const { t } = useI18n()
 
 interface User {
   id: number
@@ -128,9 +130,9 @@ const api = useAPI()
 
 const headers = [
   { title: 'ID', key: 'id' },
-  { title: 'ФИО', key: 'name' },
-  { title: 'Данные', key: 'data' },
-  { title: 'Статус', key: 'status' },
+  { title: t('full_name'), key: 'name' },
+  { title: t('data'), key: 'data' },
+  { title: t('status'), key: 'status' },
   { title: '', key: 'actions', sortable: false }
 ]
 const loading: Ref<boolean> = ref(false)
@@ -228,12 +230,12 @@ async function getSubscriptionBlock() {
     }>('/v1/dashboard/subscriptions')
     if (response.data) {
       subscriptionBlock.value = [
-        { label: 'Выдачи', value: response.data.requests },
+        { label: t('issues'), value: response.data.requests },
         {
-          label: 'Возвраты',
+          label: t('returns'),
           value: response.data.returns
         },
-        { label: 'Должники', value: response.data.promisers }
+        { label: t('debtors'), value: response.data.promisers }
       ]
     }
   } catch (e) {
@@ -522,7 +524,7 @@ getOrganizations()
         <small>Максимальный размер файла: 300 MB</small>
       </v-list-item>
       <v-list-item class="mt-2 text-center">
-        <v-btn color="primary" variant="flat" @click="sendFile">Отправить</v-btn>
+        <v-btn color="primary" variant="flat" @click="sendFile">{{t('send')}}</v-btn>
       </v-list-item>
     </v-navigation-drawer>
 
@@ -532,14 +534,14 @@ getOrganizations()
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item class="my-2">
-        <span class="font-weight-bold">Основное</span>
+        <span class="font-weight-bold">{{t('basic')}}</span>
       </v-list-item>
 
       <v-list-item>
         <v-form class="mt-4">
           <v-text-field
             v-model="requestBody.document_ID"
-            label="ИИН (необязательно)"
+            :label="t('iin')"
             variant="outlined"
           ></v-text-field>
           <v-text-field
@@ -562,7 +564,7 @@ getOrganizations()
             :items="roles"
             item-title="label"
             item-value="id"
-            label="Роль"
+            :label="t('role')"
             return-object
             variant="outlined"
           ></v-autocomplete>
@@ -635,7 +637,7 @@ getOrganizations()
                 </v-card-text>
                 <v-card-actions>
                   <v-spacer></v-spacer>
-                  <v-btn variant="tonal" @click="isActive.value = false">Закрыть</v-btn>
+                  <v-btn variant="tonal" @click="isActive.value = false">{{t('close')}}</v-btn>
                   <v-btn color="primary" variant="flat" @click="chooseRegion(isActive)"
                     >Выбрать
                   </v-btn>
@@ -651,7 +653,7 @@ getOrganizations()
         <v-btn
           append-icon="mdi-plus"
           color="primary"
-          text="Расширенные данные"
+          :text="t('extended_data')"
           variant="text"
         ></v-btn>
       </v-list-item>
@@ -660,13 +662,13 @@ getOrganizations()
         <div class="d-flex mt-4 align-center">
           <v-text-field
             v-model="requestBody.birthday"
-            label="Дата рождения"
+            :label="t('date_of_birth')"
             type="date"
             variant="outlined"
           ></v-text-field>
           <v-radio-group v-model="requestBody.sex" class="ml-4" color="primary" inline>
-            <v-radio :value="1" label="Мужчина"></v-radio>
-            <v-radio :value="2" label="Женщина"></v-radio>
+            <v-radio :value="1" :label="t('male')"></v-radio>
+            <v-radio :value="2" :label="t('female')"></v-radio>
           </v-radio-group>
         </div>
         <div class="d-flex mt-4 align-center">
@@ -675,7 +677,7 @@ getOrganizations()
             v-model="requestBody.phone"
             :rules="phoneNumberRules"
             class="ml-4"
-            label="Номер телефона"
+            :label="t('phone_number')"
             maxlength="16"
             variant="outlined"
             @input="formatPhoneNumber"
@@ -687,7 +689,7 @@ getOrganizations()
           color="primary"
           label="Добавить контактное лицо"
         ></v-switch>
-        <v-switch v-model="addStructure" class="ml-2" color="primary" label="Структура"></v-switch>
+        <v-switch v-model="addStructure" class="ml-2" color="primary" :label="t('structure')"></v-switch>
       </v-list-item>
 
       <v-list-item v-if="addContactPerson">
@@ -705,7 +707,7 @@ getOrganizations()
         <div class="d-flex">
           <v-text-field
             v-model="requestBody.relation.phone"
-            label="Номер телефона"
+            :label="t('phone_number')"
             type="tel"
             variant="outlined"
           ></v-text-field>
@@ -722,7 +724,7 @@ getOrganizations()
       </v-list-item>
 
       <v-list-item v-if="addStructure">
-        <div class="font-weight-bold">Структура</div>
+        <div class="font-weight-bold">{{t('structure')}}</div>
         <div class="d-flex">
           <v-select
             v-model="classroom.number"
@@ -744,21 +746,21 @@ getOrganizations()
       </v-list-item>
 
       <v-list-item class="mt-2 mb-6 text-center">
-        <v-btn class="mr-10" variant="tonal" @click="createDrawer = false">Закрыть</v-btn>
-        <v-btn color="primary" variant="flat" @click="createUser">Добавить</v-btn>
+        <v-btn class="mr-10" variant="tonal" @click="createDrawer = false">{{t('close')}}</v-btn>
+        <v-btn color="primary" variant="flat" @click="createUser">{{t('add')}}</v-btn>
       </v-list-item>
     </v-navigation-drawer>
 
     <v-navigation-drawer v-model="structureDrawer" location="right" temporary width="600">
       <v-list-item>
-        <span class="font-weight-bold">Структура</span>
+        <span class="font-weight-bold">{{t('structure')}}</span>
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item>
         <v-data-table
           :headers="[
             { key: 'id', title: 'ID' },
-            { key: 'name', title: 'Название' }
+            { key: 'name', title: t('name') }
           ]"
           :items="schools"
           :items-per-page="15"
@@ -770,7 +772,7 @@ getOrganizations()
                 <v-data-table
                   :headers="[
                     { key: 'id', title: 'ID' },
-                    { key: 'title', title: 'Название' }
+                    { key: 'title', title: t('name') }
                   ]"
                   :items="item.structure"
                   show-expand
@@ -782,7 +784,7 @@ getOrganizations()
                         <v-data-table
                           :headers="[
                             { key: 'id', title: 'ID' },
-                            { key: 'title', title: 'Название' }
+                            { key: 'title', title: t('name') }
                           ]"
                           :items="item.classrooms"
                           show-expand
@@ -856,27 +858,27 @@ getOrganizations()
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">Абонемент</span>
+          <span class="text-h6 font-weight-bold">{{t('subscription')}}</span>
           <span class="text-subtitle-2 text-medium-emphasis"
-            >Онлайн читательский билет класса, запись и регистрация читателей, выдача
+            >{{t('online_library_card_registration')}}
           </span>
         </div>
       </template>
 
       <template v-slot:append>
-        <v-btn class="mr-3" variant="tonal" @click="structureDrawer = true">Структура</v-btn>
+        <v-btn class="mr-3" variant="tonal" @click="structureDrawer = true">{{t('structure')}}</v-btn>
         <v-menu>
           <template v-slot:activator="{ props }">
             <v-btn append-icon="mdi-chevron-down" class="mr-3" v-bind="props" variant="tonal"
-              >Скачать PDF
+              >{{t('download_pdf')}}
             </v-btn>
           </template>
 
           <v-list>
-            <v-list-item :value="1" @click="downloadList()">Весь список</v-list-item>
-            <v-list-item :value="2" @click="downloadList(4)">Классный руководитель</v-list-item>
-            <v-list-item :value="3" @click="downloadList(5)">Школьники</v-list-item>
-            <v-list-item :value="4" @click="downloadList(6)">Сотрудники школы</v-list-item>
+            <v-list-item :value="1" @click="downloadList()">{{t('entire_list')}}</v-list-item>
+            <v-list-item :value="2" @click="downloadList(4)">{{t('class_teacher')}}</v-list-item>
+            <v-list-item :value="3" @click="downloadList(5)">{{t('students')}}</v-list-item>
+            <v-list-item :value="4" @click="downloadList(6)">{{t('school_staff')}}</v-list-item>
           </v-list>
         </v-menu>
         <v-menu>
@@ -887,15 +889,15 @@ getOrganizations()
               color="primary"
               v-bind="props"
               variant="flat"
-              >Добавить
+              >{{t('add')}}
             </v-btn>
           </template>
 
           <v-list>
-            <v-list-item :value="1" @click="downloadExcel">Скачать шаблон импорта</v-list-item>
-            <v-list-item :value="2" @click="drawer = true">Импорт</v-list-item>
+            <v-list-item :value="1" @click="downloadExcel">{{t('download_import_template')}}</v-list-item>
+            <v-list-item :value="2" @click="drawer = true">{{ t('import') }}</v-list-item>
             <v-list-item :value="3" @click="createDrawer = true"
-              >Добавить индивидуально
+              >{{t('add_individually')}}
             </v-list-item>
           </v-list>
         </v-menu>
@@ -959,19 +961,19 @@ getOrganizations()
           </div>
           <div>
             <span class="text-subtitle-2 text-medium-emphasis"
-              >Первая активность: {{ item.activated_at }}</span
+              >{{t('first_activity')}}: {{ item.activated_at }}</span
             >
           </div>
           <div>
             <span class="text-subtitle-2 text-medium-emphasis"
-              >Последняя активность: {{ item.last_used_at }}</span
+              >{{t('last_activity')}}: {{ item.last_used_at }}</span
             >
           </div>
           <div class="my-2">
             <v-chip v-if="item.role" class="mr-2" color="primary" size="small" variant="outlined"
               >{{ item.role }}
             </v-chip>
-            <v-chip v-if="item.status" color="green" size="small" variant="flat">Активен</v-chip>
+            <v-chip v-if="item.status" color="green" size="small" variant="flat">{{t('active')}}</v-chip>
             <v-chip v-else color="error" size="small" variant="flat">Не активен</v-chip>
           </div>
         </div>
@@ -1006,7 +1008,7 @@ getOrganizations()
             append-icon="mdi-arrow-right"
             class="mr-2"
             variant="outlined"
-            >Перейти
+            >{{t('go_to')}}
           </v-btn>
           <v-btn icon="mdi-download" variant="text"></v-btn>
         </div>
