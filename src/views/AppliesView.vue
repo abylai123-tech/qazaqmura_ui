@@ -113,7 +113,7 @@ watch(page, () => {
       </template>
 
       <template v-slot:append>
-        <help-button />
+        <!-- <help-button /> -->
         <v-btn
           class="ml-3"
           color="primary"

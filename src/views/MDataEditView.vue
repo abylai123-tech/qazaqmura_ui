@@ -475,7 +475,7 @@ getItem()
       </template>
 
       <template v-slot:append>
-        <help-button class="mr-3" />
+        <!-- <help-button class="mr-3" /> -->
         <v-btn color="primary" prepend-icon="mdi-plus" to="/m-data/add" variant="flat"
           >{{t('add')}}
         </v-btn>

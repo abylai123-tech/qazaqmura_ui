@@ -206,7 +206,7 @@ getOrganization()
         >Назад к списку
       </v-btn>
       <v-spacer></v-spacer>
-      <help-button></help-button>
+      <!-- <help-button></help-button> -->
     </v-app-bar>
 
     <v-navigation-drawer v-model="organizationDrawer" location="right" temporary width="700">

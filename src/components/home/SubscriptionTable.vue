@@ -36,9 +36,17 @@ const loading: Ref<boolean> = ref(false)
 async function getItems() {
   loading.value = true
   try {
-    let request = '/v1/dashboard/subscription-modal'
-    if (subscriptionStatus.value) request += `?status=${subscriptionStatus.value}`
+    let request = '/v1/dashboard/subscription-modal?1=1'
+    if (subscriptionStatus.value) request += `&status=${subscriptionStatus.value}`
     if (subscriptionStatus.value && bookType.value) request += `&type_id=${bookType.value}`
+    if (startDate.value.length === 10) {
+      const startDateToFormat = startDate.value.split('.')
+      request += `&start_date=${startDateToFormat[2]}-${startDateToFormat[1]}-${startDateToFormat[0]}`
+    }
+    if (endDate.value.length === 10) {
+      const endDateToFormat = startDate.value.split('.')
+      request += `&start_date=${endDateToFormat[2]}-${endDateToFormat[1]}-${endDateToFormat[0]}`
+    }
     else if (!subscriptionStatus.value && bookType.value) request += `?type_id=${bookType.value}`
     const response = await api.fetchData<{
       data: { items: Subscription[] }
@@ -63,6 +71,36 @@ async function getTypes(search = null) {
   }
 }
 
+const startDate = ref('')
+const endDate = ref('')
+
+const handleStartDate = () => {
+  let value = startDate.value.replace(/\D/g, '')
+  if (value.length >= 3) {
+    value = value.slice(0, 2) + '.' + value.slice(2)
+  }
+  if (value.length >= 6) {
+    value = value.slice(0, 5) + '.' + value.slice(5)
+  }
+  if (value.length >= 10) {
+    value = value.slice(0, 10)
+  }
+  startDate.value = value
+}
+
+const handleEndDate = () => {
+  let value = endDate.value.replace(/\D/g, '')
+  if (value.length >= 3) {
+    value = value.slice(0, 2) + '.' + value.slice(2)
+  }
+  if (value.length >= 6) {
+    value = value.slice(0, 5) + '.' + value.slice(5)
+  }
+  if (value.length >= 10) {
+    value = value.slice(0, 10)
+  }
+  endDate.value = value
+}
 
 
 getItems()
@@ -73,6 +111,14 @@ watch(subscriptionStatus, () => {
 })
 
 watch(bookType, () => {
+  getItems()
+})
+
+watch(startDate, () => {
+  getItems()
+})
+
+watch(endDate, () => {
   getItems()
 })
 </script>
@@ -101,10 +147,20 @@ watch(bookType, () => {
         >
         </v-select>
         <v-text-field
-          label="Фильтр по дате"
+          label="Дата начала"
           prepend-inner-icon="mdi-calendar"
-          type="date"
+          type="text"
           variant="outlined"
+          v-model="startDate"
+          @input="handleStartDate"
+        ></v-text-field>
+        <v-text-field
+          label="Дата конца"
+          prepend-inner-icon="mdi-calendar"
+          type="text"
+          v-model="endDate"
+          variant="outlined"
+          @input="handleEndDate"
         ></v-text-field>
       </v-col>
       <v-col>

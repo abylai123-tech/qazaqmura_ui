@@ -1,12 +1,14 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
-import { ref, type Ref, watch } from 'vue'
+import { ref, type Ref, watch, watchEffect } from 'vue'
 import FilterBlock from '@/components/FilterBlock.vue'
 import HelpButton from '@/components/HelpButton.vue'
 import { useAuth } from '@/auth'
 import fileDownload from 'js-file-download'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
+import QRCode from 'qrcode';
+
 interface Inventory {
   amount: any
   id: number
@@ -52,6 +54,8 @@ const book: Ref<Inventory | null> = ref(null)
 const inventories: Ref<Number[]> = ref([])
 
 const api = useAPI()
+
+const showQR = ref(false)
 
 async function addToInventory(inventories: Number[]) {
   const bookSchoolId = book.value ? book.value.book_school_id : null
@@ -244,6 +248,49 @@ const editInvent = async (item) => {
   item.editMode = false
 }
 
+const qrCodeDataUrl = ref('');
+const qrCanvas = ref(null);
+const qrText = ref('')
+
+const generateQR = async (item: any) => {
+  try {
+    const response = await api.fetchFile('/v1/book/inventory/qr', { book_id: item.book_school_id });
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'qrcode.pdf';
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+  } catch (e) {
+    console.error(e.message)
+  }
+}
+
+
+const generateListQR = async () => {
+  try {
+    const response = await api.fetchFile('/v1/book/inventory/qr/list', { school_id: auth.userData.value.school.id });
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'qrcode-list.pdf';
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+  } catch (e) {
+    console.error(e.message)
+  }
+}
+
 watch(page, () => {
   searchContractors()
 })
@@ -263,30 +310,24 @@ watch(sort, () => {
       <v-list-item v-if="book">
         <div class="mt-4 font-weight-bold text-h6">{{ book.title }} / {{ book.amount }}</div>
         <div class="mt-2">
-          <v-chip
-            v-for="author in book.author"
-            :key="author.id"
-            class="mr-2"
-            color="primary"
-            size="small"
-            variant="outlined"
-          >
+          <v-chip v-for="author in book.author" :key="author.id" class="mr-2" color="primary" size="small"
+            variant="outlined">
             {{ author.name }}
           </v-chip>
         </div>
         <div class="d-flex w-50 mt-2">
           <div class="d-flex w-50 flex-column">
-            <strong>{{t('language')}}</strong>
+            <strong>{{ t('language') }}</strong>
             <span></span>
           </div>
           <div class="d-flex w-50 flex-column">
-            <strong>{{t('year_of_publication')}}</strong>
+            <strong>{{ t('year_of_publication') }}</strong>
             <span>{{ info ? info.book.year : '' }}</span>
           </div>
         </div>
         <div class="d-flex w-50 mt-2">
           <div class="d-flex w-50 flex-column">
-            <strong>{{t('publisher')}}</strong>
+            <strong>{{ t('publisher') }}</strong>
             <div></div>
           </div>
           <div class="d-flex w-50 flex-column">
@@ -295,34 +336,19 @@ watch(sort, () => {
         </div>
       </v-list-item>
       <v-list-item>
-        <v-autocomplete
-          v-model="book"
-          :items="inventorySearch"
-          class="pt-10"
-          item-title="title"
-          :label="t('book')"
-          placeholder="Напишите название"
-          return-object
-          variant="outlined"
-          @update:search="getInventorySearch"
-        ></v-autocomplete>
+        <v-autocomplete v-model="book" :items="inventorySearch" class="pt-10" item-title="title" :label="t('book')"
+          placeholder="Напишите название" return-object variant="outlined"
+          @update:search="getInventorySearch"></v-autocomplete>
       </v-list-item>
       <div v-if="book">
-        <v-list-item><strong>{{t('inventory_numbers')}}</strong></v-list-item>
+        <v-list-item><strong>{{ t('inventory_numbers') }}</strong></v-list-item>
         <v-list-item v-for="n in book.amount - book.book_inventory.length" :key="n">
-          <v-text-field
-            v-model="inventories[n - 1]"
-            class="mt-2"
-            label="Инвентарный номер"
-            placeholder="Напишите номер"
-            type="number"
-            variant="outlined"
-          ></v-text-field>
+          <v-text-field v-model="inventories[n - 1]" class="mt-2" label="Инвентарный номер" placeholder="Напишите номер"
+            type="number" variant="outlined"></v-text-field>
         </v-list-item>
         <v-list-item>
-          <v-btn class="mr-3" variant="tonal" @click="closeInventory">{{t('close')}}</v-btn>
-          <v-btn color="primary" variant="flat" @click="addToInventory(inventories)"
-            >{{t('add')}}
+          <v-btn class="mr-3" variant="tonal" @click="closeInventory">{{ t('close') }}</v-btn>
+          <v-btn color="primary" variant="flat" @click="addToInventory(inventories)">{{ t('add') }}
           </v-btn>
         </v-list-item>
       </div>
@@ -331,18 +357,15 @@ watch(sort, () => {
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">{{t('inventory_management')}}</span>
-          <span class="text-subtitle-2 text-medium-emphasis"
-            >{{t('online_inventory_of_books')}}</span
-          >
+          <span class="text-h6 font-weight-bold">{{ t('inventory_management') }}</span>
+          <span class="text-subtitle-2 text-medium-emphasis">{{ t('online_inventory_of_books') }}</span>
         </div>
       </template>
 
       <template v-slot:append>
         <v-menu>
           <template v-slot:activator="{ props }">
-            <v-btn class="mr-3" prepend-icon="mdi-chevron-down" v-bind="props" variant="tonal"
-              >{{t('sorting')}}
+            <v-btn class="mr-3" prepend-icon="mdi-chevron-down" v-bind="props" variant="tonal">{{ t('sorting') }}
             </v-btn>
           </template>
 
@@ -358,91 +381,58 @@ watch(sort, () => {
 
         <v-menu>
           <template v-slot:activator="{ props }">
-            <v-btn
-              class="mr-3"
-              color="primary"
-              prepend-icon="mdi-chevron-down"
-              v-bind="props"
-              variant="flat"
-              >{{ t('download_pdf') }}
+            <v-btn class="mr-3" color="primary" prepend-icon="mdi-chevron-down" v-bind="props" variant="flat">{{
+              t('download_pdf') }}
             </v-btn>
           </template>
 
           <v-list>
-            <v-list-item @click="downloadPDF(1)">{{t('inventory_list')}}</v-list-item>
-            <v-list-item @click="downloadPDF(2)">{{t('list_of_written_off_books')}}</v-list-item>
+            <v-list-item @click="downloadPDF(1)">{{ t('inventory_list') }}</v-list-item>
+            <v-list-item @click="downloadPDF(2)">{{ t('list_of_written_off_books') }}</v-list-item>
           </v-list>
         </v-menu>
 
         <v-menu>
           <template v-slot:activator="{ props }">
-            <v-btn class="mr-3" prepend-icon="mdi-chevron-down" v-bind="props" variant="tonal"
-              >{{t('inventory')}}
+            <v-btn class="mr-3" prepend-icon="mdi-chevron-down" v-bind="props" variant="tonal">{{ t('inventory') }}
             </v-btn>
           </template>
 
           <v-list>
             <v-list-item @click="drawer = true"> Инвентаризация</v-list-item>
-            <v-list-item :to="{ name: 'inventoryWriteOff' }"> {{t('write_off')}}</v-list-item>
-            <v-list-item :to="{ name: 'inventoryDecline' }"> {{t('rollback')}}</v-list-item>
+            <v-list-item :to="{ name: 'inventoryWriteOff' }"> {{ t('write_off') }}</v-list-item>
+            <v-list-item :to="{ name: 'inventoryDecline' }"> {{ t('rollback') }}</v-list-item>
+            <v-list-item @click="generateListQR()">QR номера</v-list-item>
           </v-list>
         </v-menu>
 
-        <help-button class="mr-3" />
+        <help-button video-id="Lil4z75KxjA" class="mr-3" />
       </template>
     </v-app-bar>
 
     <v-row>
       <v-col cols="12">
-        <FilterBlock
-          v-model="filters"
-          :bottom-items="
-            auth.user.value && auth.user.value.roles.some((obj) => obj.id === 1) ? [] : bottomItems
-          "
-          :mdata="false"
-          :one-line="false"
-          :users="false"
-          inventory
-          @search="searchContractors"
-        >
+        <FilterBlock v-model="filters" :bottom-items="auth.user.value && auth.user.value.roles.some((obj) => obj.id === 1) ? [] : bottomItems
+          " :mdata="false" :one-line="false" :users="false" inventory @search="searchContractors">
         </FilterBlock>
       </v-col>
     </v-row>
 
-    <v-data-table
-      :headers="headers"
-      :items="
-        items.filter((item) => {
-          return item.inventory
-        })
-      "
-      :items-per-page="items.length"
-      class="mt-2"
-    >
+    <v-data-table :headers="headers" :items="items.filter((item) => {
+      return item.inventory
+    })
+      " :items-per-page="items.length" class="mt-2">
       <template v-slot:[`item.book`]="{ item }">
         <div class="mt-3">{{ item.title }}</div>
-        <div class="text-subtitle-2 text-medium-emphasis">{{t('year_of_publication')}}: {{ item.year }}</div>
+        <div class="text-subtitle-2 text-medium-emphasis">{{ t('year_of_publication') }}: {{ item.year }}</div>
         <div class="mb-3">
-          <v-chip
-            v-for="author in item.author"
-            :key="author"
-            class="mr-2"
-            color="primary"
-            size="x-small"
-            variant="outlined"
-            >{{ author }}
+          <v-chip v-for="author in item.author" :key="author" class="mr-2" color="primary" size="x-small"
+            variant="outlined">{{ author }}
           </v-chip>
         </div>
         <div class="my-1">
-          <v-chip
-            v-for="pub in item.publisher"
-            :key="pub"
-            class="mr-2"
-            color="green"
-            size="small"
-            variant="flat"
-            >{{t('publisher')}}: <span>{{ pub }}</span></v-chip
-          >
+          <v-chip v-for="pub in item.publisher" :key="pub" class="mr-2" color="green" size="small" variant="flat">{{
+            t('publisher') }}: <span>{{ pub }}</span></v-chip>
         </div>
       </template>
 
@@ -456,28 +446,22 @@ watch(sort, () => {
           <v-chip color="primary" size="x-small" variant="outlined">Новая</v-chip>
         </div>
         <div>Дата: {{ item.admission_at }}</div>
-        <div>{{t('price')}}: {{ item.price }}</div>
+        <div>{{ t('price') }}: {{ item.price }}</div>
       </template>
 
       <template v-slot:[`item.invent`]="{ item }">
         <div class="mt-3"></div>
         <div class="text-subtitle-2 text-medium-emphasis">
-          <v-chip v-if="item.inventory.status === 1" size="x-small" variant="flat"
-            >{{t('status')}}: в фонде
+          <v-chip v-if="item.inventory.status === 1" size="x-small" variant="flat">{{ t('status') }}: в фонде
           </v-chip>
-          <v-chip v-else-if="item.inventory.status === 0" color="red" size="x-small" variant="flat"
-            >{{t('status')}}: списано
+          <v-chip v-else-if="item.inventory.status === 0" color="red" size="x-small" variant="flat">{{ t('status') }}:
+            списано
           </v-chip>
         </div>
       </template>
 
       <template v-slot:[`item.actions`]="{ item }">
-        <v-btn
-          v-if="!item.editMode"
-          icon="mdi-pencil"
-          variant="flat"
-          @click="turnOnEditMode(item)"
-        ></v-btn>
+        <v-btn v-if="!item.editMode" icon="mdi-pencil" variant="flat" @click="turnOnEditMode(item)"></v-btn>
         <div v-else>
           <v-btn color="green" variant="flat" @click="editInvent(item)">
             <v-icon icon="mdi-check"></v-icon>
@@ -486,21 +470,15 @@ watch(sort, () => {
             <v-icon icon="mdi-close"></v-icon>
           </v-btn>
         </div>
+        <v-btn @click="generateQR(item)" v-if="!item.editMode" variant="flat" icon="mdi-download"></v-btn>
       </template>
 
       <template v-slot:bottom></template>
     </v-data-table>
 
     <v-row class="mt-4">
-      <v-pagination
-        v-model="page"
-        :length="length"
-        :total-visible="6"
-        active-color="primary"
-        class="ml-auto mr-2"
-        size="small"
-        variant="flat"
-      ></v-pagination>
+      <v-pagination v-model="page" :length="length" :total-visible="6" active-color="primary" class="ml-auto mr-2"
+        size="small" variant="flat"></v-pagination>
     </v-row>
   </v-container>
 </template>

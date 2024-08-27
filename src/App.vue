@@ -39,6 +39,15 @@ const navigation = computed(() => [
     }
   },
   {
+    title: 'Справочник',
+    value: 20,
+    props: {
+      prependIcon: 'mdi-library',
+      appendIcon: 'mdi-chevron-right',
+      to: { name: 'quotes' }
+    }
+  },
+  {
     title: t('fund'),
     value: 4,
     props: {
@@ -173,6 +182,8 @@ const navigationActive = computed(() => {
       return 8
     case 'entity':
       return 14
+    case 'quotes':
+      return 20 
     default:
       return 0
   }
@@ -284,11 +295,11 @@ const guideItems = [
           </v-list>
         </v-menu>
 
-        <v-btn icon>
+        <!-- <v-btn icon>
           <v-badge color="error" dot>
             <v-icon icon="mdi-bell-outline"></v-icon>
           </v-badge>
-        </v-btn>
+        </v-btn> -->
 
         <v-btn icon="mdi-qrcode" @click="downloadPDF"></v-btn>
 
@@ -341,6 +352,7 @@ const guideItems = [
               prepend-icon="mdi-newspaper-variant-multiple"
               :subtitle="t('change_log')"
               :title="t('update')"
+              to="/update"
               value="5"
             ></v-list-item>
             <v-divider></v-divider>

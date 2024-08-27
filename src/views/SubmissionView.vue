@@ -107,7 +107,7 @@ const items = [
 
       <template v-slot:append>
         <v-btn variant="tonal" class="mr-3">Отчет по издателям</v-btn>
-        <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">{{t('document_generation')}}</v-btn>
+        <!-- <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">{{t('document_generation')}}</v-btn> -->
         <v-btn variant="tonal" class="mr-3" append-icon="mdi-chevron-down">{{t('download_pdf')}}</v-btn>
         <v-btn variant="flat" color="primary">Выбрать дату</v-btn>
       </template>

@@ -233,7 +233,7 @@ if (props.inventory) {
               variant="outlined"
               @input="updateValue"
             >
-              <template v-if="users || inventory" v-slot:append>
+              <template v-if="users || inventory || mdata" v-slot:append>
                 <v-menu v-if="users">
                   <template v-slot:activator="{ props }">
                     <v-btn append-icon="mdi-chevron-down" v-bind="props" variant="outlined"
@@ -251,7 +251,7 @@ if (props.inventory) {
                     </v-list-item>
                   </v-list>
                 </v-menu>
-                <v-menu v-if="inventory">
+                <v-menu v-if="inventory || mdata">
                   <template v-slot:activator="{ props }">
                     <v-btn append-icon="mdi-chevron-down" v-bind="props" variant="outlined"
                       >{{ selectedBookType.title }}

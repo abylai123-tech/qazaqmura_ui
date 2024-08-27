@@ -2,32 +2,34 @@
 import { ref, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
+import { useAPI } from '@/api'
 interface Class {
   name: string,
   mark: number,
   amount: number,
 }
 
+const api = useAPI()
+
 const classesHeaders = [
-  { key: 'name', title: 'Класс' },
-  { key: 'mark', title: 'Маркировка' },
-  { key: 'amount', title: t('quantity') }
+  { key: 'classroom', title: t('classes') },
+  { key: 'marks', title: 'Маркировка' },
+  { key: 'pupils', title: t('quantity') }
 ]
 
-const classes: Ref<Class[]> = ref([
-  { name: '1 класс', mark: 5, amount: 100 },
-  { name: '2 класс', mark: 5, amount: 150 },
-  { name: '3 класс', mark: 5, amount: 100 },
-  { name: '4 класс', mark: 5, amount: 150 },
-  { name: '5 класс', mark: 5, amount: 100 },
-  { name: '6 класс', mark: 5, amount: 150 },
-  { name: '7 класс', mark: 5, amount: 100 },
-  { name: '8 класс', mark: 5, amount: 150 },
-  { name: '9 класс', mark: 5, amount: 100 },
-  { name: '10 класс', mark: 5, amount: 150 },
-  { name: '11 класс', mark: 5, amount: 100 },
-  { name: '12 класс', mark: 5, amount: 150 },
-])
+const readers = ref<{ classroom: number, marks: number, pupils: number }[]>([])
+
+const getReaders = async () => {
+  try {
+    const response = await api.fetchData<{classroom: number, marks: number, pupils: number}[]>('/v1/dashboard/classroom/pupils')
+    if (response.data)
+      readers.value = response.data
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+
+getReaders()
 
 </script>
 
@@ -47,7 +49,7 @@ const classes: Ref<Class[]> = ref([
         </v-card-title>
 
         <v-card-text>
-          <v-data-table :headers="classesHeaders" :items="classes">
+          <v-data-table :headers="classesHeaders" :items="readers">
             <template v-slot:bottom></template>
           </v-data-table>
         </v-card-text>

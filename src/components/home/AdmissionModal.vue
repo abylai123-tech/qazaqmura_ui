@@ -15,7 +15,7 @@ async function getAdmissions() {
 const headers = [
   { key: 'number', title: '№' },
   { key: 'type', title: t('book_type') },
-  { key: 'name', title: 'Наименование' },
+  { key: 'name', title: t('name') },
   { key: 'exemplar', title: t('copy') }
 ]
 

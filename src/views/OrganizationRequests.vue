@@ -202,7 +202,7 @@ watch(page, () => {
     <v-app-bar flat>
       <v-container class="mx-auto d-flex align-center justify-center">
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">t('requests')</span>
+          <span class="text-h6 font-weight-bold">{{ t('requests') }}</span>
         </div>
         <v-spacer></v-spacer>
         <v-responsive class="mr-3" max-width="250">

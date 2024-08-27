@@ -902,7 +902,7 @@ getOrganizations()
           </v-list>
         </v-menu>
 
-        <help-button />
+        <help-button video-id="acZ_C2NBTJI" />
       </template>
     </v-app-bar>
 

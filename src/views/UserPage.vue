@@ -22,6 +22,7 @@ const passwordForm: Ref<{
   new_password: '',
   new_password_confirmation: ''
 })
+const subscriptionStatus = ref(1);
 const showAdditionalData2 = ref(false)
 
 interface UserInfo {
@@ -217,12 +218,23 @@ const returnBody: Ref<{
 
 const createRequest = async () => {
   try {
-    const requestBody = {
-      user_id: route.params.id,
-      book_school_id: selectedInventory.value.id,
-      book_inventory_id: selectedUnit.value.id,
-      return_date: formatDate(returnDate.value)
+    let requestBody
+    if (inventoryMode.value === 1) {
+      requestBody = {
+        user_id: route.params.id,
+        book_school_id: selectedInventory.value.id,
+        book_inventory_id: selectedUnit.value.id,
+        return_date: formatDate(returnDate.value)
+      }
+    } else {
+      requestBody = {
+        user_id: route.params.id,
+        book_school_id: selectedInventoryNumber.value.book_school_id,
+        book_inventory_id: selectedInventoryNumber.value.id,
+        return_date: formatDate(returnDate.value)
+      }
     }
+    requestBody.status = subscriptionStatus.value;
 
     const response = await api.postData('/v1/subscription/request', requestBody)
 
@@ -245,7 +257,7 @@ const createRequest = async () => {
 
     requestDrawer.value = false
   } catch (e) {
-    console.error('Error', e)
+    alert(e)
   }
 }
 
@@ -300,6 +312,16 @@ const getInventory = async () => {
   }
 }
 
+const inventoryNumbers = computed(() => {
+  const inventoryNumber: any[] = []
+  inventory.value.forEach((item) => {
+    item.book_inventory.forEach((inv) => {
+      inventoryNumber.push(inv)
+    })
+  })
+  return inventoryNumber;
+})
+
 const activateReturn = (id: number) => {
   returnBody.value.subscription_id = id
   returnDrawer.value = true
@@ -335,6 +357,11 @@ const downloadCard = async () => {
   }
 }
 
+
+
+const inventoryMode = ref(1);
+const selectedInventoryNumber = ref(null);
+
 getUser()
 getRoles()
 getRelatives()
@@ -352,6 +379,12 @@ getBookStates()
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item>
+        <v-radio-group color="primary" v-model="inventoryMode" inline>
+          <v-radio label="Выдача по книге" :value="1"></v-radio>
+          <v-radio label="Выдача по инвенту" :value="2"></v-radio>
+        </v-radio-group>
+      </v-list-item>
+      <v-list-item v-if="inventoryMode === 1">
         <v-autocomplete
           v-model="selectedInventory"
           :items="inventory"
@@ -362,7 +395,7 @@ getBookStates()
           variant="outlined"
         ></v-autocomplete>
       </v-list-item>
-      <v-list-item>
+      <v-list-item v-if="inventoryMode === 1">
         <v-autocomplete
           v-model="selectedUnit"
           :disabled="!selectedInventory"
@@ -373,6 +406,23 @@ getBookStates()
           return-object
           variant="outlined"
         ></v-autocomplete>
+      </v-list-item>
+      <v-list-item v-if="inventoryMode === 2">
+        <v-autocomplete
+          v-model="selectedInventoryNumber"
+          :items="inventoryNumbers"
+          class="mt-2"
+          item-title="inventory"
+          label="Инвентарь"
+          return-object
+          variant="outlined"
+        ></v-autocomplete>
+      </v-list-item>
+      <v-list-item>
+        <v-radio-group color="primary" v-model="subscriptionStatus" inline>
+          <v-radio label="На выдаче" :value="1"></v-radio>
+          <v-radio label="Читательский зал" :value="5"></v-radio>
+        </v-radio-group>
       </v-list-item>
       <v-list-item>
         <v-text-field
@@ -704,6 +754,7 @@ getBookStates()
                       >
                         {{t('download_access_card')}}
                       </v-btn>
+                      <span>03.05.2024</span>
                     </v-col>
                   </v-row>
                   <v-divider class="my-2"></v-divider>
@@ -892,9 +943,13 @@ getBookStates()
           </template>
           <template v-slot:[`item.activity`]="{ item }">
             <div class="mb-2">
-              <v-chip color="primary" variant="outlined"
-                >{{ item.status === 'return' ? t('returned') : 'На выдаче' }}
+              <v-chip v-if="item.status === 'return'" color="primary" variant="outlined"
+                >{{  t('returned') }}
               </v-chip>
+              <v-chip v-if="item.status === 'request'" color="primary" variant="outlined"
+                >  На выдаче 
+              </v-chip>
+              <v-chip color="primary" variant="outlined" v-if="item.status === 'reader'">Читательский зал</v-chip>
             </div>
             <div>{{t('issue_date')}}: {{ item.created_at }}</div>
             <div>{{t('return_date')}}: {{ item.return_date }}</div>
@@ -905,7 +960,7 @@ getBookStates()
               <v-btn color="#384352" variant="flat" @click="activateReturn(item.id)"
                 >Сделать возврат
               </v-btn>
-              <v-dialog max-width="50vw">
+              <v-dialog v-if="item.status !== 'reader'" max-width="50vw">
                 <template v-slot:activator="{ props }">
                   <v-btn class="mt-2" color="primary" v-bind="props" variant="flat"
                     >Изменить дату

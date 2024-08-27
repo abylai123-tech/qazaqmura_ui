@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
-import { ref, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 import HelpButton from '@/components/HelpButton.vue'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
@@ -48,19 +48,25 @@ async function getItems() {
   }
 }
 
+const searchPage = ref(1)
+const searchLength = ref(1)
+
 async function getBooks() {
   try {
     const response = await api.fetchData<{
       meta: { last_page: number }
       data: { items: any[] }
-    }>(`/v1/purchase/book?page=1`)
+    }>(`/v2/book/purchase?page=${searchPage.value}`)
     if (response.data) {
-      books.value = response.data.data.items
+      books.value = response.data.data
+      searchLength.value = response.data.meta.last_page
     }
   } catch (error) {
     console.error('Error:', error)
   }
 }
+
+watch(searchPage, () => getBooks())
 
 async function orderBooks(id: number, amount: number) {
   try {
@@ -96,29 +102,25 @@ getBooks()
                   <div class="d-flex flex-column">
                     <div>
                       <v-chip
-                        v-for="author in book.authors_main"
-                        :key="author.id"
                         class="mr-2"
                         color="primary"
                         size="small"
                         variant="outlined"
-                        >{{ author.name }}
+                        >{{ book.authors }}
                       </v-chip>
                       <v-chip
-                        v-for="genre in book.genres"
-                        :key="genre.id"
                         class="mr-2"
                         color="primary"
                         size="small"
                         variant="outlined"
-                        >{{ genre.title }}
+                        >{{ book.genres }}
                       </v-chip>
                     </div>
                     <table class="w-100 pt-2">
                       <tr>
                         <td>
                           <div class="font-weight-bold">{{t('language')}}</div>
-                          <div>{{ book.language.title }}</div>
+                          <div>{{ book.language }}</div>
                         </td>
                         <td>
                           <div class="font-weight-bold">{{t('year_of_publication')}}</div>
@@ -127,13 +129,10 @@ getBooks()
                       </tr>
                       <tr>
                         <td class="pt-2">
-                          <div class="font-weight-bold">{{t('publisher')}}</div>
-                          <div>{{ book.publisher.title }}</div>
+                          <div class="font-weight-bold">Возрастная характеристика</div>
+                          <div>{{ book.age }}</div>
                         </td>
-                        <td class="pt-2">
-                          <div class="font-weight-bold">{{t('type')}}</div>
-                          <div>{{ book.type.title }}</div>
-                        </td>
+                      
                       </tr>
                     </table>
                   </div>
@@ -165,6 +164,9 @@ getBooks()
             </v-card-text>
           </v-card>
         </v-list-item>
+        <v-list-item>
+          <v-pagination color="primary" v-model="searchPage" :length="searchLength"></v-pagination>
+        </v-list-item>
       </v-list>
     </v-navigation-drawer>
 
@@ -179,7 +181,7 @@ getBooks()
       </template>
 
       <template v-slot:append>
-        <help-button></help-button>
+        <!-- <help-button></help-button> -->
         <v-btn
           class="ml-3"
           color="primary"

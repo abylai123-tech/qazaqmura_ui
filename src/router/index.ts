@@ -25,6 +25,10 @@ import MDataEditView from '@/views/MDataEditView.vue'
 import InventoryDeclineView from '@/views/InventoryDeclineView.vue'
 import ApplyView from '@/views/ApplyView.vue'
 import RegionsView from '@/views/RegionsView.vue'
+import BookPage from '@/views/BookPage.vue'
+import BkView from '@/views/BkView.vue'
+import UpdateView from '@/views/UpdateView.vue'
+import QuotesView from '@/views/QuotesView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -164,13 +168,13 @@ const router = createRouter({
     {
       path: '/bbk',
       name: 'bbk',
-      component: EntityView,
+      component: BkView,
       meta: { requiresAuth: true }
     },
     {
       path: '/udk',
       name: 'udk',
-      component: EntityView,
+      component: BkView,
       meta: { requiresAuth: true }
     },
     {
@@ -291,6 +295,24 @@ const router = createRouter({
       path: '/regions',
       name: 'regions',
       component: RegionsView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/book/:id',
+      name: 'book',
+      component: BookPage,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/update',
+      name: 'update',
+      component: UpdateView,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/quotes',
+      name: 'quotes',
+      component: QuotesView,
       meta: { requiresAuth: true }
     }
   ]

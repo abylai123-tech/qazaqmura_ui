@@ -143,6 +143,19 @@ async function getBooks() {
   }
 }
 
+const editData = async (isActive: Ref<boolean>) => {
+  const bookSchoolForm = {
+    amount: selectedItem.value.amount,
+    price: selectedItem.value.price,
+    admission_at: admissionDate.value,
+    contractor_id: selectedItem.value.contractor2.id
+  }
+  await api.putData(`/v1/book/school/${selectedItem.value.book_school_id}`, bookSchoolForm)
+  await getBooks()
+
+  isActive.value = false
+}
+
 const filterBlock = {
   bottomItems: [
     { label: t('book_title'), value: 42 },
@@ -190,6 +203,22 @@ async function submitClear(isActive: Ref<boolean>, bookId: number | null) {
   } catch (error) {
     console.error('Error:', error)
   }
+}
+
+const admissionDate = ref('')
+
+const handleDate = () => {
+  let value = admissionDate.value.replace(/\D/g, '')
+  if (value.length >= 3) {
+    value = value.slice(0, 2) + '.' + value.slice(2)
+  }
+  if (value.length >= 6) {
+    value = value.slice(0, 5) + '.' + value.slice(5)
+  }
+  if (value.length >= 10) {
+    value = value.slice(0, 10)
+  }
+  admissionDate.value = value
 }
 
 async function submitDeletion(isActive: Ref<boolean>, bookId: number) {
@@ -241,6 +270,18 @@ async function getStates(search = null) {
   } catch (error: any) {
     console.error('Error:', error.message)
   }
+}
+
+async function selectItem(item) {
+  console.log(item)
+
+  const response = await api.fetchData('/v1/book/school/' + item.book_school_id)
+  selectedItem.value.amount = response.data.amount
+  selectedItem.value.contractor = response.data.contractor_id
+  selectedItem.value.price = response.data.price
+  selectedItem.value.book_admission_id = response.data.book_admission_id
+  selectedItem.value.book_state_id = response.data.book_state_id
+  admissionDate.value = response.data.admission_at
 }
 
 const admissionBlock: Ref<{ label: string; value: string }> = ref([])
@@ -297,7 +338,7 @@ watch(page, () => {
       </template>
 
       <template v-slot:append>
-        <v-btn class="mr-3" color="primary" variant="flat">{{t('document_generation')}}</v-btn>
+        <!-- <v-btn class="mr-3" color="primary" variant="flat">{{t('document_generation')}}</v-btn> -->
         <v-menu>
           <template v-slot:activator="{ props }">
             <v-btn
@@ -326,7 +367,7 @@ watch(page, () => {
             </v-list-item>
           </v-list>
         </v-menu>
-        <HelpButton />
+        <HelpButton video-id="ASELCx5TId8" />
       </template>
     </v-app-bar>
 
@@ -450,7 +491,7 @@ watch(page, () => {
                       color="primary"
                       v-bind="props"
                       variant="outlined"
-                      @click="selectedItem = item"
+                      @click="selectItem(item)"
                       >{{t('edit_data')}}
                     </v-btn>
                   </template>
@@ -530,7 +571,7 @@ watch(page, () => {
                               variant="outlined"
                             ></v-autocomplete>
                             <v-autocomplete
-                              v-model="selectedItem.book_admission_id"
+                              v-model="selectedItem.contractor"
                               :items="contractors"
                               item-value="id"
                               :label="t('counterparty')"
@@ -538,10 +579,11 @@ watch(page, () => {
                               variant="outlined"
                             ></v-autocomplete>
                             <v-text-field
-                              v-model="selectedItem.admission_at"
-                              :label="t('reception_date')"
-                              type="date"
+                              v-model="admissionDate"
+                              label="Дата поступления"
+                              type="text"
                               variant="outlined"
+                              @input="handleDate"
                             ></v-text-field>
                             <v-text-field
                               v-model="selectedItem.price"
@@ -556,7 +598,7 @@ watch(page, () => {
                               variant="outlined"
                             ></v-text-field>
                             <v-autocomplete
-                              v-model="selectedItem.book_admission_id"
+                              v-model="selectedItem.book_state_id"
                               :items="states"
                               item-value="id"
                               :label="t('book_condition')"
@@ -572,7 +614,7 @@ watch(page, () => {
                           class="ml-auto"
                           color="primary"
                           variant="flat"
-                          @click="isActive.value = false"
+                          @click="editData(isActive)"
                           >Сохранить
                         </v-btn>
                         <v-btn class="ml-3 mr-auto" variant="tonal" @click="isActive.value = false"

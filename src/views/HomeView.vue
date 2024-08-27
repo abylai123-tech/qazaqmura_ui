@@ -23,6 +23,7 @@ import fileDownload from 'js-file-download'
 import qazaqstan from '@/assets/flags/qazaqstan.svg'
 import world from '@/assets/flags/world.svg'
 import { useI18n } from 'vue-i18n'
+import axios from 'axios'
 const { t } = useI18n()
 const auth = useAuth()
 const api = useAPI()
@@ -100,10 +101,14 @@ const classroomItems: { name: string; books: number; amount: number }[] = [
   { name: 'Новое', books: 25, amount: 100 }
 ]
 
-async function getPublishers(): Promise<void> {
+async function getPublishers(school_id = null): Promise<void> {
+  let request = '/v1/dashboard/publisher'
+  if (school_id) {
+    request += `?school_id=${school_id}`
+  }
   publishersLoading.value = true
   try {
-    const response = await api.fetchData<Publisher[]>('/v1/dashboard/publisher')
+    const response = await api.fetchData<Publisher[]>(request)
     publishers.value = response.data
     publishersLoading.value = false
   } catch (error: any) {
@@ -113,9 +118,13 @@ async function getPublishers(): Promise<void> {
 
 const readers = ref<{ classroom: number, marks: number, pupils: number }[]>([])
 
-const getReaders = async () => {
+const getReaders = async (school_id = null) => {
+  let request = '/v1/dashboard/classroom/pupils'
+  if (school_id) {
+    request += `?school_id=${school_id}`
+  }
   try {
-    const response = await api.fetchData<{classroom: number, marks: number, pupils: number}[]>('/v1/dashboard/classroom/pupils')
+    const response = await api.fetchData<{ classroom: number, marks: number, pupils: number }[]>(request)
     if (response.data)
       readers.value = response.data
   } catch (e) {
@@ -172,9 +181,13 @@ const fundHeaders = [
 
 const userAges: Ref<UserAge[]> = ref([])
 
-async function getUserAges() {
+async function getUserAges(school_id = null) {
+  let request = '/v1/dashboard/user/age'
+  if (school_id) {
+    request += `?school_id=${school_id}`
+  }
   try {
-    const response = await api.fetchData<UserAge[]>('/v1/dashboard/user/age')
+    const response = await api.fetchData<UserAge[]>(request)
     if (response.data) userAges.value = response.data
   } catch (error: any) {
     console.error('Error:', error.message)
@@ -219,6 +232,16 @@ const pieChartData = computed(() => {
       }
     ]
   }
+})
+
+const clsData = ref({
+  labels: ['Новые', 'Старые', 'Как новые', 'Плохое', 'Отличное', 'Приемлимое'],
+  datasets: [
+    {
+      backgroundColor: ['#0095FF', '#00E096', '#884DFF', '#E81600', '#E8C300', '#F86300'],
+      data: [456, 150, 10, 120, 210, 47]
+    }
+  ]
 })
 
 const tab = ref(1)
@@ -274,7 +297,7 @@ const statistics = computed(() => {
   return []
 })
 
-async function downloadPDF(id) {
+async function downloadPDF(id: any) {
   const response = await api.postData(
     `/v1/book/school/book-state/pdf?book_state_id=${id}`,
     null,
@@ -283,13 +306,62 @@ async function downloadPDF(id) {
   if (response.data) fileDownload(response.data, `${t('fund_status')}.pdf`)
 }
 
-function downloadMinistryReport() {
-  const link = document.createElement('a')
-  link.href = ministryReport
-  link.download = 'document.pdf'
-  link.click()
-  document.body.removeChild(link)
+async function downloadMinistryReport(item: any) {
+  try {
+    const response = await api.fetchFile(`/v1/dashboard/report?school_id=${item.id}`);
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'downloaded-file.pdf';
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+  } catch (e) {
+    console.error(e);
+  }
 }
+
+const bookTypesData = ref<{ labels: string[]; data: number[] }>({
+  labels: [],
+  data: []
+})
+
+async function getBookTypes(school_id = null) {
+  let request = '/v1/dashboard/book/type'
+  if (school_id) {
+    request += `?school_id=${school_id}`
+  }
+  const response =
+    await api.fetchData<{ title: string; amount: number; books: string }[]>(
+      request
+    )
+  if (response.data) {
+    let labels: string[] = []
+    let data: number[] = []
+    response.data.forEach((item) => {
+      labels.push(`${item.title} (Экземпляров: ${item.amount} / Наименований: ${item.books})`)
+      data.push(item.amount)
+    })
+    bookTypesData.value.labels = labels
+    bookTypesData.value.data = data
+  }
+}
+
+const typesChartData = computed(() => {
+  return {
+    labels: bookTypesData.value.labels,
+    datasets: [
+      {
+        backgroundColor: ['#0095FF', '#00E096', 'red', '#884DFF', 'orange'],
+        data: bookTypesData.value.data
+      }
+    ]
+  }
+})
 
 const requests: Ref<any[]> = ref([])
 
@@ -314,20 +386,73 @@ function downloadPublisher() {
   document.body.removeChild(link)
 }
 
-const downloadSpros = () => {
-  const link = document.createElement('a')
-  link.href = spros
-  link.download = 'spros.pdf'
-  link.click()
-  document.body.removeChild(link)
+const downloadSpros = async () => {
+  try {
+    let regionId = null;
+    if (selectedRegion.value) regionId = selectedRegion.value.id;
+    if (selectedChildRegion.value) regionId = selectedChildRegion.value.id;
+    if (selectedThirdRegion.value) regionId = selectedThirdRegion.value.id;
+    const response = await api.fetchFile(`/v1/dashboard/ministry/readers?region_id=${regionId}`);
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'spros.pdf';
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
-const downloadReport = () => {
-  const link = document.createElement('a')
-  link.href = report
-  link.download = 'report.pdf'
-  link.click()
-  document.body.removeChild(link)
+const downloadReport = async () => {
+  try {
+    let regionId = null;
+    if (selectedRegion.value) regionId = selectedRegion.value.id;
+    if (selectedChildRegion.value) regionId = selectedChildRegion.value.id;
+    if (selectedThirdRegion.value) regionId = selectedThirdRegion.value.id;
+    const response = await api.fetchFile(`/v1/dashboard/ministry/report?region_id=${regionId}`);
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'report.pdf';
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+const downloadRegionReport = async () => {
+  try {
+    let regionId = null;
+    if (selectedRegion.value) regionId = selectedRegion.value.id;
+    if (selectedChildRegion.value) regionId = selectedChildRegion.value.id;
+    if (selectedThirdRegion.value) regionId = selectedThirdRegion.value.id;
+    const response = await api.fetchFile(`/v1/dashboard/ministry/regionReport?region_id=${regionId}`);
+    const blob = new Blob([response.data], { type: 'application/pdf' });
+        const url = window.URL.createObjectURL(blob);
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `regionReport.pdf`;
+        document.body.appendChild(a);
+        a.click();
+
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 interface Purchase {
@@ -358,6 +483,24 @@ interface Purchase {
   publisher: {
     id: number
     title: string
+  }
+}
+
+getBookTypes()
+
+const handleDate = () => {
+  if (returnDate.value) {
+    let value = returnDate.value.replace(/\D/g, '')
+    if (value.length >= 3) {
+      value = value.slice(0, 2) + '.' + value.slice(2)
+    }
+    if (value.length >= 6) {
+      value = value.slice(0, 5) + '.' + value.slice(5)
+    }
+    if (value.length >= 10) {
+      value = value.slice(0, 10)
+    }
+    returnDate.value = value
   }
 }
 
@@ -476,6 +619,16 @@ const getRegions = async () => {
   }
 }
 
+const selectPreview = async (school_id: null | string) => {
+  await getBookStates(school_id)
+  await getUserAges(school_id)
+  await getInventory(school_id)
+  await getPublishers(school_id)
+  await getBookTypes(school_id)
+  await getDashboard(school_id)
+  await getReaders(school_id)
+}
+
 const schools: Ref<any[]> = ref([])
 const schoolPage = ref(1)
 const schoolLength = ref(1)
@@ -485,10 +638,10 @@ const getSchools = async (search: string | null = null, name: string | null = nu
   try {
     let request = `/v1/school?page=${schoolPage.value}`
     if (search) {
-      request += `&search=${search}`
+      request += `&document_ID=${search}`
     }
     if (name) {
-      request += `&name=${name}`
+      request += `&search=${name}`
     }
     if (selectedThirdRegion.value) request += `&region_id=${selectedThirdRegion.value.id}`
     else if (selectedChildRegion.value) request += `&region_id=${selectedChildRegion.value.id}`
@@ -519,7 +672,11 @@ watch(schoolSearchName, (value) => {
 
 const regionDetailsLoaded: Ref<boolean> = ref(false)
 
-const getDashboard = async () => {
+const getDashboard = async (school_id = null) => {
+  let request = '/v1/dashboard'
+  if (school_id) {
+    request += `?school_id=${school_id}`
+  }
   try {
     const response = await api.fetchData<{
       books: { base: number; fund: number; items: number; amount: number; decommissioned: number }
@@ -560,10 +717,10 @@ const autocompleteRef = ref(null)
 const selectItem = (item: any) => {
   searchSubscription.value =
     item.user.user_data.lastname +
-    ' ' +
-    item.user.user_data.firstname +
-    ' ' +
-    item.user.user_data.fathername
+      ' ' +
+      item.user.user_data.firstname +
+      ' ' +
+      item.user.user_data.fathername
       ? item.user.user_data.fathername
       : ''
   userId.value = item.user_id
@@ -574,10 +731,10 @@ const startRequest = async (item: any) => {
   drawer.value = true
   searchSubscription.value =
     item.user.user_data.lastname +
-    ' ' +
-    item.user.user_data.firstname +
-    ' ' +
-    item.user.user_data.fathername
+      ' ' +
+      item.user.user_data.firstname +
+      ' ' +
+      item.user.user_data.fathername
       ? item.user.user_data.fathername
       : ''
 }
@@ -585,13 +742,17 @@ const startRequest = async (item: any) => {
 const inventory = ref([])
 const selectedInventory = ref(null)
 const selectedUnit = ref(null)
-const returnDate = ref(null)
+const returnDate: Ref<string | null> = ref(null)
 const bookStates: Ref<any[]> = ref([])
 const showAdditionalData = ref(false)
 
-const getBookStates = async () => {
+const getBookStates = async (school_id = null) => {
+  let request = '/v1/book/state'
+  if (school_id) {
+    request += `&school_id=${school_id}`
+  }
   try {
-    const response = await api.fetchData<{ data: { items: any[] } }>('/v1/book/state')
+    const response = await api.fetchData<{ data: { items: any[] } }>(request)
     if (response.data) bookStates.value = response.data.data.items
   } catch (e) {
     console.error('Error:', e)
@@ -601,9 +762,13 @@ const getBookStates = async () => {
 const quarter = ref(null)
 const requestAmount = ref(0)
 
-const getInventory = async () => {
+const getInventory = async (school_id: undefined) => {
+  let request = '/v1/book/school?book_inventory=1'
+  if (school_id) {
+    request += `&school_id=${school_id}`
+  }
   try {
-    const response = await api.fetchData('/v1/book/school?book_inventory=1')
+    const response = await api.fetchData(request)
     if (response.data) {
       inventory.value = response.data.data.items
     }
@@ -634,7 +799,7 @@ const createRequest = async () => {
       user_id: userId.value,
       book_school_id: selectedInventory.value.id,
       book_inventory_id: selectedUnit.value.id,
-      return_date: formatDate(returnDate.value)
+      return_date: returnDate.value
     }
 
     if (requestAmount.value && requestAmount.value > 0) {
@@ -700,88 +865,47 @@ getInventory()
 <template>
   <main>
     <v-container :fluid="role === 8 || role === 1">
-      <v-snackbar
-        v-model="snackbar"
-        :text="errorText"
-        :timeout="10000"
-        color="primary"
-      ></v-snackbar>
+      <v-snackbar v-model="snackbar" :text="errorText" :timeout="10000" color="primary"></v-snackbar>
       <v-navigation-drawer v-model="drawer" location="right" temporary width="600">
         <v-list-item>
-          <span class="font-weight-bold">{{t('issue_of_book')}}</span>
+          <span class="font-weight-bold">{{ t('issue_of_book') }}</span>
         </v-list-item>
         <v-divider></v-divider>
         <v-list-item>
-          <v-autocomplete
-            v-model="selectedInventory"
-            :items="inventory"
-            class="mt-4"
-            item-title="book.title"
-            :label="t('book')"
-            return-object
-            variant="outlined"
-          ></v-autocomplete>
+          <v-autocomplete v-model="selectedInventory" :items="inventory" class="mt-4" item-title="book.title"
+            :label="t('book')" return-object variant="outlined"></v-autocomplete>
         </v-list-item>
         <v-list-item>
-          <v-autocomplete
-            v-model="selectedUnit"
-            :disabled="!selectedInventory"
-            :items="selectedInventory ? selectedInventory.book_inventory : []"
-            class="mt-2"
-            item-title="inventory"
-            label="Инвентарь"
-            return-object
-            variant="outlined"
-          ></v-autocomplete>
+          <v-autocomplete v-model="selectedUnit" :disabled="!selectedInventory"
+            :items="selectedInventory ? selectedInventory.book_inventory : []" class="mt-2" item-title="inventory"
+            label="Инвентарь" return-object variant="outlined"></v-autocomplete>
         </v-list-item>
         <v-list-item>
-          <v-text-field
-            v-model="returnDate"
-            class="mt-4"
-            :label="t('return_date')"
-            type="date"
-            variant="outlined"
-          ></v-text-field>
+          <v-text-field v-model="returnDate" class="mt-4" :label="t('return_date')" type="text" @input="handleDate"
+            variant="outlined"></v-text-field>
         </v-list-item>
         <v-list-item>
-          <v-btn
-            :append-icon="showAdditionalData ? 'mdi-minus' : 'mdi-plus'"
-            class="mt-2"
-            color="primary"
-            variant="text"
-            @click="showAdditionalData = !showAdditionalData"
-            >{{t('extended_data')}}
+          <v-btn :append-icon="showAdditionalData ? 'mdi-minus' : 'mdi-plus'" class="mt-2" color="primary"
+            variant="text" @click="showAdditionalData = !showAdditionalData">{{ t('extended_data') }}
           </v-btn>
         </v-list-item>
         <v-list-item v-if="showAdditionalData">
-          <v-select
-            v-model="quarter"
-            :items="[
-              { value: 1, title: '1 четверть' },
-              { value: 2, title: '2 четверть' },
-              { value: 3, title: '3 четверть' },
-              { value: 4, title: '4 четверть' },
-              { value: 5, title: 'Мероприятия' },
-              { value: 6, title: 'Открытый урок' }
-            ]"
-            class="mt-4"
-            clearable
-            label="Четверть (необязательно)"
-            variant="outlined"
-          >
+          <v-select v-model="quarter" :items="[
+            { value: 1, title: '1 четверть' },
+            { value: 2, title: '2 четверть' },
+            { value: 3, title: '3 четверть' },
+            { value: 4, title: '4 четверть' },
+            { value: 5, title: 'Мероприятия' },
+            { value: 6, title: 'Открытый урок' }
+          ]" class="mt-4" clearable label="Четверть (необязательно)" variant="outlined">
           </v-select>
         </v-list-item>
         <v-list-item v-if="showAdditionalData">
-          <v-text-field
-            v-model="requestAmount"
-            class="mt-2"
-            :label="t('quantity')"
-            type="number"
-            variant="outlined"
-          ></v-text-field>
+          <v-text-field v-model="requestAmount" class="mt-2" :label="t('quantity')" type="number"
+            variant="outlined"></v-text-field>
         </v-list-item>
         <v-list-item class="mt-3">
-          <v-btn class="mr-3" variant="tonal" @click="closeDrawer">{{t('close')}}</v-btn>
+          <v-btn class="mr-3" variant="tonal" @click="closeDrawer">{{ t('close') }}</v-btn>
           <v-btn color="primary" variant="flat" @click="createRequest">Выдача</v-btn>
         </v-list-item>
       </v-navigation-drawer>
@@ -821,16 +945,13 @@ getInventory()
 
                     <template v-slot:default>
                       <v-card title="Запросы">
-                        <v-data-table
-                          :headers="[
-                            { key: 'id', title: 'ID' },
-                            { key: 'school.title', title: t('name') },
-                            { key: 'school.bin', title: 'БИН' },
-                            { key: 'school.address', title: t('address') },
-                            { key: 'user', title: 'Запрос и наименования книг' }
-                          ]"
-                          :items="requests"
-                        >
+                        <v-data-table :headers="[
+                          { key: 'id', title: 'ID' },
+                          { key: 'school.title', title: t('name') },
+                          { key: 'school.bin', title: 'БИН' },
+                          { key: 'school.address', title: t('address') },
+                          { key: 'user', title: 'Запрос и наименования книг' }
+                        ]" :items="requests">
                           <template v-slot:[`item.user`]="{ item }">
                             <div class="d-flex flex-row align-center justify-space-between">
                               <div class="d-flex flex-column">
@@ -838,8 +959,8 @@ getInventory()
                                 <span>{{ item.user.email }}</span>
                                 <span>{{ item.user.phone }}</span>
                               </div>
-                              <v-btn color="warning" disabled size="x-small" variant="flat"
-                                >Запрос для фонда {{ item.amount }}
+                              <v-btn color="warning" disabled size="x-small" variant="flat">Запрос для фонда {{
+                                item.amount }}
                               </v-btn>
                             </div>
                           </template>
@@ -852,24 +973,20 @@ getInventory()
 
                   <v-dialog max-width="80vw">
                     <template v-slot:activator="{ props }">
-                      <v-btn class="mx-3" size="small" v-bind="props" variant="tonal"
-                        >Список книг
+                      <v-btn class="mx-3" size="small" v-bind="props" variant="tonal">Список книг
                       </v-btn>
                     </template>
 
                     <template v-slot:default>
                       <v-card title="Список книг">
                         <v-card-text>
-                          <v-data-table
-                            :headers="[
-                              { key: 'id', title: 'ID' },
-                              { key: 'book', title: 'Наименование (Описание/Язык)' },
-                              { key: 'info', title: `${t('author')}/Жанр` },
-                              { key: 'year', title: t('year_of_publication') },
-                              { key: 'publisherType', title: 'Издательство/Тип' }
-                            ]"
-                            :items="purchases"
-                          >
+                          <v-data-table :headers="[
+                            { key: 'id', title: 'ID' },
+                            { key: 'book', title: t('name') },
+                            { key: 'info', title: `${t('author')}/Жанр` },
+                            { key: 'year', title: t('year_of_publication') },
+                            { key: 'publisherType', title: 'Издательство/Тип' }
+                          ]" :items="purchases">
                             <template v-slot:[`item.book`]="{ item }">
                               <div class="font-weight-bold mt-2">{{ item.title }}</div>
                               <div class="my-2">{{ item.description }}</div>
@@ -880,23 +997,14 @@ getInventory()
 
                             <template v-slot:[`item.info`]="{ item }">
                               <div>
-                                <v-chip
-                                  v-for="author in item.authors_main"
-                                  :key="author.id"
-                                  color="primary"
-                                  variant="outlined"
-                                >
+                                <v-chip v-for="author in item.authors_main" :key="author.id" color="primary"
+                                  variant="outlined">
                                   {{ author.name }}
                                 </v-chip>
                               </div>
                               <div class="mt-2">
-                                <v-chip
-                                  v-for="genre in item.genres"
-                                  :key="genre.id"
-                                  color="red"
-                                  size="small"
-                                  variant="flat"
-                                >
+                                <v-chip v-for="genre in item.genres" :key="genre.id" color="red" size="small"
+                                  variant="flat">
                                   {{ genre.title }}
                                 </v-chip>
                               </div>
@@ -905,8 +1013,7 @@ getInventory()
                             <template v-slot:[`item.publisherType`]="{ item }">
                               <div>{{ item.publisher.title }}</div>
                               <div class="mt-2">
-                                <v-chip color="red" size="small" variant="flat"
-                                  >{{ item.type.title }}
+                                <v-chip color="red" size="small" variant="flat">{{ item.type.title }}
                                 </v-chip>
                               </div>
                             </template>
@@ -920,8 +1027,7 @@ getInventory()
 
                   <v-dialog max-width="80vw">
                     <template v-slot:activator="{ props }">
-                      <v-btn size="small" v-bind="props" variant="tonal"
-                        >Добавить книгу в список
+                      <v-btn size="small" v-bind="props" variant="tonal">Добавить книгу в список
                       </v-btn>
                     </template>
 
@@ -935,18 +1041,12 @@ getInventory()
                   </v-dialog>
                 </div>
               </v-col>
-              <v-col>
-                <v-btn size="small" variant="outlined" @click="downloadSpros"
-                  >Читательский спрос
+              <v-col cols="5">
+                <v-btn size="small" variant="outlined" @click="downloadSpros">Читательский спрос
                 </v-btn>
-                <v-btn
-                  class="ml-3"
-                  color="primary"
-                  size="small"
-                  variant="flat"
-                  @click="downloadReport"
-                  >Скачать отчет за 2024 год
-                </v-btn>
+                <v-btn class="ml-3" color="primary" size="small" variant="flat" @click="downloadReport">Отчет по региону</v-btn>
+                <v-btn class="ml-3" color="primary" size="small" variant="flat" @click="downloadRegionReport">Отчет по району</v-btn>
+
               </v-col>
             </v-row>
           </v-banner>
@@ -957,33 +1057,16 @@ getInventory()
         <v-card-text>
           <v-row>
             <v-col cols="4">
-              <v-select
-                v-model="selectedRegion"
-                :items="regions"
-                label="Выберите регион"
-                return-object
-                variant="outlined"
-              ></v-select>
+              <v-select v-model="selectedRegion" :items="regions" label="Выберите регион" return-object
+                variant="outlined"></v-select>
             </v-col>
             <v-col cols="4">
-              <v-select
-                v-if="selectedRegion"
-                v-model="selectedChildRegion"
-                :items="childRegions"
-                label="Выберите регион"
-                return-object
-                variant="outlined"
-              ></v-select>
+              <v-select v-if="selectedRegion" v-model="selectedChildRegion" :items="childRegions"
+                label="Выберите регион" return-object variant="outlined"></v-select>
             </v-col>
             <v-col cols="4">
-              <v-select
-                v-if="selectedChildRegion"
-                v-model="selectedThirdRegion"
-                :items="thirdRegions"
-                label="Выберите регион"
-                return-object
-                variant="outlined"
-              ></v-select>
+              <v-select v-if="selectedChildRegion" v-model="selectedThirdRegion" :items="thirdRegions"
+                label="Выберите регион" return-object variant="outlined"></v-select>
             </v-col>
           </v-row>
         </v-card-text>
@@ -1004,18 +1087,12 @@ getInventory()
                     </v-col>
                     <v-col cols="6">
                       <div class="d-flex flex-column">
-                        <div class="font-weight-bold">{{t('copies')}}: {{ bookSchools.amount }}</div>
-                        <v-progress-linear
-                          :model-value="bookSchools.amount"
-                          color="#0095FF"
-                        ></v-progress-linear>
+                        <div class="font-weight-bold">{{ t('copies') }}: {{ bookSchools.amount }}</div>
+                        <v-progress-linear :model-value="bookSchools.amount" color="#0095FF"></v-progress-linear>
                         <div class="mt-4 font-weight-bold">
                           Наименований: {{ bookSchools.books }}
                         </div>
-                        <v-progress-linear
-                          :model-value="bookSchools.books"
-                          color="#00E096"
-                        ></v-progress-linear>
+                        <v-progress-linear :model-value="bookSchools.books" color="#00E096"></v-progress-linear>
                       </div>
                     </v-col>
                   </v-row>
@@ -1025,17 +1102,13 @@ getInventory()
             <v-col cols="5">
               <v-card title="Количество экземпляров по языкам">
                 <v-card-text>
-                  <v-data-table
-                    :headers="[
-                      {
-                        key: 'title',
-                        title: t('language')
-                      },
-                      { key: 'value', title: 'Экз./наим.' }
-                    ]"
-                    :items="dashboardLanguages"
-                    items-per-page="3"
-                  >
+                  <v-data-table :headers="[
+                    {
+                      key: 'title',
+                      title: t('language')
+                    },
+                    { key: 'value', title: 'Экз./наим.' }
+                  ]" :items="dashboardLanguages" items-per-page="3">
                     <template v-slot:bottom></template>
                   </v-data-table>
                 </v-card-text>
@@ -1048,17 +1121,13 @@ getInventory()
                     <template v-slot:default>
                       <v-card title="Количество экземпляров по языкам">
                         <v-card-text>
-                          <v-data-table
-                            :headers="[
-                              {
-                                key: 'title',
-                                title: t('language')
-                              },
-                              { key: 'value', title: 'Экз./наим.' }
-                            ]"
-                            :items="dashboardLanguages"
-                            items-per-page="50"
-                          >
+                          <v-data-table :headers="[
+                            {
+                              key: 'title',
+                              title: t('language')
+                            },
+                            { key: 'value', title: 'Экз./наим.' }
+                          ]" :items="dashboardLanguages" items-per-page="50">
                             <template v-slot:bottom></template>
                           </v-data-table>
                         </v-card-text>
@@ -1073,17 +1142,13 @@ getInventory()
             <v-col cols="4">
               <v-card title="Наименования по типу книг">
                 <v-card-text>
-                  <v-data-table
-                    :headers="[
-                      {
-                        key: 'title',
-                        title: t('book_type')
-                      },
-                      { key: 'value', title: t('quantity') }
-                    ]"
-                    :items="bookTypes"
-                    items-per-page="3"
-                  >
+                  <v-data-table :headers="[
+                    {
+                      key: 'title',
+                      title: t('book_type')
+                    },
+                    { key: 'value', title: t('quantity') }
+                  ]" :items="bookTypes" items-per-page="3">
                     <template v-slot:bottom></template>
                   </v-data-table>
                 </v-card-text>
@@ -1096,17 +1161,13 @@ getInventory()
                     <template v-slot:default>
                       <v-card title="Наименования по типу книг">
                         <v-card-text>
-                          <v-data-table
-                            :headers="[
-                              {
-                                key: 'title',
-                                title: t('book_type')
-                              },
-                              { key: 'value', title: t('quantity') }
-                            ]"
-                            :items="bookTypes"
-                            items-per-page="50"
-                          >
+                          <v-data-table :headers="[
+                            {
+                              key: 'title',
+                              title: t('book_type')
+                            },
+                            { key: 'value', title: t('quantity') }
+                          ]" :items="bookTypes" items-per-page="50">
                             <template v-slot:bottom></template>
                           </v-data-table>
                         </v-card-text>
@@ -1119,17 +1180,13 @@ getInventory()
             <v-col cols="8">
               <v-card title="Популярные книги">
                 <v-card-text>
-                  <v-data-table
-                    :headers="[
-                      {
-                        key: 'title',
-                        title: t('name')
-                      },
-                      { key: 'value', title: t('quantity') }
-                    ]"
-                    :items="popularBooks"
-                    items-per-page="3"
-                  >
+                  <v-data-table :headers="[
+                    {
+                      key: 'title',
+                      title: t('name')
+                    },
+                    { key: 'value', title: t('quantity') }
+                  ]" :items="popularBooks" items-per-page="3">
                     <template v-slot:bottom></template>
                   </v-data-table>
                 </v-card-text>
@@ -1142,17 +1199,13 @@ getInventory()
                     <template v-slot:default>
                       <v-card title="Популярные книги">
                         <v-card-text>
-                          <v-data-table
-                            :headers="[
-                              {
-                                key: 'title',
-                                title: t('name')
-                              },
-                              { key: 'value', title: t('quantity') }
-                            ]"
-                            :items="popularBooks"
-                            items-per-page="50"
-                          >
+                          <v-data-table :headers="[
+                            {
+                              key: 'title',
+                              title: t('name')
+                            },
+                            { key: 'value', title: t('quantity') }
+                          ]" :items="popularBooks" items-per-page="50">
                             <template v-slot:bottom></template>
                           </v-data-table>
                         </v-card-text>
@@ -1170,18 +1223,14 @@ getInventory()
         <v-col>
           <v-card title="Организации по выдаче">
             <v-card-text>
-              <v-data-table
-                :headers="[
-                  {
-                    key: 'title',
-                    title: 'Организация'
-                  },
-                  { key: 'request', title: 'Выдача' },
-                  { key: 'return', title: 'Возврат' }
-                ]"
-                :items="organizations"
-                items-per-page="3"
-              >
+              <v-data-table :headers="[
+                {
+                  key: 'title',
+                  title: 'Организация'
+                },
+                { key: 'request', title: 'Выдача' },
+                { key: 'return', title: 'Возврат' }
+              ]" :items="organizations" items-per-page="3">
                 <template v-slot:bottom></template>
               </v-data-table>
             </v-card-text>
@@ -1194,18 +1243,14 @@ getInventory()
                 <template v-slot:default>
                   <v-card title="Организации по выдаче">
                     <v-card-text>
-                      <v-data-table
-                        :headers="[
-                          {
-                            key: 'title',
-                            title: 'Организация'
-                          },
-                          { key: 'request', title: 'Выдача' },
-                          { key: 'return', title: 'Возврат' }
-                        ]"
-                        :items="organizations"
-                        items-per-page="50"
-                      >
+                      <v-data-table :headers="[
+                        {
+                          key: 'title',
+                          title: 'Организация'
+                        },
+                        { key: 'request', title: 'Выдача' },
+                        { key: 'return', title: 'Возврат' }
+                      ]" :items="organizations" items-per-page="50">
                         <template v-slot:bottom></template>
                       </v-data-table>
                     </v-card-text>
@@ -1218,17 +1263,13 @@ getInventory()
         <v-col>
           <v-card title="Списанные книги по рейтингу">
             <v-card-text>
-              <v-data-table
-                :headers="[
-                  {
-                    key: 'title',
-                    title: t('name')
-                  },
-                  { key: 'value', title: t('quantity') }
-                ]"
-                :items="ratings"
-                items-per-page="3"
-              >
+              <v-data-table :headers="[
+                {
+                  key: 'title',
+                  title: t('name')
+                },
+                { key: 'value', title: t('quantity') }
+              ]" :items="ratings" items-per-page="3">
                 <template v-slot:bottom></template>
               </v-data-table>
             </v-card-text>
@@ -1241,17 +1282,13 @@ getInventory()
                 <template v-slot:default>
                   <v-card title="Списанные книги по рейтингу">
                     <v-card-text>
-                      <v-data-table
-                        :headers="[
-                          {
-                            key: 'title',
-                            title: t('name')
-                          },
-                          { key: 'value', title: t('quantity') }
-                        ]"
-                        :items="ratings"
-                        items-per-page="50"
-                      >
+                      <v-data-table :headers="[
+                        {
+                          key: 'title',
+                          title: t('name')
+                        },
+                        { key: 'value', title: t('quantity') }
+                      ]" :items="ratings" items-per-page="50">
                         <template v-slot:bottom></template>
                       </v-data-table>
                     </v-card-text>
@@ -1268,7 +1305,7 @@ getInventory()
           <StatisticsList :statistics="statistics"></StatisticsList>
         </v-col>
         <v-col v-if="role === 3" cols="6">
-          <v-card>
+          <!-- <v-card>
             <v-card-title>{{ t('issue_return_statistics') }}</v-card-title>
             <v-card-subtitle>{{ t('easy_to_track_statistics') }}</v-card-subtitle>
 
@@ -1311,6 +1348,19 @@ getInventory()
                 </v-row>
               </v-container>
             </v-card-text>
+          </v-card> -->
+          <v-card>
+            <v-card-title>Фонд библиотеки</v-card-title>
+
+            <v-card-text>
+              <v-container fluid>
+                <v-row>
+                  <v-col cols="12">
+                    <Pie :data="typesChartData"></Pie>
+                  </v-col>
+                </v-row>
+              </v-container>
+            </v-card-text>
           </v-card>
         </v-col>
         <v-col v-if="role === 3" cols="3">
@@ -1319,16 +1369,9 @@ getInventory()
             <v-card-subtitle>Быстрый поиск по ИИН</v-card-subtitle>
 
             <v-card-text>
-              <v-autocomplete
-                ref="autocompleteRef"
-                v-model="searchSubscription"
-                :items="searchItems"
-                label="Напишите ИИН"
-                no-filter
-                prepend-inner-icon="mdi-magnify"
-                variant="outlined"
-                @update:search="searchSubscriptions"
-              >
+              <v-autocomplete ref="autocompleteRef" v-model="searchSubscription" :items="searchItems"
+                label="Напишите ИИН" no-filter prepend-inner-icon="mdi-magnify" variant="outlined"
+                @update:search="searchSubscriptions">
                 <template v-slot:no-data></template>
                 <template v-slot:item="{ item }">
                   <v-list-item @click="selectItem(item.value)">
@@ -1339,26 +1382,17 @@ getInventory()
                         {{ item.value.user.user_data.familyname }}
                       </span>
 
-                      <v-btn
-                        append-icon="mdi-plus"
-                        color="primary"
-                        size="small"
-                        variant="flat"
-                        @click="startRequest(item.value)"
-                        >Выдача
+                      <v-btn append-icon="mdi-plus" color="primary" size="small" variant="flat"
+                        @click="startRequest(item.value)">Выдача
                       </v-btn>
                     </div>
                   </v-list-item>
                 </template>
               </v-autocomplete>
-              <v-data-table
-                :headers="[
-                  { title: t('full_name'), key: 'name' },
-                  { title: t('quantity'), key: 'amount' }
-                ]"
-                :items="subscriptions"
-                items-per-page="5"
-              >
+              <v-data-table :headers="[
+                { title: t('full_name'), key: 'name' },
+                { title: t('quantity'), key: 'amount' }
+              ]" :items="subscriptions" items-per-page="5">
                 <template v-slot:[`item.name`]="{ item }">
                   <small>
                     {{ item.user.user_data.lastname }} {{ item.user.user_data.firstname }}
@@ -1383,8 +1417,7 @@ getInventory()
             <v-card-text>
               <v-data-table :headers="classroomHeaders" :items="classroomItems">
                 <template v-slot:[`item.actions`]="{}">
-                  <v-btn append-icon="mdi-chevron-right" color="primary" variant="text"
-                    >{{ t('details') }}
+                  <v-btn append-icon="mdi-chevron-right" color="primary" variant="text">{{ t('details') }}
                   </v-btn>
                 </template>
                 <template v-slot:bottom></template>
@@ -1404,17 +1437,9 @@ getInventory()
 
             <v-card-text>
               <v-autocomplete label="Для кого" variant="outlined"></v-autocomplete>
-              <v-autocomplete
-                :label="t('book')"
-                prepend-inner-icon="mdi-magnify"
-                variant="outlined"
-              ></v-autocomplete>
-              <v-text-field
-                :label="t('issue_date')"
-                prepend-inner-icon="mdi-magnify"
-                type="date"
-                variant="outlined"
-              ></v-text-field>
+              <v-autocomplete :label="t('book')" prepend-inner-icon="mdi-magnify" variant="outlined"></v-autocomplete>
+              <v-text-field :label="t('issue_date')" prepend-inner-icon="mdi-magnify" type="date"
+                variant="outlined"></v-text-field>
             </v-card-text>
             <v-card-actions>
               <v-btn color="primary" variant="flat">Заявка</v-btn>
@@ -1441,25 +1466,21 @@ getInventory()
         <v-col>
           <v-card title="По регионам">
             <v-card-text>
-              <v-data-table
-                :headers="[
-                  { key: 'title', title: t('name') },
-                  { key: 'count', title: t('book_titles') },
-                  { key: 'amount', title: t('book_copies') },
-                  { key: 'actions' }
-                ]"
-                :items="[
+              <v-data-table :headers="[
+                { key: 'title', title: t('name') },
+                { key: 'count', title: t('book_titles') },
+                { key: 'amount', title: t('book_copies') },
+                { key: 'actions' }
+              ]" :items="[
                   { title: 'Алматы', count: 234, amount: 7523 },
                   { title: 'Астана', count: 53, amount: 1035 },
                   { title: 'Шымкент', count: 0, amount: 0 },
                   { title: 'ВКО', count: 0, amount: 0 },
                   { title: 'СКО', count: 9, amount: 324 },
                   { title: 'Актау', count: 0, amount: 0 }
-                ]"
-              >
+                ]">
                 <template v-slot:[`item.actions`]>
-                  <v-btn append-icon="mdi-chevron-right" color="primary" variant="text"
-                    >{{ t('details') }}
+                  <v-btn append-icon="mdi-chevron-right" color="primary" variant="text">{{ t('details') }}
                   </v-btn>
                 </template>
                 <template v-slot:bottom></template>
@@ -1475,21 +1496,18 @@ getInventory()
         <v-col>
           <v-card title="Соотношение по выдачу и возрату">
             <v-card-text>
-              <v-data-table
-                :headers="[
-                  { key: 'title', title: t('name') },
-                  { key: 'requests', title: 'На выдаче' },
-                  { key: 'returns', title: 'Читательный зал' }
-                ]"
-                :items="[
+              <v-data-table :headers="[
+                { key: 'title', title: t('name') },
+                { key: 'requests', title: 'На выдаче' },
+                { key: 'returns', title: 'Читательный зал' }
+              ]" :items="[
                   { title: 'Школа 1', requests: 25, returns: 100 },
                   { title: 'Школа 2', requests: 25, returns: 100 },
                   { title: 'Школа 3', requests: 25, returns: 100 },
                   { title: 'Школа 4', requests: 25, returns: 100 },
                   { title: 'Школа 5', requests: 25, returns: 100 },
                   { title: 'Школа 6', requests: 25, returns: 100 }
-                ]"
-              >
+                ]">
                 <template v-slot:bottom></template>
               </v-data-table>
             </v-card-text>
@@ -1537,7 +1555,7 @@ getInventory()
             <v-card-title> {{ t('classes_by_number_of_readers') }}</v-card-title>
 
             <v-card-text>
-              <v-data-table :headers="headers" :items="readers">
+              <v-data-table items-per-page="5" :headers="headers" :items="readers">
                 <template v-slot:[`item.classroom`]="{ item }">
                   {{ item.classroom }} класс
                 </template>
@@ -1545,7 +1563,123 @@ getInventory()
               </v-data-table>
             </v-card-text>
 
-         
+            <v-card-actions>
+              <ClassModalVue></ClassModalVue>
+            </v-card-actions>
+
+
+          </v-card>
+        </v-col>
+      </v-row>
+      <v-row v-if="role === 3">
+        <v-col cols="12">
+          <v-card title="Состояние библиотеки">
+            <v-card-text>
+              <v-row>
+                <v-col cols="4">
+                  <Pie :data="clsData" :options="options"></Pie>
+                </v-col>
+                <v-col cols="8">
+                  <v-row>
+                    <v-col cols="6">
+                      <div>
+                        <div class="font-weight-bold">Новые</div>
+                        <div class="d-flex flex-column">
+                          <div>
+                            <v-progress-linear color="#0095FF" height="8" max="993"
+                              model-value="456"></v-progress-linear>
+                          </div>
+                          <div>
+                            <small class="font-weight-bold">
+                              {{ String((456 / 993) * 100).substring(0, 5) }}% </small><br />
+                            <small class="font-weight-bold">Кол-во: 456</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="my-6">
+                        <div class="font-weight-bold">Старые</div>
+                        <div class="d-flex flex-column">
+                          <div>
+                            <v-progress-linear color="#00E096" height="8" max="993"
+                              model-value="150"></v-progress-linear>
+                          </div>
+                          <div>
+                            <small class="font-weight-bold">
+                              {{ String((150 / 993) * 100).substring(0, 5) }}% </small><br />
+                            <small class="font-weight-bold">Кол-во: 150</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <div class="font-weight-bold">Как новые</div>
+                        <div class="d-flex flex-column">
+                          <div>
+                            <v-progress-linear color="#884DFF" height="8" max="993"
+                              model-value="10"></v-progress-linear>
+                          </div>
+                          <div>
+                            <small class="font-weight-bold">
+                              {{ String((10 / 993) * 100).substring(0, 5) }}% </small><br />
+                            <small class="font-weight-bold">Кол-во: 10</small>
+                          </div>
+                        </div>
+                      </div>
+                    </v-col>
+                    <v-col cols="6">
+                      <div>
+                        <div class="font-weight-bold">Плохое</div>
+                        <div class="d-flex flex-column">
+                          <div>
+                            <v-progress-linear color="#E81600" height="8" max="993"
+                              model-value="120"></v-progress-linear>
+                          </div>
+                          <div>
+                            <small class="font-weight-bold">
+                              {{ String((120 / 993) * 100).substring(0, 5) }}% </small><br />
+                            <small class="font-weight-bold">Кол-во: 120</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="my-6">
+                        <div class="font-weight-bold">Отличное</div>
+                        <div class="d-flex flex-column">
+                          <div>
+                            <v-progress-linear color="#E8C300" height="8" max="993"
+                              model-value="210"></v-progress-linear>
+                          </div>
+                          <div>
+                            <small class="font-weight-bold">
+                              {{ String((210 / 993) * 100).substring(0, 5) }}% </small><br />
+                            <small class="font-weight-bold">Кол-во: 210</small>
+                          </div>
+                        </div>
+                      </div>
+                      <div>
+                        <div class="font-weight-bold">Приемлимое</div>
+                        <div class="d-flex flex-column">
+                          <div>
+                            <v-progress-linear color="#F86300" height="8" max="993"
+                              model-value="47"></v-progress-linear>
+                          </div>
+                          <div>
+                            <small class="font-weight-bold">
+                              {{ String((47 / 993) * 100).substring(0, 5) }}% </small><br />
+                            <small class="font-weight-bold">Кол-во: 47</small>
+                          </div>
+                        </div>
+                      </div>
+                    </v-col>
+                  </v-row>
+                </v-col>
+              </v-row>
+            </v-card-text>
+            <v-card-actions>
+              <v-dialog>
+                <template v-slot:activator="{ props }">
+                  <v-btn color="primary" v-bind="props" variant="flat">Подробнее</v-btn>
+                </template>
+              </v-dialog>
+            </v-card-actions>
           </v-card>
         </v-col>
       </v-row>
@@ -1580,11 +1714,8 @@ getInventory()
             <v-card-title>{{ t('publishers') }}</v-card-title>
 
             <v-card-text>
-              <v-data-table
-                :headers="publisherHeaders"
-                :items="publishers ? publishers : []"
-                :loading="publishersLoading"
-              >
+              <v-data-table :headers="publisherHeaders" :items="publishers ? publishers : []"
+                :loading="publishersLoading">
                 <template v-slot:bottom></template>
               </v-data-table>
             </v-card-text>
@@ -1630,34 +1761,25 @@ getInventory()
         <v-col cols="12">
           <v-card>
             <v-card-text>
-              <v-data-table
-                :headers="[
-                  { key: 'id', title: 'ID' },
-                  { key: 'name', title: t('name') },
-                  { key: 'description.bin', title: 'БИН' },
-                  { key: 'description.address', title: t('address') },
-                  { key: 'organization.label', title: 'Тип организации' },
-                  { key: 'report', title: 'Отчет' },
-                  { key: 'actions', title: '' }
-                ]"
-                :items="schools"
-              >
-                <template v-slot:[`item.report`]>
-                  <v-btn
-                    class="rounded"
-                    color="primary"
-                    prepend-icon="mdi-download"
-                    variant="flat"
-                    @click="downloadMinistryReport"
-                  >
-                  {{ t('download_pdf') }}
+              <v-data-table :headers="[
+                { key: 'id', title: 'ID' },
+                { key: 'name', title: t('name') },
+                { key: 'description.bin', title: 'БИН' },
+                { key: 'description.address', title: t('address') },
+                { key: 'organization.label', title: 'Тип организации' },
+                { key: 'report', title: 'Отчет' },
+                { key: 'actions', title: '' }
+              ]" :items="schools">
+                <template v-slot:[`item.report`]={item}>
+                  <v-btn class="rounded" color="primary" prepend-icon="mdi-download" variant="flat"
+                    @click="downloadMinistryReport(item)">
+                    {{ t('download_pdf') }}
                   </v-btn>
                 </template>
-                <template v-slot:[`item.actions`]>
+                <template v-slot:[`item.actions`]="{ item }">
                   <v-dialog max-width="90vw">
                     <template v-slot:activator="{ props }">
-                      <v-btn prepend-icon="mdi-arrow-right" v-bind="props" variant="outlined"
-                        >{{t('go_to')}}
+                      <v-btn @click="selectPreview(item.id)" prepend-icon="mdi-arrow-right" v-bind="props" variant="outlined">{{ t('go_to') }}
                       </v-btn>
                     </template>
 
@@ -1673,106 +1795,31 @@ getInventory()
                               <v-container fluid>
                                 <v-row>
                                   <v-col cols="3">
-                                    <StatisticsList
-                                      :statistics="librarianStatistics"
-                                      class="border"
-                                    ></StatisticsList>
+                                    <StatisticsList :statistics="librarianStatistics" class="border"></StatisticsList>
                                   </v-col>
                                   <v-col cols="6">
-                                    <v-card class="border">
-                                      <v-card-title
-                                        >{{ t('issue_return_statistics') }}
-                                      </v-card-title>
-                                      <v-card-subtitle>{{ t('easy_to_track_statistics') }}</v-card-subtitle>
+                                    <v-card>
+                                      <v-card-title>Фонд библиотеки</v-card-title>
 
                                       <v-card-text>
                                         <v-container fluid>
                                           <v-row>
-                                            <v-col>
-                                              <Doughnut
-                                                :data="doughnut"
-                                                :options="options"
-                                              ></Doughnut>
-                                            </v-col>
-                                            <v-col>
-                                              <v-list>
-                                                <v-list-item>
-                                                  <v-list-item-title>
-                                                    <strong>Показатели</strong>
-                                                  </v-list-item-title>
-                                                </v-list-item>
-                                                <v-list-item>
-                                                  <v-list-item-title>
-                                                    <div class="d-flex flex-column">
-                                                      <strong>Годовой</strong>
-                                                    </div>
-                                                  </v-list-item-title>
-                                                </v-list-item>
-                                                <v-list-item>
-                                                  <v-list-item-title>
-                                                    <div class="d-flex flex-column">
-                                                      <strong>Годовой</strong>
-                                                    </div>
-                                                  </v-list-item-title>
-                                                </v-list-item>
-                                                <v-list-item>
-                                                  <v-list-item-title>
-                                                    <div class="d-flex flex-column">
-                                                      <strong>Выдача</strong>
-                                                    </div>
-                                                  </v-list-item-title>
-                                                </v-list-item>
-                                              </v-list>
+                                            <v-col cols="12">
+                                              <Pie :data="typesChartData"></Pie>
                                             </v-col>
                                           </v-row>
                                         </v-container>
                                       </v-card-text>
                                     </v-card>
+
                                   </v-col>
                                 </v-row>
 
                                 <v-row>
                                   <v-col cols="3">
-                                    <v-card class="border">
-                                      <v-card-title>{{ t('books_by_country') }}</v-card-title>
-                                      <v-card-text>
-                                        <v-list>
-                                          <v-list-item
-                                            v-for="country in countries"
-                                            :key="country.id"
-                                          >
-                                            <v-list-item-title>
-                                              <div class="d-flex">
-                                                <div class="w-25 mr-2 text-center">
-                                                  <v-img
-                                                    :src="country.flag"
-                                                    class="rounded"
-                                                  ></v-img>
-                                                </div>
-                                                <div class="w-75">
-                                                  {{ country.name }}
 
-                                                  <v-progress-linear
-                                                    v-model="country.progress"
-                                                    color="primary"
-                                                  >
-                                                  </v-progress-linear>
+                                    <CountryModal class="border"></CountryModal>
 
-                                                  <span class="font-weight-bold">
-                                                    {{ country.progress }} %</span
-                                                  >
-                                                </div>
-                                              </div>
-                                            </v-list-item-title>
-
-                                            <v-list-item-subtitle></v-list-item-subtitle>
-                                          </v-list-item>
-                                        </v-list>
-                                      </v-card-text>
-                                      <v-card-actions>
-                                        <CountryModal class="border"></CountryModal>
-                                      </v-card-actions>
-                                    </v-card>
                                   </v-col>
                                   <v-col>
                                     <v-card>
@@ -1792,11 +1839,8 @@ getInventory()
                                       <v-card-title> {{ t('classes_by_number_of_readers') }}</v-card-title>
 
                                       <v-card-text>
-                                        <v-data-table
-                                          :headers="headers"
-                                          :items="readers"
-                                          hide-footer
-                                        >
+                                        <v-data-table :headers="headers" :items="readers" items-per-page="5"
+                                          hide-footer>
                                           <template v-slot:bottom></template>
                                         </v-data-table>
                                       </v-card-text>
@@ -1809,29 +1853,131 @@ getInventory()
                                 </v-row>
                                 <v-row>
                                   <v-col>
+                                    <v-card title="Состояние библиотеки">
+                                      <v-card-text>
+                                        <v-row>
+                                          <v-col cols="4">
+                                            <Pie :data="clsData" :options="options"></Pie>
+                                          </v-col>
+                                          <v-col cols="8">
+                                            <v-row>
+                                              <v-col cols="6">
+                                                <div>
+                                                  <div class="font-weight-bold">Новые</div>
+                                                  <div class="d-flex flex-column">
+                                                    <div>
+                                                      <v-progress-linear color="#0095FF" height="8" max="993"
+                                                        model-value="456"></v-progress-linear>
+                                                    </div>
+                                                    <div>
+                                                      <small class="font-weight-bold">
+                                                        {{ String((456 / 993) * 100).substring(0, 5) }}% </small><br />
+                                                      <small class="font-weight-bold">Кол-во: 456</small>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div class="my-6">
+                                                  <div class="font-weight-bold">Старые</div>
+                                                  <div class="d-flex flex-column">
+                                                    <div>
+                                                      <v-progress-linear color="#00E096" height="8" max="993"
+                                                        model-value="150"></v-progress-linear>
+                                                    </div>
+                                                    <div>
+                                                      <small class="font-weight-bold">
+                                                        {{ String((150 / 993) * 100).substring(0, 5) }}% </small><br />
+                                                      <small class="font-weight-bold">Кол-во: 150</small>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div>
+                                                  <div class="font-weight-bold">Как новые</div>
+                                                  <div class="d-flex flex-column">
+                                                    <div>
+                                                      <v-progress-linear color="#884DFF" height="8" max="993"
+                                                        model-value="10"></v-progress-linear>
+                                                    </div>
+                                                    <div>
+                                                      <small class="font-weight-bold">
+                                                        {{ String((10 / 993) * 100).substring(0, 5) }}% </small><br />
+                                                      <small class="font-weight-bold">Кол-во: 10</small>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </v-col>
+                                              <v-col cols="6">
+                                                <div>
+                                                  <div class="font-weight-bold">Плохое</div>
+                                                  <div class="d-flex flex-column">
+                                                    <div>
+                                                      <v-progress-linear color="#E81600" height="8" max="993"
+                                                        model-value="120"></v-progress-linear>
+                                                    </div>
+                                                    <div>
+                                                      <small class="font-weight-bold">
+                                                        {{ String((120 / 993) * 100).substring(0, 5) }}% </small><br />
+                                                      <small class="font-weight-bold">Кол-во: 120</small>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div class="my-6">
+                                                  <div class="font-weight-bold">Отличное</div>
+                                                  <div class="d-flex flex-column">
+                                                    <div>
+                                                      <v-progress-linear color="#E8C300" height="8" max="993"
+                                                        model-value="210"></v-progress-linear>
+                                                    </div>
+                                                    <div>
+                                                      <small class="font-weight-bold">
+                                                        {{ String((210 / 993) * 100).substring(0, 5) }}% </small><br />
+                                                      <small class="font-weight-bold">Кол-во: 210</small>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                                <div>
+                                                  <div class="font-weight-bold">Приемлимое</div>
+                                                  <div class="d-flex flex-column">
+                                                    <div>
+                                                      <v-progress-linear color="#F86300" height="8" max="993"
+                                                        model-value="47"></v-progress-linear>
+                                                    </div>
+                                                    <div>
+                                                      <small class="font-weight-bold">
+                                                        {{ String((47 / 993) * 100).substring(0, 5) }}% </small><br />
+                                                      <small class="font-weight-bold">Кол-во: 47</small>
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </v-col>
+                                            </v-row>
+                                          </v-col>
+                                        </v-row>
+                                      </v-card-text>
+                                      <v-card-actions>
+                                        <v-dialog>
+                                          <template v-slot:activator="{ props }">
+                                            <v-btn color="primary" v-bind="props" variant="flat">Подробнее</v-btn>
+                                          </template>
+                                        </v-dialog>
+                                      </v-card-actions>
+                                    </v-card>
+                                  </v-col>
+                                </v-row>
+                                <v-row>
+                                  <v-col>
                                     <v-card class="border">
                                       <v-card-title>{{ t('fund_status') }}</v-card-title>
 
                                       <v-card-text>
-                                        <v-data-table
-                                          :headers="fundHeaders"
-                                          :items="fund ? fund : []"
-                                          :loading="fundLoading"
-                                        >
+                                        <v-data-table :headers="fundHeaders" :items="fund ? fund : []"
+                                          :loading="fundLoading">
                                           <template v-slot:bottom></template>
 
                                           <template v-slot:[`item.actions`]="{}">
-                                            <v-btn
-                                              color="primary"
-                                              variant="text"
-                                              @click="downloadPDF()"
-                                            >
+                                            <v-btn color="primary" variant="text" @click="downloadPDF()">
                                               {{ t('details') }}
                                               <template v-slot:append>
-                                                <v-icon
-                                                  color="primary"
-                                                  icon="mdi-chevron-right"
-                                                ></v-icon>
+                                                <v-icon color="primary" icon="mdi-chevron-right"></v-icon>
                                               </template>
                                             </v-btn>
                                           </template>
@@ -1846,14 +1992,11 @@ getInventory()
 
                                   <v-col>
                                     <v-card>
-                                      <v-card-title>{{t('publishers')}}</v-card-title>
+                                      <v-card-title>{{ t('publishers') }}</v-card-title>
 
                                       <v-card-text>
-                                        <v-data-table
-                                          :headers="publisherHeaders"
-                                          :items="publishers ? publishers : []"
-                                          :loading="publishersLoading"
-                                        >
+                                        <v-data-table :headers="publisherHeaders" :items="publishers ? publishers : []"
+                                          :loading="publishersLoading">
                                           <template v-slot:bottom></template>
                                         </v-data-table>
                                       </v-card-text>
@@ -1891,21 +2034,15 @@ getInventory()
                                           <div class="my-2 ml-3 d-flex justify-space-between">
                                             <div class="d-flex flex-column">
                                               <strong>42</strong>
-                                              <span class="text-medium-emphasis"
-                                                >{{t('book_title')}}</span
-                                              >
+                                              <span class="text-medium-emphasis">{{ t('book_title') }}</span>
                                             </div>
                                             <div class="d-flex flex-column">
                                               <strong>300</strong>
-                                              <span class="text-medium-emphasis"
-                                                >Количество книг</span
-                                              >
+                                              <span class="text-medium-emphasis">Количество книг</span>
                                             </div>
                                             <div class="d-flex flex-column">
                                               <strong>300 000 000</strong>
-                                              <span class="text-medium-emphasis"
-                                                >{{ t('amount_received') }}</span
-                                              >
+                                              <span class="text-medium-emphasis">{{ t('amount_received') }}</span>
                                             </div>
                                           </div>
                                         </v-col>
@@ -1917,16 +2054,14 @@ getInventory()
                                 <v-row>
                                   <v-col cols="12">
                                     <v-card class="border">
-                                      <v-data-table
-                                        :headers="[
-                                          { key: 'title', title: t('name') },
-                                          { key: 'author', title: t('author') },
-                                          { key: 'year', title: t('year_of_publication') },
-                                          { key: 'admissionDate', title: t('reception_date') },
-                                          { key: 'price', title: t('price') },
-                                          { key: 'amount', title: t('quantity') }
-                                        ]"
-                                        :items="[
+                                      <v-data-table :headers="[
+                                        { key: 'title', title: t('name') },
+                                        { key: 'author', title: t('author') },
+                                        { key: 'year', title: t('year_of_publication') },
+                                        { key: 'admissionDate', title: t('reception_date') },
+                                        { key: 'price', title: t('price') },
+                                        { key: 'amount', title: t('quantity') }
+                                      ]" :items="[
                                           {
                                             title: 'Қазақтың салт-дәстүрлері мен әдет-ғұрыптары',
                                             author: 'Сейіт Кенжеахметұлы',
@@ -1943,8 +2078,7 @@ getInventory()
                                             price: '2781',
                                             amount: '1'
                                           }
-                                        ]"
-                                      >
+                                        ]">
                                         <template v-slot:bottom></template>
                                       </v-data-table>
                                     </v-card>
@@ -1963,20 +2097,12 @@ getInventory()
                 <template v-slot:top>
                   <v-row>
                     <v-col>
-                      <v-text-field
-                        v-model="schoolSearch"
-                        label="Поиск по БИН"
-                        prepend-inner-icon="mdi-magnify"
-                        variant="outlined"
-                      ></v-text-field>
+                      <v-text-field v-model="schoolSearch" label="Поиск по БИН" prepend-inner-icon="mdi-magnify"
+                        variant="outlined"></v-text-field>
                     </v-col>
                     <v-col>
-                      <v-text-field
-                        v-model="schoolSearchName"
-                        :label="t('search_by_title')"
-                        prepend-inner-icon="mdi-magnify"
-                        variant="outlined"
-                      ></v-text-field>
+                      <v-text-field v-model="schoolSearchName" :label="t('search_by_title')"
+                        prepend-inner-icon="mdi-magnify" variant="outlined"></v-text-field>
                     </v-col>
                   </v-row>
                 </template>
@@ -1988,15 +2114,8 @@ getInventory()
 
       <v-row v-if="role === 8 || role === 1">
         <v-col>
-          <v-pagination
-            v-model="schoolPage"
-            :length="schoolLength"
-            :total-visible="6"
-            active-color="primary"
-            class="ml-auto mr-2"
-            size="small"
-            variant="flat"
-          ></v-pagination>
+          <v-pagination v-model="schoolPage" :length="schoolLength" :total-visible="6" active-color="primary"
+            class="ml-auto mr-2" size="small" variant="flat"></v-pagination>
         </v-col>
       </v-row>
     </v-container>

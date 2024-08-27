@@ -3,12 +3,12 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
 const headers = [
-  { key: 'age', title: 'Наименование' },
+  { key: 'age', title: t('name')  },
   { key: 'percent', title: 'Показатели' }
 ]
 
 const items = [
-  { age: 'Наименование:', percent: 77 },
+  { age: t('name'), percent: 77 },
   { age: t('copy'), percent: 120 },
   { age: 'Сумма:', percent: '300 000 тг' }
 ]

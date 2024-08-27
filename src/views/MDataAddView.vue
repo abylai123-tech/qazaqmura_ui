@@ -322,6 +322,22 @@ async function getMaterials(search = null) {
   }
 }
 
+const admissionDate = ref('')
+
+const handleDate = () => {
+  let value = admissionDate.value.replace(/\D/g, '')
+  if (value.length >= 3) {
+    value = value.slice(0, 2) + '.' + value.slice(2)
+  }
+  if (value.length >= 6) {
+    value = value.slice(0, 5) + '.' + value.slice(5)
+  }
+  if (value.length >= 10) {
+    value = value.slice(0, 10)
+  }
+  admissionDate.value = value
+}
+
 async function getSubjectHeadings(search = null) {
   try {
     let request = `/v1/subject/heading`
@@ -459,13 +475,6 @@ function removeNullOrEmptyFields(obj: any): any {
   return newObj
 }
 
-function formatDate(dateToFormat: string) {
-  const date = new Date(dateToFormat)
-  const day = date.getDate().toString().length > 1 ? date.getDate() : '0' + date.getDate()
-  const month =
-    (date.getMonth() + 1).toString().length > 1 ? date.getMonth() + 1 : '0' + date.getMonth()
-  return `${day}.${month}.${date.getFullYear()}`
-}
 
 function setNewItem(
   itemType: 'author' | 'publisher' | 'genre' | 'subjectHeading' | 'contractor' | 'tag'
@@ -513,7 +522,7 @@ async function sendBookData() {
     if (response.data && showFundData.value) {
       const admissionForm = { ...admission.value }
       admissionForm.book_id = id
-      admissionForm.admission_at = formatDate(admission.value.admission_at)
+      admissionForm.admission_at = admissionDate.value
       await api.postData<{ books: BookAdmission[] }, {}>('/v1/book/school/link', {
         books: [admissionForm]
       })
@@ -598,7 +607,7 @@ getContentTypes()
       </template>
 
       <template v-slot:append>
-        <help-button class="mr-3" />
+        <help-button video-id="fpyNAB4fvcU" class="mr-3" />
         <v-btn color="primary" prepend-icon="mdi-plus" to="/m-data/add" variant="flat"
           >{{t('add')}}
         </v-btn>
@@ -1217,11 +1226,11 @@ getContentTypes()
                 </v-col>
                 <v-col>
                   <v-text-field
-                    v-model="admission.admission_at"
-                    :label="t('reception_date')"
-                    placeholder="ДД.ММ.ГГ"
-                    type="date"
+                    v-model="admissionDate"
+                    label="Дата поступления"
+                    type="text"
                     variant="outlined"
+                    @input="handleDate"
                   ></v-text-field>
                 </v-col>
               </v-row>
