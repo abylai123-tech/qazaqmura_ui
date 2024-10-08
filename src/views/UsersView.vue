@@ -438,6 +438,23 @@ const getRegions = async (parentId: number | null = null) => {
   }
 }
 
+const downloadUser = async (id: number, name: string) => {
+  try {
+    const response = await api.postData<{}, { path: string }>(`/v1/user/sign-up/pdf/${id}`, {})
+    if (response.data) {
+      const path = response.data.path
+      const link = document.createElement('a')
+      link.href = import.meta.env.VITE_APP_API + '/storage' + path
+      link.target = '_blank'
+      link.download = `${name}.pdf`
+      link.click()
+      document.body.removeChild(link)
+    }
+  } catch (e) {
+    alert(e)
+  }
+}
+
 interface Region {
   id: number
   parent_id: number | null
@@ -524,7 +541,7 @@ getOrganizations()
         <small>Максимальный размер файла: 300 MB</small>
       </v-list-item>
       <v-list-item class="mt-2 text-center">
-        <v-btn color="primary" variant="flat" @click="sendFile">{{t('send')}}</v-btn>
+        <v-btn color="primary" variant="flat" @click="sendFile">{{ t('send') }}</v-btn>
       </v-list-item>
     </v-navigation-drawer>
 
@@ -534,7 +551,7 @@ getOrganizations()
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item class="my-2">
-        <span class="font-weight-bold">{{t('basic')}}</span>
+        <span class="font-weight-bold">{{ t('basic') }}</span>
       </v-list-item>
 
       <v-list-item>
@@ -637,7 +654,7 @@ getOrganizations()
                 </v-card-text>
                 <v-card-actions>
                   <v-spacer></v-spacer>
-                  <v-btn variant="tonal" @click="isActive.value = false">{{t('close')}}</v-btn>
+                  <v-btn variant="tonal" @click="isActive.value = false">{{ t('close') }}</v-btn>
                   <v-btn color="primary" variant="flat" @click="chooseRegion(isActive)"
                     >Выбрать
                   </v-btn>
@@ -689,7 +706,12 @@ getOrganizations()
           color="primary"
           label="Добавить контактное лицо"
         ></v-switch>
-        <v-switch v-model="addStructure" class="ml-2" color="primary" :label="t('structure')"></v-switch>
+        <v-switch
+          v-model="addStructure"
+          class="ml-2"
+          color="primary"
+          :label="t('structure')"
+        ></v-switch>
       </v-list-item>
 
       <v-list-item v-if="addContactPerson">
@@ -724,7 +746,7 @@ getOrganizations()
       </v-list-item>
 
       <v-list-item v-if="addStructure">
-        <div class="font-weight-bold">{{t('structure')}}</div>
+        <div class="font-weight-bold">{{ t('structure') }}</div>
         <div class="d-flex">
           <v-select
             v-model="classroom.number"
@@ -746,14 +768,14 @@ getOrganizations()
       </v-list-item>
 
       <v-list-item class="mt-2 mb-6 text-center">
-        <v-btn class="mr-10" variant="tonal" @click="createDrawer = false">{{t('close')}}</v-btn>
-        <v-btn color="primary" variant="flat" @click="createUser">{{t('add')}}</v-btn>
+        <v-btn class="mr-10" variant="tonal" @click="createDrawer = false">{{ t('close') }}</v-btn>
+        <v-btn color="primary" variant="flat" @click="createUser">{{ t('add') }}</v-btn>
       </v-list-item>
     </v-navigation-drawer>
 
     <v-navigation-drawer v-model="structureDrawer" location="right" temporary width="600">
       <v-list-item>
-        <span class="font-weight-bold">{{t('structure')}}</span>
+        <span class="font-weight-bold">{{ t('structure') }}</span>
       </v-list-item>
       <v-divider></v-divider>
       <v-list-item>
@@ -858,27 +880,29 @@ getOrganizations()
     <v-app-bar>
       <template v-slot:title>
         <div class="d-flex flex-column">
-          <span class="text-h6 font-weight-bold">{{t('subscription')}}</span>
+          <span class="text-h6 font-weight-bold">{{ t('subscription') }}</span>
           <span class="text-subtitle-2 text-medium-emphasis"
-            >{{t('online_library_card_registration')}}
+            >{{ t('online_library_card_registration') }}
           </span>
         </div>
       </template>
 
       <template v-slot:append>
-        <v-btn class="mr-3" variant="tonal" @click="structureDrawer = true">{{t('structure')}}</v-btn>
+        <v-btn class="mr-3" variant="tonal" @click="structureDrawer = true">{{
+          t('structure')
+        }}</v-btn>
         <v-menu>
           <template v-slot:activator="{ props }">
             <v-btn append-icon="mdi-chevron-down" class="mr-3" v-bind="props" variant="tonal"
-              >{{t('download_pdf')}}
+              >{{ t('download_pdf') }}
             </v-btn>
           </template>
 
           <v-list>
-            <v-list-item :value="1" @click="downloadList()">{{t('entire_list')}}</v-list-item>
-            <v-list-item :value="2" @click="downloadList(4)">{{t('class_teacher')}}</v-list-item>
-            <v-list-item :value="3" @click="downloadList(5)">{{t('students')}}</v-list-item>
-            <v-list-item :value="4" @click="downloadList(6)">{{t('school_staff')}}</v-list-item>
+            <v-list-item :value="1" @click="downloadList()">{{ t('entire_list') }}</v-list-item>
+            <v-list-item :value="2" @click="downloadList(4)">{{ t('class_teacher') }}</v-list-item>
+            <v-list-item :value="3" @click="downloadList(5)">{{ t('students') }}</v-list-item>
+            <v-list-item :value="4" @click="downloadList(6)">{{ t('school_staff') }}</v-list-item>
           </v-list>
         </v-menu>
         <v-menu>
@@ -889,15 +913,17 @@ getOrganizations()
               color="primary"
               v-bind="props"
               variant="flat"
-              >{{t('add')}}
+              >{{ t('add') }}
             </v-btn>
           </template>
 
           <v-list>
-            <v-list-item :value="1" @click="downloadExcel">{{t('download_import_template')}}</v-list-item>
+            <v-list-item :value="1" @click="downloadExcel">{{
+              t('download_import_template')
+            }}</v-list-item>
             <v-list-item :value="2" @click="drawer = true">{{ t('import') }}</v-list-item>
             <v-list-item :value="3" @click="createDrawer = true"
-              >{{t('add_individually')}}
+              >{{ t('add_individually') }}
             </v-list-item>
           </v-list>
         </v-menu>
@@ -961,19 +987,21 @@ getOrganizations()
           </div>
           <div>
             <span class="text-subtitle-2 text-medium-emphasis"
-              >{{t('first_activity')}}: {{ item.activated_at }}</span
+              >{{ t('first_activity') }}: {{ item.activated_at }}</span
             >
           </div>
           <div>
             <span class="text-subtitle-2 text-medium-emphasis"
-              >{{t('last_activity')}}: {{ item.last_used_at }}</span
+              >{{ t('last_activity') }}: {{ item.last_used_at }}</span
             >
           </div>
           <div class="my-2">
             <v-chip v-if="item.role" class="mr-2" color="primary" size="small" variant="outlined"
               >{{ item.role }}
             </v-chip>
-            <v-chip v-if="item.status" color="green" size="small" variant="flat">{{t('active')}}</v-chip>
+            <v-chip v-if="item.status" color="green" size="small" variant="flat">{{
+              t('active')
+            }}</v-chip>
             <v-chip v-else color="error" size="small" variant="flat">Не активен</v-chip>
           </div>
         </div>
@@ -1008,9 +1036,13 @@ getOrganizations()
             append-icon="mdi-arrow-right"
             class="mr-2"
             variant="outlined"
-            >{{t('go_to')}}
+            >{{ t('go_to') }}
           </v-btn>
-          <v-btn icon="mdi-download" variant="text"></v-btn>
+          <v-btn
+            @click="downloadUser(item.id_, `${item.lastname} ${item.firstname} ${item.fathername}`)"
+            icon="mdi-download"
+            variant="text"
+          ></v-btn>
         </div>
       </template>
 
