@@ -49,7 +49,7 @@ const selectedBookType: Ref<{ id: number; title: string }> = ref({ id: 0, title:
 
 const props = defineProps<Props>()
 
-const internalValue: Ref<Filter> = ref(props.modelValue)
+const internalValue: Ref<Filter> = ref({ ...props.modelValue })
 
 const updateValue = () => {
   emit('update:modelValue', internalValue.value)
@@ -62,42 +62,30 @@ watch(
   }
 )
 
-async function getLanguages(search = null) {
+async function getLanguages() {
   try {
-    let request = `/v1/language`
-    if (search) {
-      request += `?search=${search}`
-    }
-    const response = await api.fetchData<{ data: { items: Item[] } }>(request)
-    if (response.data) languages.value = response.data.data.items
-  } catch (error: any) {
-    console.error('Error:', error.message)
+    const response = await api.fetchData<{ data: { items: Item[] } }>('/v1/language')
+    languages.value = response.data?.data?.items || []
+  } catch (error) {
+    console.error(error)
   }
 }
 
-async function getAuthors(search = null) {
+async function getAuthors() {
   try {
-    let request = `/v1/author`
-    if (search) {
-      request += `?search=${search}`
-    }
-    const response = await api.fetchData<{ data: { items: Author[] } }>(request)
-    if (response.data) authors.value = response.data.data.items
-  } catch (error: any) {
-    console.error('Error:', error.message)
+    const response = await api.fetchData<{ data: { items: Author[] } }>('/v1/author')
+    authors.value = response.data?.data?.items || []
+  } catch (error) {
+    console.error(error)
   }
 }
 
-async function getPublishers(search = null) {
+async function getPublishers() {
   try {
-    let request = `/v1/publisher`
-    if (search) {
-      request += `?search=${search}`
-    }
-    const response = await api.fetchData<{ data: { items: Item[] } }>(request)
-    if (response.data) publishers.value = response.data.data.items
-  } catch (error: any) {
-    console.error('Error:', error.message)
+    const response = await api.fetchData<{ data: { items: Item[] } }>('/v1/publisher')
+    publishers.value = response.data?.data?.items || []
+  } catch (error) {
+    console.error(error)
   }
 }
 
@@ -105,8 +93,7 @@ onMounted(() => {
   internalValue.value = props.modelValue
 })
 
-const emit = defineEmits('search')
-
+const emit = defineEmits(['search', 'update:modelValue']) 
 const startSearch = () => {
   emit('search')
 }
@@ -199,16 +186,17 @@ async function getRoles() {
   }
 }
 
+onMounted(() => {
+  if (props.mdata) {
+    getLanguages()
+    getAuthors()
+    getPublishers()
+    getPublishers()
+  }
+})
 if (props.users) {
   getTeachers()
   getRoles()
-}
-
-if (props.mdata) {
-  getLanguages()
-  getAuthors()
-  getPublishers()
-  getPublishers()
 }
 
 if (props.inventory) {
@@ -223,16 +211,16 @@ if (props.inventory) {
       <div class="d-flex flex-column">
         <v-row class="mb-2">
           <v-col class="d-flex" cols="9">
-            <v-text-field
-              v-model="internalValue.search"
-              density="compact"
-              hide-details
-              :placeholder="t('search_by_title')"
-              prepend-inner-icon="mdi-magnify"
-              rounded
-              variant="outlined"
-              @input="updateValue"
-            >
+              <v-text-field
+                v-model="internalValue.search"
+                density="compact"
+                hide-details
+                :label="t('search_by_title')"
+                prepend-inner-icon="mdi-magnify"
+                rounded
+                variant="outlined"
+                @input="updateValue"
+              >
               <template v-if="users || inventory || mdata" v-slot:append>
                 <v-menu v-if="users">
                   <template v-slot:activator="{ props }">

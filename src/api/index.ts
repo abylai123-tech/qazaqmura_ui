@@ -3,13 +3,13 @@ import axios, { type AxiosResponse } from 'axios'
 import { ref, type Ref } from 'vue'
 import { useAuth } from '@/auth/index'
 import { useI18n } from 'vue-i18n'
-const host = import.meta.env.VITE_APP_API
+const host = import.meta.env.VITE_API_BASE_URL
 
 interface ApiResponse<T> {
   data: T | null
   error: string | null
 }
-
+ 
 export function useAPI() {
   const { token } = useAuth()
 
@@ -18,20 +18,25 @@ export function useAPI() {
     const error: Ref<string | null> = ref(null)
 
     try {
-      const config: any = {}
+      const config: any = {
+        headers: { 'Content-Type': 'application/json'}
+      };
       if (blob) {
         config.responseType = 'blob'
       }
+
       config.headers = token.value ? { Authorization: `Bearer ${token.value.token}` } : {}
       const response: AxiosResponse<U> = await axios.post(host + url, postData, config)
-      data.value = response.data
-    } catch (err) {
+      data.value = response.data; 
+
+      console.log('Response data', response.data);
+    } catch (err: any) {
+      console.error('Error Response:', err.response?.data || err.message);
       throw new Error(err.response.data.message)
     }
 
     return { data: data.value, error: error.value }
   }
-
 
   async function fetchData<T>(url: string): Promise<ApiResponse<T>> {
     // const t = useI18n()
@@ -67,8 +72,6 @@ export function useAPI() {
       console.error('Error downloading the PDF:', error);
     }
   }
-
-  
 
   async function deleteData<U>(url: string): Promise<ApiResponse<U>> {
     const data: Ref<U | null> = ref(null)

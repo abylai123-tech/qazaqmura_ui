@@ -126,20 +126,20 @@ async function getBooks() {
   loading.value = true
   try {
     let request = `/v2/book/school?page=${page.value}`
-    if (filters.value.search.length > 0) request += `&book=${filters.value.search}`
+    if (filters.value.search) request += `&book=${filters.value.search}`
     if (filters.value.publisherId) request += `&publisher_id=${filters.value.publisherId}`
     if (filters.value.authorId) request += `&author_id=${filters.value.authorId}`
     if (filters.value.languageId) request += `&language_id=${filters.value.languageId}`
     if (filters.value.year) request += `&year=${filters.value.year}`
     if (filters.value.epub) request += `&epub=1`
-    const response = await api.fetchData<{ data: Book[]; meta: { last_page: number } }>(request)
 
-    if (response.data) {
-      items.value = response.data.data
-      length.value = response.data.meta.last_page
-    }
-  } catch (error: any) {
-    console.error('Error:', error.message)
+    const response = await api.fetchData<{ data: Book[]; meta: { last_page: number } }>(request)
+    items.value = response.data.data || []
+    length.value = response.data.meta.last_page || 1
+  } catch (error) {
+    console.error('Error fetching books:', error)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -148,7 +148,7 @@ const editData = async (isActive: Ref<boolean>) => {
     amount: selectedItem.value.amount,
     price: selectedItem.value.price,
     admission_at: admissionDate.value,
-    contractor_id: selectedItem.value.contractor2.id
+    contractor_id: selectedItem.value.contractor.id
   }
   await api.putData(`/v1/book/school/${selectedItem.value.book_school_id}`, bookSchoolForm)
   await getBooks()
@@ -308,9 +308,13 @@ async function getAdmissionBlock() {
 const snackbar = ref(false)
 const snackbarText = ref('')
 
+// const getTotal = (price: number, amount: number) => {
+//   if (!price || !amount) return ''
+//   else return price * amount + ' ₸'
+// }
+
 const getTotal = (price: number, amount: number) => {
-  if (!price || !amount) return ''
-  else return price * amount + ' ₸'
+  return price && amount ? `${price * amount} ₸` : ''
 }
 
 getBooks()
@@ -375,14 +379,13 @@ watch(page, () => {
       <v-col>
         <FilterBlock
           v-model="filters"
-          :bottom-items="admissionBlock"
+          :bottom-items="[]"
           :inventory="false"
           :mdata="true"
           :one-line="false"
           :users="false"
           @search="getBooks"
-        >
-        </FilterBlock>
+        />
       </v-col>
     </v-row>
 

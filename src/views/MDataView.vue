@@ -8,6 +8,9 @@ import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 const api = useAPI()
 
+const selectedBookTypes: Ref<BookType[]> = ref([]) 
+const bookTypes: Ref<BookType[]> = ref([]) 
+
 interface Book {
   id: number
   volume: number
@@ -40,6 +43,11 @@ interface Book {
   book_age_characteristic: any[]
   book_education_level: any[]
   book_country: any[]
+}
+
+interface BookType {
+  id: number;
+  title: string;
 }
 
 interface Contractor {
@@ -157,62 +165,70 @@ async function getBooks() {
   console.log(epub.value)
   try {
     let requestString = `/v1/book?page=${page.value}`
-    if (search.value) {
-      requestString += `&title=${search.value}`
+    if (selectedBookTypes.value.length > 0) {
+      const typeIds = selectedBookTypes.value.map(type => type.id).join(',');
+      requestString += `&type_id=${typeIds}`;
     }
-    if (selectedType.value.id != 0) {
-      requestString += `&type_id=${selectedType.value.id}`
+    if (selectedItem.value) {
+      requestString += `&type_id=${selectedItem.value}`;
+    }
+    console.log('Запрос к серверу:', requestString);
+    if (selectedType.value.id !== 0) {
+      requestString += `&type_id=${selectedType.value.id}`;
     }
     if (languageId.value) {
-      requestString += `&language_id=${languageId.value}`
+      requestString += `&language_id=${languageId.value}`;
     }
     if (authorId.value) {
-      requestString += `&author_id=${authorId.value}`
+      requestString += `&author_id=${authorId.value}`;
     }
     if (publisherId.value) {
-      requestString += `&publisher_id=${publisherId.value}`
+      requestString += `&publisher_id=${publisherId.value}`;
     }
     if (year.value) {
-      requestString += `&year=${year.value}`
+      requestString += `&year=${year.value}`;
     }
     if (epub.value) {
-      requestString += `&epub=1`
+      requestString += `&epub=1`;
     }
     if (genreId.value) {
-      requestString += `&genre_id=${genreId.value}`
+      requestString += `&genre_id=${genreId.value}`;
     }
     if (ageCharacteristicId.value) {
-      requestString += `&age_characteristic_id=${ageCharacteristicId.value}`
+      requestString += `&age_characteristic_id=${ageCharacteristicId.value}`;
     }
     if (countryId.value) {
-      requestString += `&country_id=${countryId.value}`
+      requestString += `&country_id=${countryId.value}`;
     }
     if (copyrightSignId.value) {
-      requestString += `&copyright_sign_id=${copyrightSignId.value}`
+      requestString += `&copyright_sign_id=${copyrightSignId.value}`;
     }
     if (bookClassroom.value) {
-      requestString += `&book_classroom=${bookClassroom.value}`
+      requestString += `&book_classroom=${bookClassroom.value}`;
     }
     if (local.value) {
-      requestString += '&local=1'
+      requestString += '&local=1';
     }
     if (sorting.value) {
-      requestString += `&sort=${sorting.value}`
+      requestString += `&sort=${sorting.value}`;
     }
 
-    console.log(requestString)
+    console.log('Запрос к серверу', requestString)
 
-    const response = await api.fetchData<{ data: { items: Book[] }; meta: { last_page: number } }>(
-      requestString
-    )
+    const response = await api.fetchData<{ 
+      data: { items: Book[] }; 
+      meta: { last_page: number; total: number } 
+    }>(requestString);
 
     if (response.data) {
-      items.value = response.data.data.items
-      length.value = response.data.meta.last_page
-      booksTotal.value = response.data.meta.total
+      items.value = response.data.data.items;
+      length.value = response.data.meta.last_page;
+      booksTotal.value = response.data.meta.total;
     }
   } catch (error: any) {
-    console.error('Error:', error.message)
+    console.error('Ошибка при загрузке книг:', error.message);
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -224,7 +240,6 @@ const downloadEPUB = (epub: { id: number; book_id: number; value: string }) => {
 }
 
 async function getBook(id: number) {
-
   try {
     const response = await api.fetchData<Book>(`/v1/book/${id}`)
     if (response.data) selectedItem.value = response.data
@@ -232,7 +247,6 @@ async function getBook(id: number) {
   } catch (e) {
     console.error(e)
   }
-
 }
 
 function resetFilters() {
@@ -251,6 +265,26 @@ function resetFilters() {
   getBooks()
 }
 
+const removeBookType = (type: BookType) => {
+  selectedBookTypes.value = selectedBookTypes.value.filter(t => t.id !== type.id)
+}
+
+const sendSelectedBookTypes = async () => {
+  try {
+    const typeIds = selectedBookTypes.value.map(type => type.id)
+    await api.postData('/v2/book/school', { type_ids: typeIds })
+    console.log('Данные успешно отправлены:', typeIds)
+  } catch (error) {
+    console.error('Ошибка отправки данных:', error)
+  }
+}
+
+const updateSelectedBookTypes = (newSelection: BookType[]) => {
+  selectedBookTypes.value = newSelection;
+  getBooks();
+};
+
+
 async function sendRequest(
   bookId: number,
   formMessage: string,
@@ -266,7 +300,6 @@ async function sendRequest(
     console.error('Error:', error)
   }
 }
-
 
 async function sendAdmission(admissionForm: BookAdmission, isActive: Ref<boolean>, id: number) {
   const form = { ...admissionForm }
@@ -468,6 +501,23 @@ async function getCopyrightSigns(search = null) {
   }
 }
 
+const getBookTypes = async () => {
+  try {
+    const response = await api.fetchData<{ data: BookType[] }>('/v1/type');
+    bookTypes.value = response.data || [];
+  } catch (error) {
+    console.error('Ошибка загрузки типов книг:', error);
+  }
+};
+
+const fetchBookTypes = async() => {
+  try {
+    const response = await api.fetchData<{ data: BookType[]}>('/v1/')
+  } catch(error) {
+    console.error('Error:', error);
+  }
+}
+
 const newItem: Ref<{
   name: string
   title: string
@@ -547,7 +597,6 @@ const newQuote = ref({
 })
 
 
-
 getBooks()
 getAdmissions()
 getContractors()
@@ -564,6 +613,8 @@ getCopyrightSigns()
 watch(page, () => {
   getBooks()
 })
+
+
 </script>
 
 <template>
@@ -654,11 +705,37 @@ watch(page, () => {
                   <div class="mt-2">Create: КГУ"Школа-гимназия имени Бауыржана Момышұлы", Калтай Исабекова</div>
                 </v-col>
                 <v-col cols="8">
-                  <v-row>
-                    <v-chip v-for="item in selectedItem.book_type" :key="item.id" color="primary" variant="flat">
-                      {{ item.title }}
-                    </v-chip>
-                  </v-row>
+                  <v-autocomplete
+                    v-model="selectedBookTypes"
+                    :items="bookTypes"
+                    item-value="id"
+                    item-text="title"
+                    label="Выберите типы книг"
+                    multiple
+                    chips
+                    clearable
+                    return-object
+                    @update:model-value="updateSelectedBookTypes"
+                  >
+                    <template v-slot:selection="{ item }">
+                      <v-chip
+                        :key="item.id"
+                        small
+                        class="mx-1"
+                        color="primary"
+                        @click:close="removeBookType(item)"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                  </v-autocomplete>
+                  <v-btn color="primary" @click="getBooks">Обновить книги</v-btn>
+                  <v-btn color="primary" @click="sendSelectedBookTypes">
+                    Отправить выбранные типы
+                  </v-btn>
+                  <div class="mt-2">
+                    <strong>Выбранные типы:</strong> {{ selectedBookTypes.map(type => type.title).join(', ') }}
+                  </div>
                   <v-row class="mt-4">
                     <div class="font-weight-bold">{{ selectedItem.title }}</div>
                   </v-row>
