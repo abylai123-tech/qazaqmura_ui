@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
+import { onMounted } from 'vue'
 import { ref, type Ref, watch } from 'vue'
 import nocover from '@/assets/no-book-cover.svg'
 import HelpButton from '@/components/HelpButton.vue'
@@ -161,19 +162,17 @@ const auth = useAuth()
 const booksTotal = ref(0)
 
 async function getBooks() {
-  loading.value = true
-  console.log(epub.value)
+  loading.value = true;
+  console.log("EPUB value:", epub.value);
+  
   try {
-    let requestString = `/v1/book?page=${page.value}`
+    let requestString = `/v1/book?page=${page.value}`;
+    
     if (selectedBookTypes.value.length > 0) {
-      const typeIds = selectedBookTypes.value.map(type => type.id).join(',');
+      const typeIds = selectedBookTypes.value.map(type => type.id).join(",");
       requestString += `&type_id=${typeIds}`;
     }
-    if (selectedItem.value) {
-      requestString += `&type_id=${selectedItem.value}`;
-    }
-    console.log('Запрос к серверу:', requestString);
-    if (selectedType.value.id !== 0) {
+    if (selectedType.value && selectedType.value.id !== 0) {
       requestString += `&type_id=${selectedType.value.id}`;
     }
     if (languageId.value) {
@@ -207,17 +206,17 @@ async function getBooks() {
       requestString += `&book_classroom=${bookClassroom.value}`;
     }
     if (local.value) {
-      requestString += '&local=1';
+      requestString += `&local=1`;
     }
     if (sorting.value) {
       requestString += `&sort=${sorting.value}`;
     }
 
-    console.log('Запрос к серверу', requestString)
+    console.log("Запрос к серверу:", requestString);
 
-    const response = await api.fetchData<{ 
-      data: { items: Book[] }; 
-      meta: { last_page: number; total: number } 
+    const response = await api.fetchData<{
+      data: { items: Book[] };
+      meta: { last_page: number; total: number };
     }>(requestString);
 
     if (response.data) {
@@ -226,7 +225,7 @@ async function getBooks() {
       booksTotal.value = response.data.meta.total;
     }
   } catch (error: any) {
-    console.error('Ошибка при загрузке книг:', error.message);
+    console.error("Ошибка при загрузке книг:", error.message);
   } finally {
     loading.value = false;
   }
@@ -596,7 +595,51 @@ const newQuote = ref({
   note: '',
 })
 
+const pageNumber = ref<number>(1);
+const minPage = ref<number>(1);
+const maxPage = ref<number>(1);
+const errorMessage = ref<string>('');
+const isValid = ref<boolean>(false);
 
+const fetchPaginationData = async (): Promise<void> => {
+  try {
+    const response = await fetch('https://test.ui.qazaqmura.kz/api/books');
+    const data = await response.json();
+    minPage.value = data.minPage || 1;
+    maxPage.value = data.maxPage || 1;
+  } catch (error) {
+    console.error('Ошибка при получении данных:', error);
+  }
+};
+
+const validatePageNumber = (value: number): boolean | string => {
+  if (value < minPage.value || value > maxPage.value) {
+    return `Номер страницы должен быть от ${minPage.value} до ${maxPage.value}.`;
+  }
+  return true;
+};
+
+const onInput = (): void => {
+  const validationResult = validatePageNumber(pageNumber.value);
+  if (validationResult === true) {
+    errorMessage.value = '';
+    isValid.value = true;
+  } else {
+    errorMessage.value = validationResult as string;
+    isValid.value = false;
+  }
+};
+
+const goToPage = (): void => {
+  if (isValid.value) {
+    const url = `https://test.ui.qazaqmura.kz/m-data?page=${pageNumber.value}`;
+    window.location.href = url;
+  }
+};
+
+onMounted(() => {
+  fetchPaginationData();
+});
 getBooks()
 getAdmissions()
 getContractors()
@@ -613,7 +656,6 @@ getCopyrightSigns()
 watch(page, () => {
   getBooks()
 })
-
 
 </script>
 
@@ -1600,10 +1642,39 @@ watch(page, () => {
         </v-card-text>
       </v-card>
     </v-row>
+    <v-row class="d-flex align-center">
+      <v-col cols="12" sm="6" class="pagination-input">
+        <v-text-field
+          v-model.number="pageNumber"
+          :rules="[validatePageNumber]"
+          label="Введите номер страницы"
+          type="number"
+          :min="minPage"
+          :max="maxPage"
+          @input="onInput"
+          outlined
+          dense
+          class="page-input-field"
+        />
+      </v-col>
 
-    <v-row class="mt-4">
-      <v-pagination v-model="page" :length="length" :total-visible="6" active-color="primary" class="ml-auto mr-2"
-        size="small" variant="flat"></v-pagination>
+      <v-col cols="12" sm="6">
+        <v-btn 
+          @click="goToPage" 
+          :disabled="!isValid"
+          color="primary"
+          class="go-button"
+          large
+        >
+          Перейти
+        </v-btn>
+      </v-col>
+    </v-row>
+
+    <v-row v-if="errorMessage" class="error-message-row">
+      <v-alert type="error" :value="true" class="error-message" outlined>
+        {{ errorMessage }}
+      </v-alert>
     </v-row>
   </v-container>
 </template>

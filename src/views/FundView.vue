@@ -335,7 +335,7 @@ watch(page, () => {
       <template v-slot:title>
         <div class="d-flex flex-column">
           <span class="text-h6 font-weight-bold">{{t('fund')}}</span>
-          <span class="text-subtitle-2 text-medium-emphasis"
+          <span class="text-subtitle-2 text-medium-emphasis"Q
             >{{t('database_by_rk')}}</span
           >
         </div>
@@ -378,13 +378,13 @@ watch(page, () => {
     <v-row class="mx-2 my-3">
       <v-col>
         <FilterBlock
-          v-model="filters"
-          :bottom-items="[]"
-          :inventory="false"
-          :mdata="true"
-          :one-line="false"
-          :users="false"
-          @search="getBooks"
+         v-model="filters"
+         :bottom-items="[]"
+         :inventory="false"
+         :mdata="true"
+         :one-line="false"
+         :users="false"
+         @search="getBooks"
         />
       </v-col>
     </v-row>

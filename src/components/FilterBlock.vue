@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
+import { distanceBetweenPoints } from 'chart.js/helpers';
 import { onMounted, ref, type Ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
@@ -49,7 +50,23 @@ const selectedBookType: Ref<{ id: number; title: string }> = ref({ id: 0, title:
 
 const props = defineProps<Props>()
 
-const internalValue: Ref<Filter> = ref({ ...props.modelValue })
+const internalValue: Ref<Filter> = ref({
+  search: '',
+  languageId: null,
+  authorId: null,
+  publisherId: null,
+  year: null,
+  epub: false,
+  promiser: false,
+  status: false,
+  class: null,
+  teacher: null,
+  isActive: false,
+  role_id: null,
+  inventoryStatus: null,
+  fundBooks: null,
+  book_type_id: null,
+});
 
 const updateValue = () => {
   emit('update:modelValue', internalValue.value)
@@ -94,9 +111,13 @@ onMounted(() => {
 })
 
 const emit = defineEmits(['search', 'update:modelValue']) 
+
 const startSearch = () => {
-  emit('search')
-}
+  console.log('Ищем с фильтром:', {
+    ...internalValue.value,
+    book_type_id: selectedBookType.value.id,
+  });
+};
 
 const resetFilters = () => {
   internalValue.value = {
@@ -123,7 +144,11 @@ const resetFilters = () => {
 }
 
 const teachers: Ref<{ id: number; user_data: { firstname: string; lastname: string } }[]> = ref([])
-const selectedType: Ref<{ id: number; label: string }> = ref({ id: 0, label: t('user_type') })
+const selectedType: Ref<{ id: number; label: string }> = ref({
+  id: 0,
+  label: t('user_type') || 'Default label',
+});
+
 
 async function getTeachers(search = null) {
   let request = '/v1/user?teacher=1&page=1'
@@ -165,6 +190,8 @@ const setUserType = (user: { id: number; label: string }) => {
   updateValue()
 }
 
+const selectedBookTypes: Ref<number[]> = ref([])
+
 const setBookType = (bookType: { id: number; title: string }) => {
   selectedBookType.value = bookType
   internalValue.value.book_type_id = bookType.id
@@ -188,16 +215,18 @@ async function getRoles() {
 
 onMounted(() => {
   if (props.mdata) {
-    getLanguages()
-    getAuthors()
-    getPublishers()
-    getPublishers()
+    getLanguages();
+    getAuthors();
+    getPublishers();
   }
-})
-if (props.users) {
-  getTeachers()
-  getRoles()
-}
+});
+
+onMounted(async () => {
+  if (props.users) {
+    await getTeachers();
+    await getRoles();
+  }
+});
 
 if (props.inventory) {
   getAuthors()
@@ -224,11 +253,10 @@ if (props.inventory) {
               <template v-if="users || inventory || mdata" v-slot:append>
                 <v-menu v-if="users">
                   <template v-slot:activator="{ props }">
-                    <v-btn append-icon="mdi-chevron-down" v-bind="props" variant="outlined"
-                      >{{ selectedType.label }}
+                    <v-btn append-icon="mdi-chevron-down" v-bind="props" variant="outlined">
+                      {{ selectedType?.label || t('default_label') }}
                     </v-btn>
                   </template>
-
                   <v-list>
                     <v-list-item
                       v-for="item in roles"
@@ -260,7 +288,7 @@ if (props.inventory) {
             </v-text-field>
           </v-col>
           <v-col class="d-flex justify-space-around">
-            <v-btn color="primary" variant="flat" @click="startSearch">{{t('search')}}</v-btn>
+            <v-btn color="primary" variant="flat" @click="$emit('search')">{{t('search')}}</v-btn>
             <v-btn variant="tonal" @click="resetFilters">{{t('reset')}}</v-btn>
           </v-col>
         </v-row>
@@ -301,6 +329,19 @@ if (props.inventory) {
               variant="solo-filled"
               @input="updateValue"
               @update:search="getPublishers"
+            ></v-autocomplete>
+          </v-col>
+          <v-col v-if="mdata || inventory" cols="2">
+            <v-autocomplete
+              v-model="selectedBookTypes" 
+              :items="types"
+              multiple
+              clearable
+              item-title="title"
+              item-value="id"
+              :label="t('book_type')"
+              variant="solo-filled"
+              @update:model-value="setBookTypes"
             ></v-autocomplete>
           </v-col>
           <v-col v-if="mdata" cols="2">
