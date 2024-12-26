@@ -15,9 +15,12 @@ const signIn = async function () {
     const success = await auth.login(user.value);
     if (success) {
       router.push({ name: 'home' });
+    } else {
+      alert('Ошибка авторизации');
     }
   } catch (error: any) {
     console.error('Error:', error.message || error);
+    alert('Произошла ошибка при входе');
   } finally {
     loading.value = false;
   }

@@ -1,5 +1,6 @@
 import { onMounted, type Ref, ref } from 'vue'
 import { useAPI } from '@/api'
+import router from '@/router';
 
 interface User {
   id: number
@@ -98,7 +99,8 @@ export function useAuth() {
     }
 
     if (!checkExpiration()) {
-      logout()
+      logout();
+      router.push('/login'); 
     }
   })
 
@@ -107,9 +109,10 @@ export function useAuth() {
       const response = await api.postData<
         { login: string; password: string; device: string },
         User
-      >('/v1/login', form)
+      >('/v1/login', form);
+      
       if (response.data) {
-        token.value = { token: response.data.token, expiration: response.data.token_expired }
+        token.value = { token: response.data.token, expiration: response.data.token_expired };
         user.value = {
           id: response.data.id,
           email: response.data.email,
@@ -117,25 +120,24 @@ export function useAuth() {
           status: response.data.status,
           user_data: response.data.user_data,
           roles: response.data.roles
-        }
+        };
       }
 
-      localStorage.setItem('token', JSON.stringify(token.value))
-      localStorage.setItem('user', JSON.stringify(user.value))
+      localStorage.setItem('token', JSON.stringify(token.value));
+      localStorage.setItem('user', JSON.stringify(user.value));
 
       if (!user.value.roles.some((item) => item.id === 8)) {
-        const data = await api.fetchData<Data>(`/v1/user/${user.value.id}`)
-        userData.value = data.data
-        localStorage.setItem('userData', JSON.stringify(userData.value))
+        const data = await api.fetchData<Data>(`/v1/user/${user.value.id}`);
+        userData.value = data.data;
+        localStorage.setItem('userData', JSON.stringify(userData.value));
       }
 
-      return true
+      return true;
     } catch (error) {
-      console.error('Error:', error)
-      return false
+      console.error('Error:', error);
+      return false;
     }
   }
-
   function logout() {
     user.value = null
     token.value = null

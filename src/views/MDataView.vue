@@ -6,6 +6,7 @@ import nocover from '@/assets/no-book-cover.svg'
 import HelpButton from '@/components/HelpButton.vue'
 import { useAuth } from '@/auth'
 import { useI18n } from 'vue-i18n'
+import router from '@/router'
 const { t } = useI18n()
 const api = useAPI()
 
@@ -282,7 +283,6 @@ const updateSelectedBookTypes = (newSelection: BookType[]) => {
   selectedBookTypes.value = newSelection;
   getBooks();
 };
-
 
 async function sendRequest(
   bookId: number,
@@ -595,51 +595,49 @@ const newQuote = ref({
   note: '',
 })
 
-const pageNumber = ref<number>(1);
-const minPage = ref<number>(1);
-const maxPage = ref<number>(1);
-const errorMessage = ref<string>('');
-const isValid = ref<boolean>(false);
+const minPage = 1; 
+const maxPage = ref(100); 
+const inputPage = ref<number | null>(null); 
+const errorMessage = ref('');
+const successMessage = ref(''); 
 
-const fetchPaginationData = async (): Promise<void> => {
+const handlePageChange = () => {
+  errorMessage.value = '';
+  successMessage.value = '';
+
+  if (!inputPage.value || inputPage.value < minPage || inputPage.value > maxPage.value) {
+    errorMessage.value = `Номер страницы должен быть между ${minPage} и ${maxPage.value}.`;
+    return;
+  }
+
+  router.push({ path: '/m-data', query: { page: inputPage.value.toString() } })
+    .then(() => {
+      successMessage.value = `Вы успешно перешли на страницу ${inputPage.value}.`;
+    })
+    .catch((error) => {
+      console.error('Ошибка при изменении маршрута:', error);
+      errorMessage.value = 'Ошибка при переходе на новую страницу.';
+    });
+};
+
+const fetchPaginationData = async () => {
   try {
-    const response = await fetch('https://test.ui.qazaqmura.kz/api/books');
-    const data = await response.json();
-    minPage.value = data.minPage || 1;
-    maxPage.value = data.maxPage || 1;
+    const response = await api.fetchData<Book>('/v1/book?page=1');
+    if (response.data && response.data.maxPage) {
+      maxPage.value = response.data.maxPage; 
+    } else {
+      console.warn('Данные maxPage отсутствуют в ответе API');
+      errorMessage.value = 'Не удалось загрузить данные о количестве страниц.';
+    }
   } catch (error) {
-    console.error('Ошибка при получении данных:', error);
+    console.error('Ошибка при получении данных от API:', error);
+    errorMessage.value = 'Ошибка загрузки данных. Попробуйте позже.';
   }
 };
 
-const validatePageNumber = (value: number): boolean | string => {
-  if (value < minPage.value || value > maxPage.value) {
-    return `Номер страницы должен быть от ${minPage.value} до ${maxPage.value}.`;
-  }
-  return true;
-};
+onMounted(fetchPaginationData);
 
-const onInput = (): void => {
-  const validationResult = validatePageNumber(pageNumber.value);
-  if (validationResult === true) {
-    errorMessage.value = '';
-    isValid.value = true;
-  } else {
-    errorMessage.value = validationResult as string;
-    isValid.value = false;
-  }
-};
 
-const goToPage = (): void => {
-  if (isValid.value) {
-    const url = `https://test.ui.qazaqmura.kz/m-data?page=${pageNumber.value}`;
-    window.location.href = url;
-  }
-};
-
-onMounted(() => {
-  fetchPaginationData();
-});
 getBooks()
 getAdmissions()
 getContractors()
@@ -1642,39 +1640,61 @@ watch(page, () => {
         </v-card-text>
       </v-card>
     </v-row>
-    <v-row class="d-flex align-center">
-      <v-col cols="12" sm="6" class="pagination-input">
-        <v-text-field
-          v-model.number="pageNumber"
-          :rules="[validatePageNumber]"
-          label="Введите номер страницы"
-          type="number"
-          :min="minPage"
-          :max="maxPage"
-          @input="onInput"
-          outlined
-          dense
-          class="page-input-field"
-        />
-      </v-col>
+    <v-row justify="center" align="center" class="mt-5">
+    <v-col cols="12" md="8">
+      <v-card
+        class="p-4 d-flex align-center justify-center"
+        elevation="3"
+        rounded="xl"
+        style="z-index: 10; width: 100%;"
+      >
+        <v-row class="align-center">
+          <v-col cols="9">
+            <v-text-field
+              v-model="inputPage"
+              label="Номер страницы"
+              type="number"
+              :error-messages="[errorMessage]"
+              outlined
+              dense
+              clearable
+            ></v-text-field>
+          </v-col>
+          <v-col cols="3">
+            <v-btn
+              block
+              color="primary"
+              height="40px"
+              :disabled="loading"
+              @click="handlePageChange"
+            >
+              Искать
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-card>
+    </v-col>
 
-      <v-col cols="12" sm="6">
-        <v-btn 
-          @click="goToPage" 
-          :disabled="!isValid"
-          color="primary"
-          class="go-button"
-          large
-        >
-          Перейти
-        </v-btn>
-      </v-col>
-    </v-row>
-
-    <v-row v-if="errorMessage" class="error-message-row">
-      <v-alert type="error" :value="true" class="error-message" outlined>
+    <v-col cols="12" md="8" class="mt-3">
+      <v-alert
+        v-if="successMessage"
+        type="success"
+        elevation="2"
+        rounded="lg"
+        class="fade-transition"
+      >
+        {{ successMessage }}
+      </v-alert>
+      <v-alert
+        v-if="errorMessage"
+        type="error"
+        elevation="2"
+        rounded="lg"
+        class="fade-transition"
+      >
         {{ errorMessage }}
       </v-alert>
-    </v-row>
+    </v-col>
+  </v-row>
   </v-container>
 </template>
