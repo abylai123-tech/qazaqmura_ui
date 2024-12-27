@@ -13,10 +13,13 @@ import router from './router'
 import 'vuetify/styles'
 import vuetify from './plugins/vuetify'
 
+import Toast from 'vue-toastification'
+import 'vue-toastification/dist/index.css'
+
 const app = createApp(App)
 
 const i18n = createI18n({
-  legacy: false, 
+  legacy: false,
   locale: 'ru',
   messages: {
     ru,
@@ -24,9 +27,24 @@ const i18n = createI18n({
   }
 })
 
+const toastOptions = {
+  position: 'top-right',
+  timeout: 5000,
+  closeOnClick: true,
+  pauseOnFocusLoss: true,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: false,
+  closeButton: 'button',
+  icon: true,
+}
+
 app.use(createPinia())
 app.use(router)
 app.use(vuetify)
 app.use(i18n)
 
+app.use(Toast, toastOptions)
 app.mount('#app')

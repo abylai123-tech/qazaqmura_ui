@@ -7,8 +7,10 @@ import HelpButton from '@/components/HelpButton.vue'
 import { useAuth } from '@/auth'
 import { useI18n } from 'vue-i18n'
 import router from '@/router'
+import { useToast } from 'vue-toastification'
 const { t } = useI18n()
 const api = useAPI()
+const toast = useToast() 
 
 const selectedBookTypes: Ref<BookType[]> = ref([]) 
 const bookTypes: Ref<BookType[]> = ref([]) 
@@ -161,6 +163,7 @@ const languageId: Ref<number | null> = ref(null),
 
 const auth = useAuth()
 const booksTotal = ref(0)
+const books: Ref<Book[]> = ref([])
 
 async function getBooks() {
   loading.value = true;
@@ -517,6 +520,50 @@ const fetchBookTypes = async() => {
   }
 }
 
+const fetchBooks = async () => {
+  try {
+    const response = await api.fetchData('/books')
+    books.value = response.data
+    toast.success(t('Данные успешно загружены.')) 
+  } catch (error) {
+    toast.error(t('Произошла ошибка при загрузке данных.')) 
+  }
+}
+
+const addBook = async (book: Partial<Book>) => {
+  try {
+    await api.postData('/books', book)
+    await fetchBooks()
+    toast.success(t('Данные успешно добавлены.'))
+  } catch (error) {
+    toast.error(t('Произошла ошибка. Попробуйте еще раз.')) 
+  }
+}
+
+const updateBook = async (bookId: number, book: Partial<Book>) => {
+  try {
+    await api.putData(`/books/${bookId}`, book)
+    await fetchBooks()
+    toast.success(t('Изменения успешно сохранены.')) 
+  } catch (error) {
+    toast.error(t('Произошла ошибка. Попробуйте еще раз.')) 
+  }
+}
+
+const deleteBook = async (bookId: number) => {
+  try {
+    await api.deleteData(`/books/${bookId}`)
+    await fetchBooks()
+    toast.success(t('Данные успешно удалены.')) 
+  } catch (error) {
+    toast.error(t('Произошла ошибка. Попробуйте еще раз.')) 
+  }
+}
+
+onMounted(() => {
+  fetchBooks()
+})
+
 const newItem: Ref<{
   name: string
   title: string
@@ -636,7 +683,6 @@ const fetchPaginationData = async () => {
 };
 
 onMounted(fetchPaginationData);
-
 
 getBooks()
 getAdmissions()
@@ -1636,6 +1682,32 @@ watch(page, () => {
                 </v-row>
               </v-col>
             </v-row>
+          <v-row>
+          <v-col cols="12">
+            <v-toolbar flat>
+              <v-toolbar-title>{{ t('book_lists') }}</v-toolbar-title>
+              <v-spacer></v-spacer>
+              <v-btn color="primary" @click="addBook({ title: 'Новая книга', year: 2024 })">
+                {{ t('add_book') }}
+              </v-btn>
+            </v-toolbar>
+          </v-col>
+        </v-row>
+        <v-row>
+          <v-col v-for="book in books" :key="book.id" cols="12" md="6">
+            <v-card>
+              <v-card-title>{{ book.title }}</v-card-title>
+              <v-card-actions>
+                <v-btn color="success" @click="updateBook(book.id, { title: book.title + ' (Обновлено)' })">
+                  {{ t('Change') }}
+                </v-btn>
+                <v-btn color="error" @click="deleteBook(book.id)">
+                  {{ t('Delete') }}
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </v-col>
+        </v-row>
           </v-container>
         </v-card-text>
       </v-card>
