@@ -520,50 +520,6 @@ const fetchBookTypes = async() => {
   }
 }
 
-const fetchBooks = async () => {
-  try {
-    const response = await api.fetchData('/books')
-    books.value = response.data
-    toast.success(t('Данные успешно загружены.')) 
-  } catch (error) {
-    toast.error(t('Произошла ошибка при загрузке данных.')) 
-  }
-}
-
-const addBook = async (book: Partial<Book>) => {
-  try {
-    await api.postData('/books', book)
-    await fetchBooks()
-    toast.success(t('Данные успешно добавлены.'))
-  } catch (error) {
-    toast.error(t('Произошла ошибка. Попробуйте еще раз.')) 
-  }
-}
-
-const updateBook = async (bookId: number, book: Partial<Book>) => {
-  try {
-    await api.putData(`/books/${bookId}`, book)
-    await fetchBooks()
-    toast.success(t('Изменения успешно сохранены.')) 
-  } catch (error) {
-    toast.error(t('Произошла ошибка. Попробуйте еще раз.')) 
-  }
-}
-
-const deleteBook = async (bookId: number) => {
-  try {
-    await api.deleteData(`/books/${bookId}`)
-    await fetchBooks()
-    toast.success(t('Данные успешно удалены.')) 
-  } catch (error) {
-    toast.error(t('Произошла ошибка. Попробуйте еще раз.')) 
-  }
-}
-
-onMounted(() => {
-  fetchBooks()
-})
-
 const newItem: Ref<{
   name: string
   title: string
@@ -643,42 +599,62 @@ const newQuote = ref({
 })
 
 const minPage = 1; 
-const maxPage = ref(100); 
-const inputPage = ref<number | null>(null); 
-const errorMessage = ref('');
-const successMessage = ref(''); 
+const maxPage = ref<number | null>(null);
+const inputPage = ref<number | null>(null);
+const errorMessage = ref<string>(""); 
+const successMessage = ref<string>("");
 
-const handlePageChange = () => {
-  errorMessage.value = '';
-  successMessage.value = '';
+const displayMessage = (type: "error" | "success", message: string, duration = 5000) => {
+  if (type === "error") {
+    errorMessage.value = message;
+  } else if (type === "success") {
+    successMessage.value = message;
+  }
 
-  if (!inputPage.value || inputPage.value < minPage || inputPage.value > maxPage.value) {
-    errorMessage.value = `Номер страницы должен быть между ${minPage} и ${maxPage.value}.`;
+  setTimeout(() => {
+    if (type === "error") {
+      errorMessage.value = "";
+    } else if (type === "success") {
+      successMessage.value = "";
+    }
+  }, duration);
+};
+
+const handlePageChange = async () => {
+  errorMessage.value = "";
+  successMessage.value = "";
+
+  if (!inputPage.value || inputPage.value < minPage || (maxPage.value !== null && inputPage.value > maxPage.value)) {
+    displayMessage("error", `Номер страницы должен быть между ${minPage} и ${maxPage.value}.`);
     return;
   }
 
-  router.push({ path: '/m-data', query: { page: inputPage.value.toString() } })
-    .then(() => {
-      successMessage.value = `Вы успешно перешли на страницу ${inputPage.value}.`;
-    })
-    .catch((error) => {
-      console.error('Ошибка при изменении маршрута:', error);
-      errorMessage.value = 'Ошибка при переходе на новую страницу.';
+  loading.value = true;
+
+  try {
+    await router.push({
+      path: "/m-data",
+      query: { page: inputPage.value.toString() },
     });
+    displayMessage("success", `Вы успешно перешли на страницу ${inputPage.value}.`);
+  } catch (error) {
+    console.error("Ошибка при изменении маршрута:", error);
+    displayMessage("error", "Ошибка при переходе на новую страницу.");
+  } finally {
+    loading.value = false;
+  }
 };
 
 const fetchPaginationData = async () => {
   try {
-    const response = await api.fetchData<Book>('/v1/book?page=1');
+    const response = await api.fetchData<{ maxPage: number }>("/v1/book?page=1");
     if (response.data && response.data.maxPage) {
-      maxPage.value = response.data.maxPage; 
+      maxPage.value = response.data.maxPage;
     } else {
-      console.warn('Данные maxPage отсутствуют в ответе API');
-      errorMessage.value = 'Не удалось загрузить данные о количестве страниц.';
+      console.warn("Данные maxPage отсутствуют в ответе API");
     }
   } catch (error) {
-    console.error('Ошибка при получении данных от API:', error);
-    errorMessage.value = 'Ошибка загрузки данных. Попробуйте позже.';
+    console.error("Ошибка при получении данных от API:", error);
   }
 };
 
@@ -1682,32 +1658,6 @@ watch(page, () => {
                 </v-row>
               </v-col>
             </v-row>
-          <v-row>
-          <v-col cols="12">
-            <v-toolbar flat>
-              <v-toolbar-title>{{ t('book_lists') }}</v-toolbar-title>
-              <v-spacer></v-spacer>
-              <v-btn color="primary" @click="addBook({ title: 'Новая книга', year: 2024 })">
-                {{ t('add_book') }}
-              </v-btn>
-            </v-toolbar>
-          </v-col>
-        </v-row>
-        <v-row>
-          <v-col v-for="book in books" :key="book.id" cols="12" md="6">
-            <v-card>
-              <v-card-title>{{ book.title }}</v-card-title>
-              <v-card-actions>
-                <v-btn color="success" @click="updateBook(book.id, { title: book.title + ' (Обновлено)' })">
-                  {{ t('Change') }}
-                </v-btn>
-                <v-btn color="error" @click="deleteBook(book.id)">
-                  {{ t('Delete') }}
-                </v-btn>
-              </v-card-actions>
-            </v-card>
-          </v-col>
-        </v-row>
           </v-container>
         </v-card-text>
       </v-card>
@@ -1723,14 +1673,15 @@ watch(page, () => {
         <v-row class="align-center">
           <v-col cols="9">
             <v-text-field
-              v-model="inputPage"
-              label="Номер страницы"
-              type="number"
-              :error-messages="[errorMessage]"
-              outlined
-              dense
-              clearable
-            ></v-text-field>
+            v-model="inputPage"
+            label="Номер страницы"
+            type="number"
+            :error-messages="[errorMessage]"
+            hide-details
+            outlined
+            dense
+            class="no-arrows"
+          ></v-text-field>
           </v-col>
           <v-col cols="3">
             <v-btn
