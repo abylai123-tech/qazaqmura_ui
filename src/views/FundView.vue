@@ -122,6 +122,9 @@ const filters: Ref<Filter> = ref({
   epub: false
 })
 
+const types: Ref<Type[]> = ref([])
+const selectedTypeId: Ref<number[] | null> = ref(null)
+
 async function getBooks() {
   loading.value = true
   try {

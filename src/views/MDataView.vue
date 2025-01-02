@@ -151,6 +151,40 @@ const languageId: Ref<number | null> = ref(null),
 
 const auth = useAuth()
 const booksTotal = ref(0)
+const bookTypes = ref([]); 
+const selectedTypes = ref([]); 
+
+const endpoints = {
+  fetchBookTypes: '/api/book-types',
+  addBookType: '/api/book-types/add', 
+};
+
+async function fetchBookTypes() {
+  try {
+    const response = await axios.get(endpoints.fetchBookTypes);
+    bookTypes.value = response.data;
+  } catch (error) {
+    console.error('Ошибка при получении типов книг:', error);
+  }
+}
+
+async function addBookType(newType) {
+  try {
+    const response = await axios.post(endpoints.addBookType, { name: newType });
+    bookTypes.value.push(response.data);
+    selectedTypes.value.push(response.data);
+  } catch (error) {
+    console.error('Ошибка при добавлении типа книги:', error);
+  }
+}
+
+watch(
+  selectedTypes,
+  (newValue) => {
+    selectedItem.value.book_type = newValue;
+  },
+  { deep: true }
+);
 
 async function getBooks() {
   loading.value = true
@@ -656,9 +690,20 @@ watch(page, () => {
                 <v-col cols="8">
                   <v-row>
                     <v-chip v-for="item in selectedItem.book_type" :key="item.id" color="primary" variant="flat">
+                    <v-select
+                    v-model="selectedTypes"
+                    :items="bookTypes"
+                    item-text="name"
+                    item-value="id"
+                    label="Выберите тип книги"
+                    multiple
+                    return-object
+                    outlined
+                  ></v-select>
                       {{ item.title }}
                     </v-chip>
                   </v-row>
+                  <v-btn color="primary" @click="fetchBooks">Загрузить книги</v-btn>
                   <v-row class="mt-4">
                     <div class="font-weight-bold">{{ selectedItem.title }}</div>
                   </v-row>
@@ -975,13 +1020,23 @@ watch(page, () => {
               </v-col>
               <v-col cols="10">
                 <v-row>
-                  <v-col cols="6">
-                    <v-chip v-for="bookType in item.book_type" :key="bookType.id" color="primary" variant="flat">
-                      {{ bookType.title }}
-                    </v-chip>
-                    <v-chip class="ml-2" variant="tonal"> ID: {{ item.id }} </v-chip>
+                  <v-col v-for="item in books" :key="item.id" cols="12" md="6">
+                  <v-card class="pa-3">
+                    <v-card-title>{{ item.title }}</v-card-title>
+                    <v-card-subtitle>Книга ID: {{ item.id }}</v-card-subtitle>
 
-                  </v-col>
+                    <v-row>
+                      <v-chip
+                        v-for="type in item.book_type"
+                        :key="type.id"
+                        color="primary"
+                        variant="flat"
+                      >
+                        {{ type.name }}
+                      </v-chip>
+                    </v-row>
+                  </v-card>
+                </v-col>
                   <v-col class="text-right" cols="6">
                     <v-chip v-if="item.book_school" color="green" variant="flat">Добавлен в фонд
                     </v-chip>
