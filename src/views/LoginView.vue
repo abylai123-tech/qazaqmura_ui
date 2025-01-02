@@ -15,9 +15,18 @@ const signIn = async function () {
     const success = await auth.login(user.value);
     if (success) {
       router.push({ name: 'home' });
+<<<<<<< HEAD
     }
   } catch (error: any) {
     console.error('Error:', error.message || error);
+=======
+    } else {
+      alert('Ошибка авторизации');
+    }
+  } catch (error: any) {
+    console.error('Error:', error.message || error);
+    alert('Произошла ошибка при входе');
+>>>>>>> refs/remotes/origin/main
   } finally {
     loading.value = false;
   }

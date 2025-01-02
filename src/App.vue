@@ -88,15 +88,15 @@ const navigation = computed(() => [
       to: { name: 'purchase' }
     }
   },
-  {
-    title: 'Конкурс',
-    value: 9,
-    props: {
-      prependIcon: 'mdi-library',
-      appendIcon: 'mdi-chevron-right',
-      to: { name: 'contest' }
-    }
-  }
+  // {
+  //   title: 'Конкурс',
+  //   value: 9,
+  //   props: {
+  //     prependIcon: 'mdi-library',
+  //     appendIcon: 'mdi-chevron-right',
+  //     to: { name: 'contest' }
+  //   }
+  // }
 ])
 
 const publisherNavigation = computed(() => [

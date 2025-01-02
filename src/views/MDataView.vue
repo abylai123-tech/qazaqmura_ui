@@ -1,12 +1,19 @@
 <script lang="ts" setup>
 import { useAPI } from '@/api'
+import { onMounted } from 'vue'
 import { ref, type Ref, watch } from 'vue'
 import nocover from '@/assets/no-book-cover.svg'
 import HelpButton from '@/components/HelpButton.vue'
 import { useAuth } from '@/auth'
 import { useI18n } from 'vue-i18n'
+import router from '@/router'
+import { useToast } from 'vue-toastification'
 const { t } = useI18n()
 const api = useAPI()
+const toast = useToast() 
+
+const selectedBookTypes: Ref<BookType[]> = ref([]) 
+const bookTypes: Ref<BookType[]> = ref([]) 
 
 interface Book {
   id: number
@@ -40,6 +47,11 @@ interface Book {
   book_age_characteristic: any[]
   book_education_level: any[]
   book_country: any[]
+}
+
+interface BookType {
+  id: number;
+  title: string;
 }
 
 interface Contractor {
@@ -151,6 +163,7 @@ const languageId: Ref<number | null> = ref(null),
 
 const auth = useAuth()
 const booksTotal = ref(0)
+<<<<<<< HEAD
 const bookTypes = ref([]); 
 const selectedTypes = ref([]); 
 
@@ -185,68 +198,77 @@ watch(
   },
   { deep: true }
 );
+=======
+const books: Ref<Book[]> = ref([])
+>>>>>>> refs/remotes/origin/main
 
 async function getBooks() {
-  loading.value = true
-  console.log(epub.value)
+  loading.value = true;
+  console.log("EPUB value:", epub.value);
+  
   try {
-    let requestString = `/v1/book?page=${page.value}`
-    if (search.value) {
-      requestString += `&title=${search.value}`
+    let requestString = `/v1/book?page=${page.value}`;
+    
+    if (selectedBookTypes.value.length > 0) {
+      const typeIds = selectedBookTypes.value.map(type => type.id).join(",");
+      requestString += `&type_id=${typeIds}`;
     }
-    if (selectedType.value.id != 0) {
-      requestString += `&type_id=${selectedType.value.id}`
+    if (selectedType.value && selectedType.value.id !== 0) {
+      requestString += `&type_id=${selectedType.value.id}`;
     }
     if (languageId.value) {
-      requestString += `&language_id=${languageId.value}`
+      requestString += `&language_id=${languageId.value}`;
     }
     if (authorId.value) {
-      requestString += `&author_id=${authorId.value}`
+      requestString += `&author_id=${authorId.value}`;
     }
     if (publisherId.value) {
-      requestString += `&publisher_id=${publisherId.value}`
+      requestString += `&publisher_id=${publisherId.value}`;
     }
     if (year.value) {
-      requestString += `&year=${year.value}`
+      requestString += `&year=${year.value}`;
     }
     if (epub.value) {
-      requestString += `&epub=1`
+      requestString += `&epub=1`;
     }
     if (genreId.value) {
-      requestString += `&genre_id=${genreId.value}`
+      requestString += `&genre_id=${genreId.value}`;
     }
     if (ageCharacteristicId.value) {
-      requestString += `&age_characteristic_id=${ageCharacteristicId.value}`
+      requestString += `&age_characteristic_id=${ageCharacteristicId.value}`;
     }
     if (countryId.value) {
-      requestString += `&country_id=${countryId.value}`
+      requestString += `&country_id=${countryId.value}`;
     }
     if (copyrightSignId.value) {
-      requestString += `&copyright_sign_id=${copyrightSignId.value}`
+      requestString += `&copyright_sign_id=${copyrightSignId.value}`;
     }
     if (bookClassroom.value) {
-      requestString += `&book_classroom=${bookClassroom.value}`
+      requestString += `&book_classroom=${bookClassroom.value}`;
     }
     if (local.value) {
-      requestString += '&local=1'
+      requestString += `&local=1`;
     }
     if (sorting.value) {
-      requestString += `&sort=${sorting.value}`
+      requestString += `&sort=${sorting.value}`;
     }
 
-    console.log(requestString)
+    console.log("Запрос к серверу:", requestString);
 
-    const response = await api.fetchData<{ data: { items: Book[] }; meta: { last_page: number } }>(
-      requestString
-    )
+    const response = await api.fetchData<{
+      data: { items: Book[] };
+      meta: { last_page: number; total: number };
+    }>(requestString);
 
     if (response.data) {
-      items.value = response.data.data.items
-      length.value = response.data.meta.last_page
-      booksTotal.value = response.data.meta.total
+      items.value = response.data.data.items;
+      length.value = response.data.meta.last_page;
+      booksTotal.value = response.data.meta.total;
     }
   } catch (error: any) {
-    console.error('Error:', error.message)
+    console.error("Ошибка при загрузке книг:", error.message);
+  } finally {
+    loading.value = false;
   }
 }
 
@@ -258,7 +280,6 @@ const downloadEPUB = (epub: { id: number; book_id: number; value: string }) => {
 }
 
 async function getBook(id: number) {
-
   try {
     const response = await api.fetchData<Book>(`/v1/book/${id}`)
     if (response.data) selectedItem.value = response.data
@@ -266,7 +287,6 @@ async function getBook(id: number) {
   } catch (e) {
     console.error(e)
   }
-
 }
 
 function resetFilters() {
@@ -285,6 +305,25 @@ function resetFilters() {
   getBooks()
 }
 
+const removeBookType = (type: BookType) => {
+  selectedBookTypes.value = selectedBookTypes.value.filter(t => t.id !== type.id)
+}
+
+const sendSelectedBookTypes = async () => {
+  try {
+    const typeIds = selectedBookTypes.value.map(type => type.id)
+    await api.postData('/v2/book/school', { type_ids: typeIds })
+    console.log('Данные успешно отправлены:', typeIds)
+  } catch (error) {
+    console.error('Ошибка отправки данных:', error)
+  }
+}
+
+const updateSelectedBookTypes = (newSelection: BookType[]) => {
+  selectedBookTypes.value = newSelection;
+  getBooks();
+};
+
 async function sendRequest(
   bookId: number,
   formMessage: string,
@@ -300,7 +339,6 @@ async function sendRequest(
     console.error('Error:', error)
   }
 }
-
 
 async function sendAdmission(admissionForm: BookAdmission, isActive: Ref<boolean>, id: number) {
   const form = { ...admissionForm }
@@ -502,6 +540,23 @@ async function getCopyrightSigns(search = null) {
   }
 }
 
+const getBookTypes = async () => {
+  try {
+    const response = await api.fetchData<{ data: BookType[] }>('/v1/type');
+    bookTypes.value = response.data || [];
+  } catch (error) {
+    console.error('Ошибка загрузки типов книг:', error);
+  }
+};
+
+const fetchBookTypes = async() => {
+  try {
+    const response = await api.fetchData<{ data: BookType[]}>('/v1/')
+  } catch(error) {
+    console.error('Error:', error);
+  }
+}
+
 const newItem: Ref<{
   name: string
   title: string
@@ -580,7 +635,67 @@ const newQuote = ref({
   note: '',
 })
 
+const minPage = 1; 
+const maxPage = ref<number | null>(null);
+const inputPage = ref<number | null>(null);
+const errorMessage = ref<string>(""); 
+const successMessage = ref<string>("");
 
+const displayMessage = (type: "error" | "success", message: string, duration = 5000) => {
+  if (type === "error") {
+    errorMessage.value = message;
+  } else if (type === "success") {
+    successMessage.value = message;
+  }
+
+  setTimeout(() => {
+    if (type === "error") {
+      errorMessage.value = "";
+    } else if (type === "success") {
+      successMessage.value = "";
+    }
+  }, duration);
+};
+
+const handlePageChange = async () => {
+  errorMessage.value = "";
+  successMessage.value = "";
+
+  if (!inputPage.value || inputPage.value < minPage || (maxPage.value !== null && inputPage.value > maxPage.value)) {
+    displayMessage("error", `Номер страницы должен быть между ${minPage} и ${maxPage.value}.`);
+    return;
+  }
+
+  loading.value = true;
+
+  try {
+    await router.push({
+      path: "/m-data",
+      query: { page: inputPage.value.toString() },
+    });
+    displayMessage("success", `Вы успешно перешли на страницу ${inputPage.value}.`);
+  } catch (error) {
+    console.error("Ошибка при изменении маршрута:", error);
+    displayMessage("error", "Ошибка при переходе на новую страницу.");
+  } finally {
+    loading.value = false;
+  }
+};
+
+const fetchPaginationData = async () => {
+  try {
+    const response = await api.fetchData<{ maxPage: number }>("/v1/book?page=1");
+    if (response.data && response.data.maxPage) {
+      maxPage.value = response.data.maxPage;
+    } else {
+      console.warn("Данные maxPage отсутствуют в ответе API");
+    }
+  } catch (error) {
+    console.error("Ошибка при получении данных от API:", error);
+  }
+};
+
+onMounted(fetchPaginationData);
 
 getBooks()
 getAdmissions()
@@ -598,6 +713,7 @@ getCopyrightSigns()
 watch(page, () => {
   getBooks()
 })
+
 </script>
 
 <template>
@@ -688,6 +804,7 @@ watch(page, () => {
                   <div class="mt-2">Create: КГУ"Школа-гимназия имени Бауыржана Момышұлы", Калтай Исабекова</div>
                 </v-col>
                 <v-col cols="8">
+<<<<<<< HEAD
                   <v-row>
                     <v-chip v-for="item in selectedItem.book_type" :key="item.id" color="primary" variant="flat">
                     <v-select
@@ -704,6 +821,39 @@ watch(page, () => {
                     </v-chip>
                   </v-row>
                   <v-btn color="primary" @click="fetchBooks">Загрузить книги</v-btn>
+=======
+                  <v-autocomplete
+                    v-model="selectedBookTypes"
+                    :items="bookTypes"
+                    item-value="id"
+                    item-text="title"
+                    label="Выберите типы книг"
+                    multiple
+                    chips
+                    clearable
+                    return-object
+                    @update:model-value="updateSelectedBookTypes"
+                  >
+                    <template v-slot:selection="{ item }">
+                      <v-chip
+                        :key="item.id"
+                        small
+                        class="mx-1"
+                        color="primary"
+                        @click:close="removeBookType(item)"
+                      >
+                        {{ item.title }}
+                      </v-chip>
+                    </template>
+                  </v-autocomplete>
+                  <v-btn color="primary" @click="getBooks">Обновить книги</v-btn>
+                  <v-btn color="primary" @click="sendSelectedBookTypes">
+                    Отправить выбранные типы
+                  </v-btn>
+                  <div class="mt-2">
+                    <strong>Выбранные типы:</strong> {{ selectedBookTypes.map(type => type.title).join(', ') }}
+                  </div>
+>>>>>>> refs/remotes/origin/main
                   <v-row class="mt-4">
                     <div class="font-weight-bold">{{ selectedItem.title }}</div>
                   </v-row>
@@ -1578,10 +1728,62 @@ watch(page, () => {
         </v-card-text>
       </v-card>
     </v-row>
+    <v-row justify="center" align="center" class="mt-5">
+    <v-col cols="12" md="8">
+      <v-card
+        class="p-4 d-flex align-center justify-center"
+        elevation="3"
+        rounded="xl"
+        style="z-index: 10; width: 100%;"
+      >
+        <v-row class="align-center">
+          <v-col cols="9">
+            <v-text-field
+            v-model="inputPage"
+            label="Номер страницы"
+            type="number"
+            :error-messages="[errorMessage]"
+            hide-details
+            outlined
+            dense
+            class="no-arrows"
+          ></v-text-field>
+          </v-col>
+          <v-col cols="3">
+            <v-btn
+              block
+              color="primary"
+              height="40px"
+              :disabled="loading"
+              @click="handlePageChange"
+            >
+              Искать
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-card>
+    </v-col>
 
-    <v-row class="mt-4">
-      <v-pagination v-model="page" :length="length" :total-visible="6" active-color="primary" class="ml-auto mr-2"
-        size="small" variant="flat"></v-pagination>
-    </v-row>
+    <v-col cols="12" md="8" class="mt-3">
+      <v-alert
+        v-if="successMessage"
+        type="success"
+        elevation="2"
+        rounded="lg"
+        class="fade-transition"
+      >
+        {{ successMessage }}
+      </v-alert>
+      <v-alert
+        v-if="errorMessage"
+        type="error"
+        elevation="2"
+        rounded="lg"
+        class="fade-transition"
+      >
+        {{ errorMessage }}
+      </v-alert>
+    </v-col>
+  </v-row>
   </v-container>
 </template>
